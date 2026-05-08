@@ -155,9 +155,7 @@ export default function Dashboard() {
               onClick={goToPreviousWeek}
               className="p-2 rounded-full bg-green-100 hover:bg-green-200 dark:bg-green-800/30 dark:hover:bg-green-800/50 min-h-[44px] min-w-[44px] flex items-center justify-center transition-all active:scale-95"
             >
-              <span className="material-symbols-outlined text-green-700 dark:text-green-300">
-                chevron_left
-              </span>
+              <span className="material-symbols-outlined text-green-700 dark:text-green-300">chevron_left</span>
             </button>
             <button
               onClick={goToCurrentWeek}
@@ -169,9 +167,7 @@ export default function Dashboard() {
               onClick={goToNextWeek}
               className="p-2 rounded-full bg-green-100 hover:bg-green-200 dark:bg-green-800/30 dark:hover:bg-green-800/50 min-h-[44px] min-w-[44px] flex items-center justify-center transition-all active:scale-95"
             >
-              <span className="material-symbols-outlined text-green-700 dark:text-green-300">
-                chevron_right
-              </span>
+              <span className="material-symbols-outlined text-green-700 dark:text-green-300">chevron_right</span>
             </button>
           </div>
         </div>
@@ -234,9 +230,7 @@ export default function Dashboard() {
                 : `Nenhuma atividade para ${selectedProgram} nesta semana.`}
             </div>
           ) : (
-            activities.map((activity) => (
-              <ActivityCard key={activity.id} activity={activity} />
-            ))
+            activities.map((activity) => <ActivityCard key={activity.id} activity={activity} />)
           )}
         </div>
       </div>
