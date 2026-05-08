@@ -7,6 +7,7 @@ import ActivityCard from "../components/activities/ActivityCard";
 import SkeletonCard from "../components/ui/SkeletonCard";
 import { useCurrentUser } from "../context/CurrentUserContext";
 import { getProgramColor } from "../lib/colors";
+import { useLanguage } from "../i18n/context";
 
 function getCurrentMonday() {
   const today = new Date();
@@ -39,6 +40,8 @@ export default function Dashboard() {
   const [isDragging, setIsDragging] = useState(false);
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
+
+  const { t } = useLanguage();
 
   useEffect(() => {
     fetchPrograms();
@@ -132,7 +135,7 @@ export default function Dashboard() {
       <div className="max-w-4xl mx-auto">
         {currentUser && (
           <p className="text-body-md text-on-surface dark:text-gray-200 mb-4">
-            Bem-vindo(a),{" "}
+            {t("common.welcome")},{" "}
             <span className="font-semibold text-primary dark:text-white">
               {currentUser.name}
             </span>
@@ -143,7 +146,7 @@ export default function Dashboard() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8">
           <div>
             <h2 className="font-roboto text-headline-lg text-primary dark:text-white mb-1">
-              Atividades da Semana
+              {t("dashboard.title")}
             </h2>
             <p className="text-on-surface-variant dark:text-gray-300 text-sm md:text-base">
               {format(weekStart, "dd 'de' MMM", { locale: ptBR })} –{" "}
@@ -161,7 +164,7 @@ export default function Dashboard() {
               onClick={goToCurrentWeek}
               className="px-4 py-2 rounded-full bg-green-200 text-green-800 hover:bg-green-300 dark:bg-green-700/40 dark:text-green-200 dark:hover:bg-green-700/60 font-roboto text-label-sm min-h-[44px] flex items-center active:scale-95 transition-all"
             >
-              Hoje
+              {t("common.today")}
             </button>
             <button
               onClick={goToNextWeek}
@@ -188,7 +191,7 @@ export default function Dashboard() {
                 : "bg-surface dark:bg-white/5 text-on-surface dark:text-gray-300 border-surface-variant dark:border-white/10 hover:bg-accent/10"
             }`}
           >
-            Todos
+            {t("common.all")}
           </button>
           {programs.map((prog) => {
             const color = getProgramColor(prog.name);
@@ -215,7 +218,7 @@ export default function Dashboard() {
               {selectedProgram}
             </span>
             <span className="ml-2 text-sm text-on-surface-variant dark:text-gray-300">
-              {activities.length} atividade(s)
+              {t("dashboard.activitiesCount", { count: activities.length })}
             </span>
           </div>
         )}
@@ -226,8 +229,8 @@ export default function Dashboard() {
           ) : activities.length === 0 ? (
             <div className="col-span-full text-center py-20 text-on-surface-variant dark:text-gray-400">
               {selectedProgram === "Todos"
-                ? "Nenhuma atividade para esta semana."
-                : `Nenhuma atividade para ${selectedProgram} nesta semana.`}
+                ? t("dashboard.noActivities")
+                : t("dashboard.noActivitiesForProgram", { program: selectedProgram })}
             </div>
           ) : (
             activities.map((activity) => <ActivityCard key={activity.id} activity={activity} />)

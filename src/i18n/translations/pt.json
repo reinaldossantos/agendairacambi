@@ -1,0 +1,77 @@
+{
+  "common": {
+    "welcome": "Bem-vindo(a)",
+    "save": "Salvar",
+    "cancel": "Cancelar",
+    "delete": "Excluir",
+    "edit": "Editar",
+    "close": "Fechar",
+    "search": "Buscar",
+    "loading": "Carregando...",
+    "confirm": "Confirmar",
+    "send": "Enviar",
+    "download": "Baixar",
+    "export": "Exportar",
+    "filter": "Filtrar",
+    "clear": "Limpar",
+    "today": "Hoje",
+    "week": "Semana",
+    "month": "Mês",
+    "all": "Todos",
+    "none": "Nenhum",
+    "select": "Selecionar",
+    "name": "Nome",
+    "program": "Programa",
+    "responsible": "Responsável",
+    "priority": "Prioridade",
+    "status": "Status",
+    "date": "Data",
+    "description": "Descrição",
+    "actions": "Ações",
+    "yes": "Sim",
+    "no": "Não"
+  },
+  "header": {
+    "newActivity": "Nova Atividade",
+    "notifications": "Notificações",
+    "settings": "Configurações",
+    "programs": "Programas",
+    "people": "Pessoas",
+    "leaders": "Líderes",
+    "calendar": "Calendário",
+    "statistics": "Estatísticas",
+    "announcements": "Avisos",
+    "files": "Arquivos",
+    "selectName": "Seu nome"
+  },
+  "dashboard": {
+    "title": "Atividades da Semana",
+    "noActivities": "Nenhuma atividade para esta semana.",
+    "noActivitiesForProgram": "Nenhuma atividade para {program} nesta semana.",
+    "activitiesCount": "{count} atividade(s)"
+  },
+  "activity": {
+    "new": "Lançar Atividades",
+    "newSubtitle": "Compartilhe o planejamento da semana.",
+    "whatsappMode": "WhatsApp",
+    "quickMode": "Rápido",
+    "weekStarting": "Semana começando em:",
+    "weekDescription": "Descritivo da Semana",
+    "involvedPeople": "Envolver outras pessoas (opcional)",
+    "publish": "Publicar Agenda",
+    "publishing": "Publicando..."
+  },
+  "detail": {
+    "peopleInvolved": "Pessoas envolvidas",
+    "manageInvolved": "Gerenciar envolvidos",
+    "photoRecord": "Registro Fotográfico",
+    "editActivity": "Editar",
+    "deleteActivity": "Excluir",
+    "deleteConfirmation": "Tem certeza que deseja excluir esta atividade? Esta ação não pode ser desfeita e os comentários serão perdidos.",
+    "deleteSuccess": "Atividade excluída",
+    "updateSuccess": "Atividade atualizada"
+  },
+  "footer": {
+    "copyright": "© {year} Colegiado IRACAMBI®"
+  }
+}
