@@ -13,6 +13,24 @@ const statusColors = {
   Pendente: "bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400 border-red-200",
 };
 
+const priorityEmojis = {
+  Baixa: "🟢",
+  Média: "🟡",
+  Alta: "🟠",
+  Urgente: "🔴",
+};
+
+// Abreviações para nomes de programas longos (opcional, só se quiser)
+const programShortNames = {
+  "Relações Institucionais": "Rel. Institucionais",
+  "Assistente de Colegiado": "Assist. Colegiado",
+  "Pesquisas e Monitoramento": "Pesq. e Monitor.",
+};
+
+function getShortProgramName(name) {
+  return programShortNames[name] || name;
+}
+
 export default function ActivityCard({ activity }) {
   const [involvedNames, setInvolvedNames] = useState([]);
   const dateToShow = activity.due_date || activity.week_start;
@@ -36,11 +54,16 @@ export default function ActivityCard({ activity }) {
     shareViaWhatsApp(text);
   };
 
-  const programName = activity.programs?.name || "Programa";
-  const programColor = getProgramColor(programName);
+  const fullProgramName = activity.programs?.name || "Programa";
+  const shortProgramName = getShortProgramName(fullProgramName);
+  const programColor = getProgramColor(fullProgramName); // cor ainda usa nome completo
+
   const textColorClass = programColor.text || "text-[#2E7D32]";
   const hexColor = textColorClass.match(/#[0-9A-Fa-f]{6}/)?.[0] || "#2E7D32";
   const hoverShadowStyle = { boxShadow: `0 4px 12px ${hexColor}20` };
+
+  const priority = activity.priority || "Média";
+  const emoji = priorityEmojis[priority] || "🟡";
 
   return (
     <Link
@@ -50,31 +73,57 @@ export default function ActivityCard({ activity }) {
     >
       <div className="flex items-start justify-between mb-3">
         <span className={`inline-block px-2.5 py-0.5 rounded-full ${programColor.bgLight} ${programColor.text} text-[11px] font-roboto font-medium border ${programColor.border}`}>
-          {programName}
+          {shortProgramName}
         </span>
-        <span className={`text-[10px] font-roboto font-semibold px-2 py-0.5 rounded-full border ${statusColors[activity.status] || statusColors.Planejado}`}>
-          {activity.status}
-        </span>
+        <div className="flex gap-1">
+          <span className="text-[10px] font-roboto font-semibold px-2 py-0.5 rounded-full border bg-white dark:bg-white/5">
+            {emoji} {priority}
+          </span>
+          <span className={`text-[10px] font-roboto font-semibold px-2 py-0.5 rounded-full border ${statusColors[activity.status] || statusColors.Planejado}`}>
+            {activity.status}
+          </span>
+        </div>
       </div>
+
       <div className="flex items-center gap-2 text-gray-500 dark:text-gray-300 mb-2">
         <span className="material-symbols-outlined text-[16px]">calendar_today</span>
         <span className="font-roboto text-label-sm">{displayDate}</span>
       </div>
-      <h3 className="font-roboto text-headline-md text-primary dark:text-white mb-2 leading-tight line-clamp-2">{activity.title}</h3>
-      <p className="text-on-surface dark:text-gray-200 font-roboto text-body-md line-clamp-2 mb-4 flex-grow">{activity.description || "Sem descrição"}</p>
+
+      <h3 className="font-roboto text-headline-md text-primary dark:text-white mb-2 leading-tight line-clamp-2">
+        {activity.title}
+      </h3>
+
+      <p className="text-on-surface dark:text-gray-200 font-roboto text-body-md line-clamp-2 mb-4 flex-grow">
+        {activity.description || "Sem descrição"}
+      </p>
+
       <div className="pt-3 border-t border-surface-variant dark:border-white/10 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className={`w-7 h-7 rounded-full ${programColor.bg} flex items-center justify-center text-xs font-bold ${programColor.text}`}>
             {activity.persons?.initials || "?"}
           </div>
-          <span className="font-roboto text-label-sm text-primary dark:text-white">{activity.persons?.name || "Responsável"}</span>
+          <span className="font-roboto text-label-sm text-primary dark:text-white">
+            {activity.persons?.name || "Responsável"}
+          </span>
         </div>
         <div className="flex items-center gap-1">
-          {involvedNames.length > 0 && <span className="text-xs text-green-600 dark:text-green-400 font-roboto px-2 py-1 font-medium">+{involvedNames.length}</span>}
-          <button onClick={handleShare} className="p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full min-h-[44px] min-w-[44px] flex items-center justify-center transition-all active:scale-95">
-            <span className="material-symbols-outlined text-green-600 dark:text-green-400 text-[20px]">share</span>
+          {involvedNames.length > 0 && (
+            <span className="text-xs text-green-600 dark:text-green-400 font-roboto px-2 py-1 font-medium">
+              +{involvedNames.length}
+            </span>
+          )}
+          <button
+            onClick={handleShare}
+            className="p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full min-h-[44px] min-w-[44px] flex items-center justify-center transition-all active:scale-95"
+          >
+            <span className="material-symbols-outlined text-green-600 dark:text-green-400 text-[20px]">
+              share
+            </span>
           </button>
-          <span className="material-symbols-outlined text-accent dark:text-accent group-hover:text-yellow-400 transition-colors">arrow_forward</span>
+          <span className="material-symbols-outlined text-accent dark:text-accent group-hover:text-yellow-400 transition-colors">
+            arrow_forward
+          </span>
         </div>
       </div>
     </Link>

@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, startOfWeek, addDays } from "date-fns";
+import { generateWeeklyPDF } from "../lib/pdfGenerator";
 
 export default function History() {
   const [activities, setActivities] = useState([]);
@@ -41,7 +42,7 @@ export default function History() {
     if (startDate) query = query.gte("due_date", startDate);
     if (endDate) query = query.lte("due_date", endDate);
 
-    const { data, error } = await query.limit(50);
+    const { data, error } = await query.limit(100);
     if (!error) setActivities(data || []);
     setLoading(false);
   }
@@ -73,6 +74,20 @@ export default function History() {
     link.click();
   }
 
+  const handleExportPDF = async () => {
+    if (activities.length === 0) {
+      alert("Nenhuma atividade para exportar.");
+      return;
+    }
+    const start = startDate || format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd");
+    const end = endDate || format(addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), 5), "yyyy-MM-dd");
+    await generateWeeklyPDF({
+      weekStart: start,
+      weekEnd: end,
+      activities,
+    });
+  };
+
   return (
     <div className="max-w-4xl mx-auto px-4 md:px-0">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8">
@@ -80,10 +95,16 @@ export default function History() {
           <h2 className="font-roboto text-headline-lg text-primary dark:text-white mb-2">Histórico e Relatórios</h2>
           <p className="text-on-surface-variant dark:text-gray-400 text-sm md:text-base">Consulte e exporte o histórico de atividades.</p>
         </div>
-        <button onClick={exportCSV} className="mt-4 md:mt-0 bg-accent text-primary font-bold py-3 px-6 rounded-full font-roboto text-label-md flex items-center gap-2 hover:bg-yellow-400 transition-all active:scale-95 min-h-[48px]">
-          <span className="material-symbols-outlined">download</span>
-          Exportar CSV
-        </button>
+        <div className="flex gap-2 mt-4 md:mt-0">
+          <button onClick={exportCSV} className="bg-accent text-primary font-bold py-3 px-6 rounded-full font-roboto text-label-md flex items-center gap-2 hover:bg-yellow-400 transition-all active:scale-95 min-h-[48px]">
+            <span className="material-symbols-outlined">download</span>
+            CSV
+          </button>
+          <button onClick={handleExportPDF} className="bg-red-100 text-red-700 font-bold py-3 px-6 rounded-full font-roboto text-label-md flex items-center gap-2 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50 transition-all active:scale-95 min-h-[48px]">
+            <span className="material-symbols-outlined">picture_as_pdf</span>
+            PDF
+          </button>
+        </div>
       </div>
 
       <form onSubmit={handleFilter} className="bg-white dark:bg-gray-900 border border-surface-variant dark:border-gray-700 rounded-xl p-4 md:p-6 mb-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 items-end">
@@ -109,6 +130,7 @@ export default function History() {
             <option value="Em andamento">Em andamento</option>
             <option value="Realizado">Realizado</option>
             <option value="Pendente">Pendente</option>
+            <option value="Cancelado">Cancelado</option>
           </select>
         </div>
         <div>
@@ -163,6 +185,7 @@ export default function History() {
                         a.status === "Planejado" ? "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300" :
                         a.status === "Em andamento" ? "bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border-amber-200" :
                         a.status === "Realizado" ? "bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-green-200" :
+                        a.status === "Cancelado" ? "bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-200" :
                         "bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 border-red-200"
                       }`}>{a.status}</span>
                     </td>

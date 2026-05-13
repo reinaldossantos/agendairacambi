@@ -15,7 +15,7 @@ export function useNotifications(currentUser) {
     }
 
     try {
-      // Atividades do usuário (responsável ou envolvido)
+      // Busca atividades onde o usuário é responsável ou está envolvido
       const { data: activitiesResponsible } = await supabase
         .from("activities")
         .select("id")
@@ -34,14 +34,15 @@ export function useNotifications(currentUser) {
         .from("activity_logs")
         .select("id, type, content, created_at, activity:activity_id(title, id), person:person_id(name)")
         .order("created_at", { ascending: false })
-        .limit(20);
+        .limit(30);
 
+      // Combina: logs das atividades vinculadas OU logs diretos para o usuário
       if (allActivityIds.length > 0) {
         query = query.or(
-          `activity_id.in.(${allActivityIds.join(",")}),and(activity_id.is.null,person_id.eq.${currentUser.id})`
+          `activity_id.in.(${allActivityIds.join(",")}),person_id.eq.${currentUser.id}`
         );
       } else {
-        query = query.and("activity_id.is.null,person_id.eq.${currentUser.id}");
+        query = query.eq("person_id", currentUser.id);
       }
 
       const { data: logs } = await query;
@@ -52,59 +53,12 @@ export function useNotifications(currentUser) {
     }
   }, [currentUser]);
 
-  // Fallback de lembretes (mantido)
-  const generateClientReminders = useCallback(async () => {
-    if (!currentUser) return;
-    const today = new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const tomorrowStr = tomorrow.toISOString().split("T")[0];
-
-    const { data: activitiesTomorrow } = await supabase
-      .from("activities")
-      .select("id, title, responsible_id, involved_ids")
-      .eq("due_date", tomorrowStr)
-      .not("status", "in", '("Realizado","Pendente")');
-
-    if (!activitiesTomorrow?.length) return;
-
-    for (const act of activitiesTomorrow) {
-      const { data: existing } = await supabase
-        .from("activity_logs")
-        .select("id")
-        .eq("activity_id", act.id)
-        .eq("type", "reminder")
-        .gte("created_at", today.toISOString().split("T")[0]);
-
-      if (existing && existing.length === 0) {
-        await supabase.from("activity_logs").insert({
-          activity_id: act.id,
-          person_id: act.responsible_id,
-          type: "reminder",
-          content: `Lembrete: a atividade "${act.title}" vence amanhã.`,
-        });
-        if (act.involved_ids?.length) {
-          const logs = act.involved_ids.map(pid => ({
-            activity_id: act.id,
-            person_id: pid,
-            type: "reminder",
-            content: `Lembrete: você está envolvido na atividade "${act.title}" que vence amanhã.`,
-          }));
-          await supabase.from("activity_logs").insert(logs);
-        }
-      }
-    }
-  }, [currentUser]);
-
+  // Polling a cada 5 segundos
   useEffect(() => {
     fetchNotifications();
-    generateClientReminders();
-    const interval = setInterval(() => {
-      fetchNotifications();
-      generateClientReminders();
-    }, 15000);
+    const interval = setInterval(fetchNotifications, 5000);
     return () => clearInterval(interval);
-  }, [fetchNotifications, generateClientReminders]);
+  }, [fetchNotifications]);
 
   // Realtime
   useEffect(() => {
@@ -118,6 +72,7 @@ export function useNotifications(currentUser) {
     return () => { supabase.removeChannel(channel); };
   }, [fetchNotifications, currentUser]);
 
+  // Fechar dropdown ao clicar fora
   useEffect(() => {
     function handleClickOutside(event) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {

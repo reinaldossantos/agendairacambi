@@ -4,9 +4,11 @@ import { supabase } from "../lib/supabaseClient";
 import { startOfWeek, addDays, format, parseISO, isValid } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { shareViaWhatsApp, formatAgendaForWhatsApp } from "../lib/whatsapp";
+import { useCurrentUser } from "../context/CurrentUserContext";
 
 export default function NewActivity() {
   const navigate = useNavigate();
+  const { currentUser } = useCurrentUser();
   const [programs, setPrograms] = useState([]);
   const [persons, setPersons] = useState([]);
   const [selectedProgram, setSelectedProgram] = useState("");
@@ -14,10 +16,7 @@ export default function NewActivity() {
   const [selectedPriority, setSelectedPriority] = useState("Média");
   const [mode, setMode] = useState("wpp");
   const [weekText, setWeekText] = useState("");
-
-  // Mantemos rawWeekDate sempre como a segunda-feira da semana atual (não editável diretamente no modo wpp)
   const rawWeekDate = format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd");
-
   const [quickActivities, setQuickActivities] = useState([
     { date: format(new Date(), "yyyy-MM-dd"), title: "", description: "", involvedIds: [], priority: "Média" },
   ]);
@@ -31,7 +30,6 @@ export default function NewActivity() {
     supabase.from("persons").select("id, name").order("name").then(({ data }) => setPersons(data || []));
   }, []);
 
-  // Calcula o intervalo da semana para exibição (formato Dashboard)
   const weekStartDate = format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd");
   const weekEndDate = format(addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), 5), "yyyy-MM-dd");
   const weekDisplay = `${format(parseISO(weekStartDate), "dd 'de' MMM", { locale: ptBR })} – ${format(parseISO(weekEndDate), "dd 'de' MMM", { locale: ptBR })}`;
@@ -169,20 +167,22 @@ export default function NewActivity() {
       return;
     }
 
-    // Logs de envolvimento
+    // GERA LOGS DE ENVOLVIMENTO – cada envolvido recebe seu próprio log
     if (inserted && inserted.length > 0) {
       const involvementLogs = [];
       for (const activity of inserted) {
         if (activity.involved_ids && activity.involved_ids.length > 0) {
-          const involvedPeople = persons.filter(p => activity.involved_ids.includes(p.id));
-          for (const person of involvedPeople) {
-            involvementLogs.push({
-              activity_id: activity.id,
-              person_id: personId,
-              type: "involvement",
-              content: `${person.name} foi envolvido(a) nesta atividade.`,
-              metadata: { involved_person_id: person.id, action: "added" },
-            });
+          for (const pid of activity.involved_ids) {
+            const person = persons.find(p => p.id === pid);
+            if (person) {
+              involvementLogs.push({
+                activity_id: activity.id,
+                person_id: pid,
+                type: "involvement",
+                content: `${currentUser?.name || "Alguém"} envolveu você na atividade "${activity.title}".`,
+                metadata: { involved_person_id: pid, action: "added" },
+              });
+            }
           }
         }
       }

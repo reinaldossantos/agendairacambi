@@ -44,6 +44,8 @@ export default function ActivityDetail() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showDeleteSuccess, setShowDeleteSuccess] = useState(false);
   const [showUpdateSuccess, setShowUpdateSuccess] = useState(false);
+  const [showCancelReason, setShowCancelReason] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
 
   const [programs, setPrograms] = useState([]);
   const [allPersons, setAllPersons] = useState([]);
@@ -142,9 +144,63 @@ export default function ActivityDetail() {
     setFormData((prev) => ({ ...prev, images: newPhotos }));
   };
 
+  const handleStatusClick = (newStatus) => {
+    if (!editMode) return;
+    if (newStatus === "Cancelado") {
+      setShowCancelReason(true);
+      return;
+    }
+    setFormData((prev) => ({ ...prev, status: newStatus }));
+  };
+
+  const confirmCancel = async () => {
+    if (!cancelReason.trim()) {
+      alert("Por favor, informe uma justificativa para o cancelamento.");
+      return;
+    }
+    setShowCancelReason(false);
+
+    if (canEdit && activity) {
+      setSaving(true);
+      const updates = {
+        title: formData.title,
+        description: formData.description,
+        status: "Cancelado",
+        priority: formData.priority,
+        due_date: formData.due_date,
+        program_id: formData.program_id || null,
+        responsible_id: formData.responsible_id || null,
+        involved_ids: formData.involved_ids,
+        images: formData.images,
+        updated_at: new Date().toISOString(),
+      };
+      const { error } = await supabase.from("activities").update(updates).eq("id", activity.id);
+      if (!error) {
+        await supabase.from("activity_logs").insert({
+          activity_id: activity.id,
+          person_id: currentUser.id,
+          type: "status_change",
+          content: `Status alterado de "${activity.status}" para "Cancelado". Justificativa: ${cancelReason}`,
+          metadata: { old_status: activity.status, new_status: "Cancelado", reason: cancelReason },
+        });
+
+        setShowUpdateSuccess(true);
+        setEditMode(false);
+        fetchActivity();
+        fetchLogs();
+      } else {
+        alert("Erro ao salvar: " + error.message);
+      }
+      setSaving(false);
+      setCancelReason("");
+    }
+  };
+
   async function handleSave() {
     if (!canEdit || !activity) return;
     setSaving(true);
+    const oldActivity = { ...activity };
+
     const updates = {
       title: formData.title,
       description: formData.description,
@@ -159,29 +215,57 @@ export default function ActivityDetail() {
     };
     const { error } = await supabase.from("activities").update(updates).eq("id", activity.id);
     if (!error) {
-      if (updates.status !== activity.status) {
+      if (updates.status !== oldActivity.status) {
         await supabase.from("activity_logs").insert({
           activity_id: activity.id,
           person_id: currentUser.id,
           type: "status_change",
-          content: `Status alterado de "${activity.status}" para "${updates.status}"`,
-          metadata: { old_status: activity.status, new_status: updates.status },
+          content: `Status alterado de "${oldActivity.status}" para "${updates.status}".`,
+          metadata: { old_status: oldActivity.status, new_status: updates.status },
         });
       }
-      if (
-        updates.description !== activity.description ||
-        updates.title !== activity.title ||
-        updates.priority !== activity.priority
-      ) {
+
+      const changes = [];
+      if (formData.title !== oldActivity.title) {
+        changes.push(`Título alterado de "${oldActivity.title}" para "${formData.title}"`);
+      }
+      if (formData.description !== oldActivity.description) {
+        changes.push(`Descrição atualizada`);
+      }
+      if (formData.priority !== oldActivity.priority) {
+        changes.push(`Prioridade alterada de "${oldActivity.priority}" para "${formData.priority}"`);
+      }
+      if (formData.due_date !== oldActivity.due_date) {
+        const oldDate = isDateValid(parseISO(oldActivity.due_date))
+          ? format(parseISO(oldActivity.due_date), "dd/MM/yyyy")
+          : oldActivity.due_date;
+        const newDate = isDateValid(parseISO(formData.due_date))
+          ? format(parseISO(formData.due_date), "dd/MM/yyyy")
+          : formData.due_date;
+        changes.push(`Data alterada de ${oldDate} para ${newDate}`);
+      }
+      if (formData.program_id !== oldActivity.program_id) {
+        const oldProg = programs.find(p => p.id === oldActivity.program_id)?.name || "não definido";
+        const newProg = programs.find(p => p.id === formData.program_id)?.name || "não definido";
+        changes.push(`Programa alterado de "${oldProg}" para "${newProg}"`);
+      }
+      if (formData.responsible_id !== oldActivity.responsible_id) {
+        const oldResp = allPersons.find(p => p.id === oldActivity.responsible_id)?.name || "não definido";
+        const newResp = allPersons.find(p => p.id === formData.responsible_id)?.name || "não definido";
+        changes.push(`Responsável alterado de "${oldResp}" para "${newResp}"`);
+      }
+
+      if (changes.length > 0) {
         await supabase.from("activity_logs").insert({
           activity_id: activity.id,
           person_id: currentUser.id,
           type: "update",
-          content: "Atividade editada.",
+          content: changes.join(". ") + ".",
+          metadata: { changes },
         });
       }
 
-      const oldInvolved = activity.involved_ids || [];
+      const oldInvolved = oldActivity.involved_ids || [];
       const newInvolved = formData.involved_ids || [];
       const added = newInvolved.filter((pid) => !oldInvolved.includes(pid));
       const removed = oldInvolved.filter((pid) => !newInvolved.includes(pid));
@@ -192,9 +276,9 @@ export default function ActivityDetail() {
         if (person) {
           involvementLogs.push({
             activity_id: activity.id,
-            person_id: currentUser.id,
+            person_id: pid,
             type: "involvement",
-            content: `${person.name} foi envolvido(a).`,
+            content: `${currentUser.name} envolveu você na atividade.`,
             metadata: { involved_person_id: pid, action: "added" },
           });
         }
@@ -204,9 +288,9 @@ export default function ActivityDetail() {
         if (person) {
           involvementLogs.push({
             activity_id: activity.id,
-            person_id: currentUser.id,
+            person_id: pid,
             type: "involvement",
-            content: `${person.name} foi removido(a) dos envolvidos.`,
+            content: `${currentUser.name} removeu você dos envolvidos.`,
             metadata: { involved_person_id: pid, action: "removed" },
           });
         }
@@ -262,7 +346,6 @@ export default function ActivityDetail() {
 
   return (
     <div className="max-w-4xl mx-auto mb-24 px-4 md:px-0 font-roboto">
-      {/* Modais */}
       <ConfirmDialog
         isOpen={showDeleteConfirm}
         title="Excluir atividade"
@@ -290,6 +373,37 @@ export default function ActivityDetail() {
         confirmText="OK"
         variant="success"
       />
+
+      {showCancelReason && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+          <div className="bg-white dark:bg-dark-surface rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl">
+            <h3 className="font-epilogue text-lg font-semibold text-primary dark:text-white mb-4">
+              Justificativa de Cancelamento
+            </h3>
+            <textarea
+              rows={4}
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              placeholder="Descreva o motivo do cancelamento..."
+              className="w-full bg-surface dark:bg-dark-background border-b-2 border-primary/20 focus:border-accent outline-none py-2 px-3 rounded-t-lg resize-none text-sm font-roboto text-on-surface dark:text-white mb-4"
+            />
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => { setShowCancelReason(false); setCancelReason(""); }}
+                className="px-5 py-2.5 rounded-full border border-outline text-on-surface-variant font-roboto hover:bg-gray-100 dark:hover:bg-white/10"
+              >
+                Voltar
+              </button>
+              <button
+                onClick={confirmCancel}
+                className="px-5 py-2.5 rounded-full bg-red-100 text-red-800 font-roboto hover:bg-red-200"
+              >
+                Confirmar Cancelamento
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <section className="mb-10">
         <div className="flex items-center gap-2 mb-3">
@@ -329,7 +443,6 @@ export default function ActivityDetail() {
           </div>
         </div>
 
-        {/* Pessoas envolvidas (visualização) */}
         {involvedPersons.length > 0 && (
           <div className="mt-4 p-4 bg-surface dark:bg-white/5 rounded-xl">
             <p className="text-label-sm font-roboto text-outline dark:text-gray-400 mb-2">Pessoas envolvidas</p>
@@ -343,7 +456,6 @@ export default function ActivityDetail() {
           </div>
         )}
 
-        {/* Modo edição: título */}
         {canEdit && editMode && (
           <div className="mt-4">
             <label className="font-roboto text-label-md text-outline dark:text-gray-400 block mb-2">Título</label>
@@ -356,7 +468,6 @@ export default function ActivityDetail() {
           </div>
         )}
 
-        {/* Modo edição: gerenciar envolvidos */}
         {canEdit && editMode && (
           <div className="mt-4 p-4 bg-surface dark:bg-white/5 rounded-xl">
             <p className="text-label-sm font-roboto text-outline dark:text-gray-400 mb-2">Gerenciar envolvidos</p>
@@ -379,7 +490,6 @@ export default function ActivityDetail() {
           </div>
         )}
 
-        {/* Modo edição: prioridade */}
         {canEdit && editMode && (
           <div className="mt-4 p-4 bg-surface dark:bg-white/5 rounded-xl">
             <label className="font-roboto text-label-sm text-outline dark:text-gray-400 mb-2 block">Prioridade</label>
@@ -397,7 +507,6 @@ export default function ActivityDetail() {
           </div>
         )}
 
-        {/* Modo edição: upload de fotos */}
         {canEdit && editMode && (
           <div className="mt-4 p-4 bg-surface dark:bg-white/5 rounded-xl">
             <p className="text-label-sm font-roboto text-outline dark:text-gray-400 mb-2">Registro Fotográfico</p>
@@ -405,7 +514,6 @@ export default function ActivityDetail() {
           </div>
         )}
 
-        {/* Imagens atuais (visualização) */}
         {!editMode && activity.images?.length > 0 && (
           <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-2">
             {activity.images.map((url, idx) => (
@@ -414,7 +522,6 @@ export default function ActivityDetail() {
           </div>
         )}
 
-        {/* Botões de ação */}
         <div className="mt-4 flex flex-wrap gap-3">
           {canEdit && (
             <>
@@ -440,15 +547,14 @@ export default function ActivityDetail() {
         {currentUser && !canEdit && <p className="text-sm text-outline mt-2">Apenas o responsável pode editar/excluir esta atividade.</p>}
       </section>
 
-      {/* Status */}
       {canEdit && (
         <section className="mb-10">
           <h3 className="font-roboto text-label-md text-outline dark:text-gray-400 uppercase tracking-widest mb-4">Status</h3>
           <div className="flex flex-wrap gap-3">
-            {["Planejado", "Em andamento", "Realizado", "Pendente"].map((st) => (
+            {["Planejado", "Em andamento", "Realizado", "Pendente", "Cancelado"].map((st) => (
               <button
                 key={st}
-                onClick={() => setFormData((prev) => ({ ...prev, status: st }))}
+                onClick={() => handleStatusClick(st)}
                 disabled={!editMode}
                 className={`px-5 py-2 rounded-full font-roboto text-label-sm transition-all active:scale-95 min-h-[44px] border ${
                   formData.status === st ? "bg-accent/20 border-accent text-primary dark:text-white" : "bg-surface dark:bg-white/5 border-outline text-on-surface dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10"
@@ -462,7 +568,6 @@ export default function ActivityDetail() {
         </section>
       )}
 
-      {/* Descrição editável */}
       {canEdit && editMode && (
         <section className="mb-10 space-y-4">
           <div>

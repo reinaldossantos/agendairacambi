@@ -7,6 +7,7 @@ import ActivityCard from "../components/activities/ActivityCard";
 import SkeletonCard from "../components/ui/SkeletonCard";
 import { useCurrentUser } from "../context/CurrentUserContext";
 import { getProgramColor } from "../lib/colors";
+import { generateWeeklyPDF } from "../lib/pdfGenerator";
 import { useLanguage } from "../i18n/context";
 
 function getCurrentMonday() {
@@ -85,7 +86,10 @@ export default function Dashboard() {
       query = query.eq("program_id", programIds[selectedProgram]);
     }
 
-    const { data, error } = await query.order("due_date", { ascending: true });
+    const { data, error } = await query
+      .order("due_date", { ascending: true })
+      .order("id", { ascending: true });
+
     if (error) {
       console.error("Erro ao buscar atividades:", error);
       setActivities([]);
@@ -98,6 +102,14 @@ export default function Dashboard() {
   const goToPreviousWeek = () => setCurrentMonday(subWeeks(currentMonday, 1));
   const goToNextWeek = () => setCurrentMonday(addWeeks(currentMonday, 1));
   const goToCurrentWeek = () => setCurrentMonday(getCurrentMonday());
+
+  const handleExportPDF = async () => {
+    await generateWeeklyPDF({
+      weekStart: format(weekStart, "yyyy-MM-dd"),
+      weekEnd: format(weekEnd, "yyyy-MM-dd"),
+      activities,
+    });
+  };
 
   const handleMouseDown = (e) => {
     setIsDragging(true);
@@ -171,6 +183,16 @@ export default function Dashboard() {
               className="p-2 rounded-full bg-green-100 hover:bg-green-200 dark:bg-green-800/30 dark:hover:bg-green-800/50 min-h-[44px] min-w-[44px] flex items-center justify-center transition-all active:scale-95"
             >
               <span className="material-symbols-outlined text-green-700 dark:text-green-300">chevron_right</span>
+            </button>
+
+            {/* Botão de exportar PDF */}
+            <button
+              onClick={handleExportPDF}
+              className="px-4 py-2 rounded-full bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50 font-roboto text-label-sm min-h-[44px] flex items-center gap-2 transition-all active:scale-95"
+              title="Exportar relatório em PDF"
+            >
+              <span className="material-symbols-outlined text-[18px]">picture_as_pdf</span>
+              PDF
             </button>
           </div>
         </div>
