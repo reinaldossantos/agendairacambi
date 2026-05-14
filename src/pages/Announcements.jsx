@@ -20,7 +20,7 @@ export default function Announcements() {
   // Controle da semana
   const [currentMonday, setCurrentMonday] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
   const weekStart = currentMonday;
-  const weekEnd = addDays(weekStart, 5); // sábado
+  const weekEnd = addDays(weekStart, 5);
 
   useEffect(() => {
     fetchAnnouncements();
@@ -28,7 +28,6 @@ export default function Announcements() {
   }, []);
 
   async function fetchAnnouncements() {
-    // Busca todos os avisos (ordenados do mais recente)
     const { data } = await supabase
       .from("announcements")
       .select("*, author:author_id(name), program:program_id(name)")
@@ -41,7 +40,6 @@ export default function Announcements() {
     setPrograms(data || []);
   }
 
-  // Filtra avisos da semana atual
   const filteredAnnouncements = announcements.filter((a) => {
     const created = parseISO(a.created_at);
     return isWithinInterval(created, { start: weekStart, end: weekEnd });
@@ -55,12 +53,11 @@ export default function Announcements() {
     e.preventDefault();
     if (!title.trim()) return;
     setLoading(true);
-    const programId = selectedProgram || null;
     const payload = {
       title,
       content,
-      program_id: programId,
-      author_id: currentUser?.id || null,
+      program_id: selectedProgram || null,
+      author_id: currentUser?.id || null, // se não houver usuário, fica null
     };
 
     let error = null;
@@ -114,6 +111,13 @@ export default function Announcements() {
     setMessage({ type: "success", text: "Aviso removido." });
     setTimeout(() => setMessage(null), 3000);
   }
+
+  // Determina se o usuário atual pode gerenciar o aviso
+  const canManage = (announcement) => {
+    if (!currentUser) return false; // sem usuário, não pode
+    if (announcement.author_id === null) return true; // aviso anônimo: qualquer um logado pode
+    return announcement.author_id === currentUser.id; // próprio autor
+  };
 
   return (
     <div className="max-w-4xl mx-auto px-4 md:px-0">
@@ -220,7 +224,7 @@ export default function Announcements() {
               <div className="flex items-center gap-2 text-sm text-outline dark:text-gray-400">
                 {a.program && <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary">{a.program.name}</span>}
                 <span>por {a.author?.name || "Anônimo"}</span>
-                {currentUser && a.author_id === currentUser.id && (
+                {canManage(a) && (
                   <div className="ml-auto flex gap-2">
                     <button onClick={() => startEdit(a)} className="text-primary hover:underline text-xs">Editar</button>
                     <button onClick={() => requestDelete(a)} className="text-red-500 hover:underline text-xs">Excluir</button>
