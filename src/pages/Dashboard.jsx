@@ -104,11 +104,15 @@ export default function Dashboard() {
   const goToCurrentWeek = () => setCurrentMonday(getCurrentMonday());
 
   const handleExportPDF = async () => {
-    await generateWeeklyPDF({
-      weekStart: format(weekStart, "yyyy-MM-dd"),
-      weekEnd: format(weekEnd, "yyyy-MM-dd"),
-      activities,
-    });
+    try {
+      await generateWeeklyPDF({
+        weekStart: format(weekStart, "yyyy-MM-dd"),
+        weekEnd: format(weekEnd, "yyyy-MM-dd"),
+        activities,
+      });
+    } catch (error) {
+      console.error("Erro ao exportar PDF:", error);
+    }
   };
 
   const handleMouseDown = (e) => {

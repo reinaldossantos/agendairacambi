@@ -81,11 +81,15 @@ export default function History() {
     }
     const start = startDate || format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd");
     const end = endDate || format(addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), 5), "yyyy-MM-dd");
-    await generateWeeklyPDF({
-      weekStart: start,
-      weekEnd: end,
-      activities,
-    });
+    try {
+      await generateWeeklyPDF({
+        weekStart: start,
+        weekEnd: end,
+        activities,
+      });
+    } catch (error) {
+      console.error("Erro ao exportar PDF:", error);
+    }
   };
 
   return (

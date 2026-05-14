@@ -125,47 +125,15 @@ export default function NewActivity() {
     let list = [];
     if (mode === "wpp") {
       const parsed = parseWeekText(weekText, parseISO(weekStartDate));
-      if (parsed.length === 0) {
-        setMessage({ type: "error", text: "Não foram encontrados dias da semana no texto.", action: "switch" });
-        setLoading(false);
-        return;
-      }
-      list = parsed.map(item => ({
-        program_id: programId,
-        responsible_id: personId,
-        created_by: personId,
-        title: item.title,
-        description: item.description,
-        week_start: item.week_start,
-        due_date: item.due_date,
-        status: "Planejado",
-        priority: selectedPriority,
-        involved_ids: involvedIdsGlobal,
-      }));
+      if (parsed.length === 0) { setMessage({ type: "error", text: "Não foram encontrados dias da semana no texto.", action: "switch" }); setLoading(false); return; }
+      list = parsed.map(item => ({ program_id: programId, responsible_id: personId, created_by: personId, title: item.title, description: item.description, week_start: item.week_start, due_date: item.due_date, status: "Planejado", priority: selectedPriority, involved_ids: involvedIdsGlobal }));
     } else {
-      for (let q of quickActivities) {
-        if (!q.title.trim() || !q.date) { setMessage({ type: "error", text: "Preencha título e data." }); setLoading(false); return; }
-      }
-      list = quickActivities.map(q => ({
-        program_id: programId,
-        responsible_id: personId,
-        created_by: personId,
-        title: q.title,
-        description: q.description,
-        week_start: format(startOfWeek(parseISO(q.date), { weekStartsOn: 1 }), "yyyy-MM-dd"),
-        due_date: q.date,
-        status: "Planejado",
-        priority: q.priority || "Média",
-        involved_ids: q.involvedIds || [],
-      }));
+      for (let q of quickActivities) { if (!q.title.trim() || !q.date) { setMessage({ type: "error", text: "Preencha título e data." }); setLoading(false); return; } }
+      list = quickActivities.map(q => ({ program_id: programId, responsible_id: personId, created_by: personId, title: q.title, description: q.description, week_start: format(startOfWeek(parseISO(q.date), { weekStartsOn: 1 }), "yyyy-MM-dd"), due_date: q.date, status: "Planejado", priority: q.priority || "Média", involved_ids: q.involvedIds || [] }));
     }
 
     const { data: inserted, error } = await supabase.from("activities").insert(list).select();
-    if (error) {
-      setMessage({ type: "error", text: "Erro: " + error.message });
-      setLoading(false);
-      return;
-    }
+    if (error) { setMessage({ type: "error", text: "Erro: " + error.message }); setLoading(false); return; }
 
     // GERA LOGS DE ENVOLVIMENTO – cada envolvido recebe seu próprio log
     if (inserted && inserted.length > 0) {
@@ -192,18 +160,8 @@ export default function NewActivity() {
     }
 
     setMessage({ type: "success", text: `${list.length} atividade(s) lançada(s)!` });
-    setLastInserted({
-      program: selectedProgram,
-      responsible: selectedPerson,
-      weekStart: list[0].week_start,
-      activities: list,
-    });
-    setWeekText("");
-    setQuickActivities([{ date: format(new Date(), "yyyy-MM-dd"), title: "", description: "", involvedIds: [], priority: "Média" }]);
-    setInvolvedIdsGlobal([]);
-    setSelectedPriority("Média");
-    setMode("wpp");
-    setLoading(false);
+    setLastInserted({ program: selectedProgram, responsible: selectedPerson, weekStart: list[0].week_start, activities: list });
+    setWeekText(""); setQuickActivities([{ date: format(new Date(), "yyyy-MM-dd"), title: "", description: "", involvedIds: [], priority: "Média" }]); setInvolvedIdsGlobal([]); setSelectedPriority("Média"); setMode("wpp"); setLoading(false);
   }
 
   return (

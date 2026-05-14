@@ -8,49 +8,50 @@ export function useNotifications(currentUser) {
   const dropdownRef = useRef(null);
 
   const fetchNotifications = useCallback(async () => {
-    if (!currentUser || !currentUser.id) {
+    if (!currentUser?.id) {
       setNotifications([]);
       setUnreadCount(0);
       return;
     }
 
-    try {
-      // Busca atividades onde o usuário é responsável ou está envolvido
-      const { data: activitiesResponsible } = await supabase
-        .from("activities")
-        .select("id")
-        .eq("responsible_id", currentUser.id);
+    // Atividades em que sou responsável ou envolvido
+    const { data: responsibleData } = await supabase
+      .from("activities")
+      .select("id")
+      .eq("responsible_id", currentUser.id);
 
-      const { data: activitiesInvolved } = await supabase
-        .from("activities")
-        .select("id")
-        .contains("involved_ids", [currentUser.id]);
+    const { data: involvedData } = await supabase
+      .from("activities")
+      .select("id")
+      .contains("involved_ids", [currentUser.id]);
 
-      const responsibleIds = (activitiesResponsible || []).map(a => a.id);
-      const involvedIds = (activitiesInvolved || []).map(a => a.id);
-      const allActivityIds = [...new Set([...responsibleIds, ...involvedIds])];
+    const activityIds = [
+      ...new Set([
+        ...(responsibleData || []).map(a => a.id),
+        ...(involvedData || []).map(a => a.id),
+      ]),
+    ];
 
-      let query = supabase
-        .from("activity_logs")
-        .select("id, type, content, created_at, activity:activity_id(title, id), person:person_id(name)")
-        .order("created_at", { ascending: false })
-        .limit(30);
+    let query = supabase
+      .from("activity_logs")
+      .select(
+        "id, type, content, created_at, activity:activity_id(title, id), person:person_id(name)"
+      )
+      .order("created_at", { ascending: false })
+      .limit(30);
 
-      // Combina: logs das atividades vinculadas OU logs diretos para o usuário
-      if (allActivityIds.length > 0) {
-        query = query.or(
-          `activity_id.in.(${allActivityIds.join(",")}),person_id.eq.${currentUser.id}`
-        );
-      } else {
-        query = query.eq("person_id", currentUser.id);
-      }
-
-      const { data: logs } = await query;
-      setNotifications(logs || []);
-      setUnreadCount(logs?.length || 0);
-    } catch (err) {
-      console.error("Erro ao buscar notificações", err);
+    if (activityIds.length > 0) {
+      // Logs das atividades vinculadas OU logs diretos para o usuário
+      query = query.or(
+        `activity_id.in.(${activityIds.join(",")}),person_id.eq.${currentUser.id}`
+      );
+    } else {
+      query = query.eq("person_id", currentUser.id);
     }
+
+    const { data: logs } = await query;
+    setNotifications(logs || []);
+    setUnreadCount(logs?.length || 0);
   }, [currentUser]);
 
   // Polling a cada 5 segundos
@@ -60,25 +61,31 @@ export function useNotifications(currentUser) {
     return () => clearInterval(interval);
   }, [fetchNotifications]);
 
-  // Realtime
+  // Realtime (Supabase)
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser?.id) return;
     const channel = supabase
       .channel("public:activity_logs")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "activity_logs" }, () => {
-        fetchNotifications();
-      })
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "activity_logs" },
+        () => {
+          fetchNotifications();
+        }
+      )
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [fetchNotifications, currentUser]);
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [currentUser, fetchNotifications]);
 
-  // Fechar dropdown ao clicar fora
+  // Fechar dropdown clicando fora
   useEffect(() => {
-    function handleClickOutside(event) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
         setOpen(false);
       }
-    }
+    };
     if (open) {
       document.addEventListener("mousedown", handleClickOutside);
       document.addEventListener("touchstart", handleClickOutside);
@@ -91,9 +98,7 @@ export function useNotifications(currentUser) {
 
   const toggleOpen = () => {
     setOpen((prev) => !prev);
-    if (!open) {
-      fetchNotifications();
-    }
+    if (!open) fetchNotifications();
   };
 
   return { notifications, unreadCount, open, toggleOpen, dropdownRef };
