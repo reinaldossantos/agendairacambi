@@ -15,8 +15,8 @@ const sections = [
         </p>
         <p>
           Com esta plataforma você pode lançar tarefas, acompanhar status, envolver
-          pessoas, exportar relatórios, anexar fotos, publicar avisos e gerenciar
-          arquivos — tudo de forma simples, intuitiva e responsiva.
+          pessoas, exportar relatórios, anexar fotos, publicar avisos, gerenciar
+          arquivos e muito mais — tudo de forma simples, intuitiva e responsiva.
         </p>
       </>
     ),
@@ -127,9 +127,9 @@ const sections = [
             filtros para os lados.
           </li>
           <li>
-            Cada card exibe o nome do programa, prioridade, status, responsável e
-            um ícone de compartilhamento. O círculo com as iniciais e a sombra ao
-            passar o mouse herdam a cor do programa.
+            Cada card exibe o nome do programa, prioridade (com emoji), status,
+            responsável e um ícone de compartilhamento. O círculo com as iniciais e
+            a sombra ao passar o mouse herdam a cor do programa.
           </li>
           <li>
             O contador <strong>+2</strong> indica quantas pessoas estão envolvidas
@@ -147,14 +147,15 @@ const sections = [
         <p className="mb-4">Dentro de cada atividade você pode:</p>
         <ul className="list-disc ml-5 space-y-2">
           <li><strong>Comentar</strong> — qualquer pessoa pode deixar mensagens.</li>
-          <li><strong>Alterar status</strong> — Planejado, Em andamento, Realizado ou Pendente. Apenas o responsável ou o autor podem modificar.</li>
-          <li><strong>Editar</strong> — modificar título, descrição, data, prioridade e pessoas envolvidas.</li>
+          <li><strong>Alterar status</strong> — Planejado, Em andamento, Realizado, Pendente ou Cancelado.</li>
+          <li><strong>Cancelar atividade</strong> — exige uma justificativa que fica registrada no histórico.</li>
+          <li><strong>Editar</strong> — modificar título, descrição, data, prioridade, programa e pessoas envolvidas.</li>
           <li><strong>Excluir</strong> — remove a atividade permanentemente (com confirmação visual).</li>
           <li><strong>Anexar fotos</strong> — faça upload de imagens para comprovar ocorrências.</li>
         </ul>
         <p className="mt-4">
           Toda mudança fica registrada no <strong>Histórico de Atualizações</strong>,
-          onde cada pessoa aparece com uma cor diferente.
+          onde cada pessoa aparece com uma cor diferente e as alterações são descritas em detalhes.
         </p>
       </>
     ),
@@ -171,40 +172,40 @@ const sections = [
         <ul className="list-disc ml-5 space-y-2">
           <li>Alguém comentar em uma atividade sua.</li>
           <li>Você for <strong>envolvido(a)</strong> em uma atividade.</li>
-          <li>O status de uma atividade sua for alterado.</li>
+          <li>O status de uma atividade sua for alterado (inclusive cancelamento).</li>
           <li>Um <strong>lembrete</strong> automático for gerado (atividades que vencem amanhã).</li>
           <li>Um <strong>arquivo</strong> for enviado para o seu programa ou para todos os programas.</li>
         </ul>
         <p className="mt-4">
-          Para fechar a lista, basta clicar fora ou no próprio ícone. As
-          notificações são atualizadas a cada 15 segundos.
+          As notificações são atualizadas a cada 5 segundos e também em tempo real
+          via Supabase. Para fechar a lista, clique fora ou no próprio ícone.
         </p>
       </>
     ),
   },
   {
     id: "export",
-    title: "📤 Exportar para WhatsApp",
+    title: "📤 Exportar para WhatsApp e PDF",
     content: (
       <>
-        <p className="mb-4">
-          Existem duas formas de compartilhar:
-        </p>
+        <p className="mb-4">Existem várias formas de compartilhar informações:</p>
         <ul className="list-disc ml-5 space-y-2">
           <li>
             No <strong>card da atividade</strong>, o ícone verde de compartilhar
-            envia os dados daquela atividade.
+            envia os dados daquela atividade para o WhatsApp.
           </li>
           <li>
-            Após <strong>publicar uma agenda</strong>, o botão verde "Enviar via
-            WhatsApp" gera um relatório completo da semana, com cabeçalho
-            IRACAMBI, marcadores quadrados (☐) para cada dia e as descrições
-            resumidas.
+            Após <strong>publicar uma agenda</strong>, o botão "Enviar via WhatsApp"
+            gera um relatório formatado com emojis e marcadores.
+          </li>
+          <li>
+            No <strong>Dashboard</strong> e no <strong>Histórico</strong>, o botão{" "}
+            <span className="text-red-500 font-bold">PDF</span> gera um relatório
+            profissional com logotipo, tabela colorida e rodapé institucional.
           </li>
         </ul>
         <p className="text-sm mt-2">
-          O relatório também está disponível dentro da página de detalhes de
-          qualquer atividade, ao lado dos botões de edição.
+          O PDF pode ser salvo, impresso ou compartilhado oficialmente.
         </p>
       </>
     ),
@@ -221,9 +222,9 @@ const sections = [
         </p>
         <ul className="list-disc ml-5 space-y-2">
           <li>Navegar entre os meses com as setas ou voltar para o mês atual com o botão <strong>Hoje</strong>.</li>
-          <li>Filtrar por programa usando os botões coloridos.</li>
+          <li>Filtrar por programa usando os botões coloridos (arrastáveis).</li>
           <li>Clicar em um dia para ver a lista de atividades daquela data.</li>
-          <li>Os dias que possuem atividades mostram bolinhas coloridas correspondentes aos programas.</li>
+          <li>Os dias que possuem atividades mostram bolinhas coloridas e uma legenda abaixo da grade.</li>
         </ul>
       </>
     ),
@@ -239,8 +240,9 @@ const sections = [
           no cabeçalho. Você verá:
         </p>
         <ul className="list-disc ml-5 space-y-2">
-          <li>Cards com a contagem de atividades por status (Planejado, Em andamento, Realizado, Pendente).</li>
+          <li>Cards com a contagem de atividades por status.</li>
           <li>Um gráfico de barras colorido mostrando a distribuição de atividades por programa na semana atual.</li>
+          <li>Navegação entre semanas (setas + Hoje) para comparar períodos.</li>
         </ul>
       </>
     ),
@@ -253,12 +255,13 @@ const sections = [
         <p className="mb-4">
           Acesse o mural pelo ícone{" "}
           <span className="material-symbols-outlined align-middle">campaign</span>{" "}
-          no cabeçalho. Você pode:
+          no cabeçalho. Quando há novos avisos na semana, o ícone{" "}
+          <strong className="text-red-500">pulsa em vermelho</strong>. Você pode:
         </p>
         <ul className="list-disc ml-5 space-y-2">
           <li><strong>Publicar</strong> um novo aviso com título, conteúdo e programa (opcional).</li>
-          <li><strong>Editar</strong> ou <strong>excluir</strong> seus próprios avisos.</li>
-          <li>Navegar entre as semanas (padrão: semana atual) para ver os avisos por período.</li>
+          <li><strong>Editar</strong> ou <strong>excluir</strong> seus próprios avisos (e avisos anônimos).</li>
+          <li>Navegar entre as semanas para ver os avisos por período.</li>
         </ul>
       </>
     ),
@@ -271,7 +274,8 @@ const sections = [
         <p className="mb-4">
           Acesse o repositório pelo ícone{" "}
           <span className="material-symbols-outlined align-middle">folder</span>{" "}
-          no cabeçalho. Você pode:
+          no cabeçalho. Quando há novos arquivos na semana, o ícone{" "}
+          <strong className="text-blue-500">pulsa em azul</strong>. Você pode:
         </p>
         <ul className="list-disc ml-5 space-y-2">
           <li><strong>Enviar</strong> arquivos para um programa específico ou para <strong>todos os programas</strong>.</li>
@@ -289,16 +293,33 @@ const sections = [
     content: (
       <>
         <p className="mb-4">
-          Acesse o histórico pelo ícone da barra inferior (mobile) ou pela navegação.
-          Você pode:
+          Acesse o histórico pela barra inferior (mobile) ou pelo menu. Você pode:
         </p>
         <ul className="list-disc ml-5 space-y-2">
-          <li>Filtrar por período, programa, responsável ou status.</li>
+          <li>Filtrar por período, programa, responsável ou status (incluindo Cancelado).</li>
           <li>Visualizar uma tabela completa com todas as atividades.</li>
-          <li><strong>Exportar CSV</strong> para análise externa em Excel ou Google Sheets.</li>
+          <li><strong>Exportar CSV</strong> para análise externa.</li>
+          <li><strong>Exportar PDF</strong> com o mesmo formato profissional.</li>
+        </ul>
+      </>
+    ),
+  },
+  {
+    id: "pwa",
+    title: "📱 Instalar como Aplicativo (PWA)",
+    content: (
+      <>
+        <p className="mb-4">
+          O AGENDA IRACAMBI pode ser instalado no seu celular ou computador como
+          um aplicativo nativo, sem precisar da loja de apps.
+        </p>
+        <ul className="list-disc ml-5 space-y-2">
+          <li>No <strong>Chrome/Edge</strong> (Android ou desktop): clique no ícone de "Instalar" na barra de endereço.</li>
+          <li>No <strong>Safari</strong> (iOS): toque no botão "Compartilhar" e depois em "Adicionar à Tela de Início".</li>
         </ul>
         <p className="mt-4">
-          A tabela é responsiva e permite rolagem horizontal em telas menores.
+          O app funcionará offline para consultas rápidas e enviará notificações
+          (quando suportado pelo navegador).
         </p>
       </>
     ),
@@ -326,7 +347,7 @@ const sections = [
           </li>
           <li>
             <span className="material-symbols-outlined align-middle">settings</span>{" "}
-            <strong>Configurações</strong> — ativar modo escuro.
+            <strong>Configurações</strong> — ativar modo escuro e selecionar idioma.
           </li>
         </ul>
         <p className="mt-4">
