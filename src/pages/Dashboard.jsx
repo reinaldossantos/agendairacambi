@@ -104,15 +104,11 @@ export default function Dashboard() {
   const goToCurrentWeek = () => setCurrentMonday(getCurrentMonday());
 
   const handleExportPDF = async () => {
-    try {
-      await generateWeeklyPDF({
-        weekStart: format(weekStart, "yyyy-MM-dd"),
-        weekEnd: format(weekEnd, "yyyy-MM-dd"),
-        activities,
-      });
-    } catch (error) {
-      console.error("Erro ao exportar PDF:", error);
-    }
+    await generateWeeklyPDF({
+      weekStart: format(weekStart, "yyyy-MM-dd"),
+      weekEnd: format(weekEnd, "yyyy-MM-dd"),
+      activities,
+    });
   };
 
   const handleMouseDown = (e) => {
@@ -189,7 +185,6 @@ export default function Dashboard() {
               <span className="material-symbols-outlined text-green-700 dark:text-green-300">chevron_right</span>
             </button>
 
-            {/* Botão de exportar PDF */}
             <button
               onClick={handleExportPDF}
               className="px-4 py-2 rounded-full bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50 font-roboto text-label-sm min-h-[44px] flex items-center gap-2 transition-all active:scale-95"

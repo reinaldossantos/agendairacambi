@@ -58,7 +58,7 @@ export default function Header() {
             <span className="material-symbols-outlined text-[22px]">bar_chart</span>
           </Link>
 
-          {/* Ícone de avisos com pulsação vermelha */}
+          {/* Avisos – pulsação vermelha */}
           <Link
             to="/announcements"
             title={t("header.announcements")}
@@ -69,7 +69,7 @@ export default function Header() {
             <span className="material-symbols-outlined text-[22px]">campaign</span>
           </Link>
 
-          {/* Ícone de arquivos com pulsação azul */}
+          {/* Arquivos – pulsação azul */}
           <Link
             to="/files"
             title={t("header.files")}
@@ -82,6 +82,11 @@ export default function Header() {
 
           <Link to="/settings" title={t("header.settings")} className="p-2.5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full min-h-[50px] min-w-[50px] flex items-center justify-center transition-colors text-primary dark:text-primary-light shadow-sm bg-white/50 dark:bg-white/5 backdrop-blur-sm">
             <span className="material-symbols-outlined text-[22px]">settings</span>
+          </Link>
+
+          {/* Configurações Avançadas (ícone tune) */}
+          <Link to="/advanced-settings" title="Configurações Avançadas" className="p-2.5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full min-h-[50px] min-w-[50px] flex items-center justify-center transition-colors text-primary dark:text-primary-light shadow-sm bg-white/50 dark:bg-white/5 backdrop-blur-sm">
+            <span className="material-symbols-outlined text-[22px]">tune</span>
           </Link>
 
           <Link to="/admin/programs" title={t("header.programs")} className="p-2.5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full min-h-[50px] min-w-[50px] flex items-center justify-center transition-colors text-primary dark:text-primary-light shadow-sm bg-white/50 dark:bg-white/5 backdrop-blur-sm">
@@ -197,54 +202,10 @@ export default function Header() {
           </div>
         </div>
 
-        {/* Mobile */}
+        {/* Mobile: apenas ícones essenciais + hambúrguer */}
         <div className="flex md:hidden items-center gap-2">
           <Link to="/new" className="p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full min-h-[44px] min-w-[44px] flex items-center justify-center text-primary dark:text-white">
             <span className="material-symbols-outlined text-2xl">add_circle</span>
-          </Link>
-
-          <select
-            value={locale}
-            onChange={(e) => changeLocale(e.target.value)}
-            className="bg-surface dark:bg-white/5 border-b-2 border-primary/20 focus:border-accent outline-none py-2 px-1 rounded-t-lg text-sm font-roboto text-on-surface dark:text-gray-200 min-w-[60px]"
-          >
-            <option value="pt">🇧🇷</option>
-            <option value="en">🇺🇸</option>
-            <option value="es">🇪🇸</option>
-          </select>
-
-          <select
-            value={currentUser?.id || ""}
-            onChange={(e) => {
-              const selected = persons.find((p) => p.id === e.target.value);
-              if (selected) selectUser(selected);
-            }}
-            className="bg-surface dark:bg-white/5 border-b-2 border-primary/20 focus:border-accent outline-none py-2 px-2 rounded-t-lg text-sm font-roboto text-on-surface dark:text-gray-200 min-w-[100px] max-w-[140px]"
-          >
-            <option value="">{t("header.selectName")}</option>
-            {persons.map((p) => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </select>
-
-          {/* Ícone de avisos mobile com pulsação vermelha */}
-          <Link
-            to="/announcements"
-            className={`p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full min-h-[44px] min-w-[44px] flex items-center justify-center ${
-              hasNewAnnouncements ? "text-red-500 animate-pulse" : "text-primary dark:text-primary-light"
-            }`}
-          >
-            <span className="material-symbols-outlined text-2xl">campaign</span>
-          </Link>
-
-          {/* Ícone de arquivos mobile com pulsação azul */}
-          <Link
-            to="/files"
-            className={`p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full min-h-[44px] min-w-[44px] flex items-center justify-center ${
-              hasNewFiles ? "text-blue-500 animate-pulse" : "text-primary dark:text-primary-light"
-            }`}
-          >
-            <span className="material-symbols-outlined text-2xl">folder</span>
           </Link>
 
           <button onClick={toggleOpen} className="p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full min-h-[44px] min-w-[44px] flex items-center justify-center text-primary dark:text-primary-light relative">
@@ -257,51 +218,82 @@ export default function Header() {
           </button>
 
           <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            onClick={() => setMobileMenuOpen(true)}
             className="p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full min-h-[44px] min-w-[44px] flex items-center justify-center text-primary dark:text-primary-light"
           >
-            <span className="material-symbols-outlined text-2xl">{mobileMenuOpen ? "close" : "menu"}</span>
+            <span className="material-symbols-outlined text-2xl">menu</span>
           </button>
         </div>
       </div>
 
-      {/* Menu mobile */}
-      {mobileMenuOpen && (
-        <div className="md:hidden bg-white dark:bg-dark-surface border-t border-surface-variant dark:border-white/10 px-4 py-4 space-y-3">
-          <Link to="/calendar" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-on-surface dark:text-gray-200">
-            <span className="material-symbols-outlined text-primary">calendar_month</span>
-            <span className="font-roboto text-label-md">{t("header.calendar")}</span>
-          </Link>
-          <Link to="/stats" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-on-surface dark:text-gray-200">
-            <span className="material-symbols-outlined text-primary">bar_chart</span>
-            <span className="font-roboto text-label-md">{t("header.statistics")}</span>
-          </Link>
-          <Link to="/announcements" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-on-surface dark:text-gray-200">
-            <span className={`material-symbols-outlined ${hasNewAnnouncements ? "text-red-500 animate-pulse" : "text-primary"}`}>campaign</span>
-            <span className="font-roboto text-label-md">{t("header.announcements")}</span>
-          </Link>
-          <Link to="/files" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-on-surface dark:text-gray-200">
-            <span className={`material-symbols-outlined ${hasNewFiles ? "text-blue-500 animate-pulse" : "text-primary"}`}>folder</span>
-            <span className="font-roboto text-label-md">{t("header.files")}</span>
-          </Link>
-          <Link to="/settings" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-on-surface dark:text-gray-200">
-            <span className="material-symbols-outlined text-primary">settings</span>
-            <span className="font-roboto text-label-md">{t("header.settings")}</span>
-          </Link>
-          <Link to="/admin/programs" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-on-surface dark:text-gray-200">
-            <span className="material-symbols-outlined text-primary">admin_panel_settings</span>
-            <span className="font-roboto text-label-md">{t("header.programs")}</span>
-          </Link>
-          <Link to="/admin/persons" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-on-surface dark:text-gray-200">
-            <span className="material-symbols-outlined text-primary">group</span>
-            <span className="font-roboto text-label-md">{t("header.people")}</span>
-          </Link>
-          <Link to="/admin/leaders" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-on-surface dark:text-gray-200">
-            <span className="material-symbols-outlined text-primary">diversity_3</span>
-            <span className="font-roboto text-label-md">{t("header.leaders")}</span>
-          </Link>
-        </div>
-      )}
+      {/* Menu mobile – agora com z-index maior que o header */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 md:hidden"
+          >
+            {/* Overlay escuro */}
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)} />
+            {/* Gaveta */}
+            <motion.div
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              className="absolute right-0 top-0 h-full w-80 max-w-[85vw] bg-white dark:bg-dark-surface shadow-2xl p-6 overflow-y-auto z-50"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="font-roboto text-headline-md text-primary dark:text-white">Menu</h2>
+                <button onClick={() => setMobileMenuOpen(false)} className="p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full">
+                  <span className="material-symbols-outlined text-2xl text-primary dark:text-white">close</span>
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                <Link to="/calendar" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-on-surface dark:text-gray-200">
+                  <span className="material-symbols-outlined text-primary text-2xl">calendar_month</span>
+                  <span className="font-roboto text-body-md">{t("header.calendar")}</span>
+                </Link>
+                <Link to="/stats" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-on-surface dark:text-gray-200">
+                  <span className="material-symbols-outlined text-primary text-2xl">bar_chart</span>
+                  <span className="font-roboto text-body-md">{t("header.statistics")}</span>
+                </Link>
+                <Link to="/announcements" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-on-surface dark:text-gray-200">
+                  <span className={`material-symbols-outlined text-2xl ${hasNewAnnouncements ? "text-red-500 animate-pulse" : "text-primary"}`}>campaign</span>
+                  <span className="font-roboto text-body-md">{t("header.announcements")}</span>
+                </Link>
+                <Link to="/files" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-on-surface dark:text-gray-200">
+                  <span className={`material-symbols-outlined text-2xl ${hasNewFiles ? "text-blue-500 animate-pulse" : "text-primary"}`}>folder</span>
+                  <span className="font-roboto text-body-md">{t("header.files")}</span>
+                </Link>
+                <Link to="/settings" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-on-surface dark:text-gray-200">
+                  <span className="material-symbols-outlined text-primary text-2xl">settings</span>
+                  <span className="font-roboto text-body-md">{t("header.settings")}</span>
+                </Link>
+                <Link to="/advanced-settings" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-on-surface dark:text-gray-200">
+                  <span className="material-symbols-outlined text-primary text-2xl">tune</span>
+                  <span className="font-roboto text-body-md">Avançado</span>
+                </Link>
+                <Link to="/admin/programs" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-on-surface dark:text-gray-200">
+                  <span className="material-symbols-outlined text-primary text-2xl">admin_panel_settings</span>
+                  <span className="font-roboto text-body-md">{t("header.programs")}</span>
+                </Link>
+                <Link to="/admin/persons" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-on-surface dark:text-gray-200">
+                  <span className="material-symbols-outlined text-primary text-2xl">group</span>
+                  <span className="font-roboto text-body-md">{t("header.people")}</span>
+                </Link>
+                <Link to="/admin/leaders" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-on-surface dark:text-gray-200">
+                  <span className="material-symbols-outlined text-primary text-2xl">diversity_3</span>
+                  <span className="font-roboto text-body-md">{t("header.leaders")}</span>
+                </Link>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </header>
   );
 }

@@ -5,25 +5,35 @@ import { startOfWeek, addDays, format, parseISO, isValid } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { shareViaWhatsApp, formatAgendaForWhatsApp } from "../lib/whatsapp";
 import { useCurrentUser } from "../context/CurrentUserContext";
+import { useAdvancedSettings } from "../context/AdvancedSettingsContext";
 
 export default function NewActivity() {
   const navigate = useNavigate();
   const { currentUser } = useCurrentUser();
+  const { modes } = useAdvancedSettings();
   const [programs, setPrograms] = useState([]);
   const [persons, setPersons] = useState([]);
   const [selectedProgram, setSelectedProgram] = useState("");
   const [selectedPerson, setSelectedPerson] = useState("");
   const [selectedPriority, setSelectedPriority] = useState("Média");
-  const [mode, setMode] = useState("wpp");
+
+  const initialMode = modes.wpp ? "wpp" : modes.quick ? "quick" : null;
+  const [mode, setMode] = useState(initialMode);
+
   const [weekText, setWeekText] = useState("");
   const rawWeekDate = format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd");
   const [quickActivities, setQuickActivities] = useState([
-    { date: format(new Date(), "yyyy-MM-dd"), title: "", description: "", involvedIds: [], priority: "Média" },
+    { date: format(new Date(), "yyyy-MM-dd"), title: "", description: "", involvedIds: [], priority: "Média", repeat: false, repeatEndDate: "", repeatDays: [] },
   ]);
   const [involvedIdsGlobal, setInvolvedIdsGlobal] = useState([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
   const [lastInserted, setLastInserted] = useState(null);
+
+  useEffect(() => {
+    if (!modes.wpp && mode === "wpp") setMode(modes.quick ? "quick" : null);
+    if (!modes.quick && mode === "quick") setMode(modes.wpp ? "wpp" : null);
+  }, [modes, mode]);
 
   useEffect(() => {
     supabase.from("programs").select("id, name").order("name").then(({ data }) => setPrograms(data || []));
@@ -34,6 +44,7 @@ export default function NewActivity() {
   const weekEndDate = format(addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), 5), "yyyy-MM-dd");
   const weekDisplay = `${format(parseISO(weekStartDate), "dd 'de' MMM", { locale: ptBR })} – ${format(parseISO(weekEndDate), "dd 'de' MMM", { locale: ptBR })}`;
 
+  // --- funções de parser (mantidas) ---
   function parseWeekText(text, mondayDate) {
     const dayMap = {
       'segunda': 0, 'segunda-feira': 0, 'segunda feira': 0,
@@ -103,18 +114,51 @@ export default function NewActivity() {
     if (cleaned.length === 0) return { title: "Atividade", description: "" };
     return { title: cleaned[0], description: cleaned.join('; ') };
   }
+  // --- fim parser ---
 
-  const addQuickActivity = () => setQuickActivities([...quickActivities, { date: format(new Date(), "yyyy-MM-dd"), title: "", description: "", involvedIds: [], priority: "Média" }]);
+  const addQuickActivity = () => setQuickActivities([...quickActivities, { date: format(new Date(), "yyyy-MM-dd"), title: "", description: "", involvedIds: [], priority: "Média", repeat: false, repeatEndDate: "", repeatDays: [] }]);
   const removeQuickActivity = (i) => { if (quickActivities.length > 1) setQuickActivities(quickActivities.filter((_, idx) => idx !== i)); };
   const updateQuickActivity = (i, f, v) => { const u = [...quickActivities]; u[i][f] = v; setQuickActivities(u); };
   const toggleInvolved = (i, id) => { const u = [...quickActivities]; u[i].involvedIds = u[i].involvedIds.includes(id) ? u[i].involvedIds.filter(x => x !== id) : [...u[i].involvedIds, id]; setQuickActivities(u); };
   const toggleInvolvedGlobal = (id) => setInvolvedIdsGlobal(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
 
+  // Toggle para dia da semana no repeat
+  const toggleRepeatDay = (i, day) => {
+    const u = [...quickActivities];
+    const days = u[i].repeatDays || [];
+    if (days.includes(day)) u[i].repeatDays = days.filter(d => d !== day);
+    else u[i].repeatDays = [...days, day];
+    setQuickActivities(u);
+  };
+
   const switchToQuickWithText = () => {
-    setQuickActivities([{ date: rawWeekDate, title: weekText.split('\n')[0] || "Atividade", description: weekText, involvedIds: involvedIdsGlobal, priority: selectedPriority }]);
+    setQuickActivities([{ date: rawWeekDate, title: weekText.split('\n')[0] || "Atividade", description: weekText, involvedIds: involvedIdsGlobal, priority: selectedPriority, repeat: false, repeatEndDate: "", repeatDays: [] }]);
     setMode("quick");
     setMessage({ type: "", text: "" });
   };
+
+  // Gera as datas a partir do repeat
+  function generateRepeatDates(startDateStr, endDateStr, daysOfWeek) {
+    const start = parseISO(startDateStr);
+    const end = parseISO(endDateStr);
+    if (!isValid(start) || !isValid(end) || daysOfWeek.length === 0) return [];
+
+    const dates = [];
+    let current = start;
+    while (current <= end) {
+      const dayOfWeek = current.getDay(); // 0=dom, 1=seg, ...
+      // Mapeamos nossos dias (seg=1, ter=2, ... sáb=6) para getDay()
+      const targetDays = daysOfWeek.map(d => {
+        const map = { 'Seg': 1, 'Ter': 2, 'Qua': 3, 'Qui': 4, 'Sex': 5, 'Sáb': 6 };
+        return map[d];
+      });
+      if (targetDays.includes(dayOfWeek)) {
+        dates.push(format(current, "yyyy-MM-dd"));
+      }
+      current = addDays(current, 1);
+    }
+    return dates;
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -123,19 +167,73 @@ export default function NewActivity() {
     const programId = programs.find(p => p.name === selectedProgram)?.id || null;
     const personId = persons.find(p => p.name === selectedPerson)?.id || null;
     let list = [];
+
     if (mode === "wpp") {
       const parsed = parseWeekText(weekText, parseISO(weekStartDate));
-      if (parsed.length === 0) { setMessage({ type: "error", text: "Não foram encontrados dias da semana no texto.", action: "switch" }); setLoading(false); return; }
-      list = parsed.map(item => ({ program_id: programId, responsible_id: personId, created_by: personId, title: item.title, description: item.description, week_start: item.week_start, due_date: item.due_date, status: "Planejado", priority: selectedPriority, involved_ids: involvedIdsGlobal }));
+      if (parsed.length === 0) {
+        setMessage({ type: "error", text: "Não foram encontrados dias da semana no texto.", action: "switch" });
+        setLoading(false);
+        return;
+      }
+      list = parsed.map(item => ({
+        program_id: programId,
+        responsible_id: personId,
+        created_by: personId,
+        title: item.title,
+        description: item.description,
+        week_start: item.week_start,
+        due_date: item.due_date,
+        status: "Planejado",
+        priority: selectedPriority,
+        involved_ids: involvedIdsGlobal,
+      }));
+    } else if (mode === "quick") {
+      for (let i = 0; i < quickActivities.length; i++) {
+        const q = quickActivities[i];
+        if (!q.title.trim() || !q.date) { setMessage({ type: "error", text: "Preencha título e data." }); setLoading(false); return; }
+
+        if (q.repeat && q.repeatEndDate && q.repeatDays.length > 0) {
+          // Gera múltiplas atividades
+          const dates = generateRepeatDates(q.date, q.repeatEndDate, q.repeatDays);
+          dates.forEach(date => {
+            list.push({
+              program_id: programId,
+              responsible_id: personId,
+              created_by: personId,
+              title: q.title,
+              description: q.description,
+              week_start: format(startOfWeek(parseISO(date), { weekStartsOn: 1 }), "yyyy-MM-dd"),
+              due_date: date,
+              status: "Planejado",
+              priority: q.priority || "Média",
+              involved_ids: q.involvedIds || [],
+            });
+          });
+        } else {
+          list.push({
+            program_id: programId,
+            responsible_id: personId,
+            created_by: personId,
+            title: q.title,
+            description: q.description,
+            week_start: format(startOfWeek(parseISO(q.date), { weekStartsOn: 1 }), "yyyy-MM-dd"),
+            due_date: q.date,
+            status: "Planejado",
+            priority: q.priority || "Média",
+            involved_ids: q.involvedIds || [],
+          });
+        }
+      }
     } else {
-      for (let q of quickActivities) { if (!q.title.trim() || !q.date) { setMessage({ type: "error", text: "Preencha título e data." }); setLoading(false); return; } }
-      list = quickActivities.map(q => ({ program_id: programId, responsible_id: personId, created_by: personId, title: q.title, description: q.description, week_start: format(startOfWeek(parseISO(q.date), { weekStartsOn: 1 }), "yyyy-MM-dd"), due_date: q.date, status: "Planejado", priority: q.priority || "Média", involved_ids: q.involvedIds || [] }));
+      setMessage({ type: "error", text: "Nenhum modo de lançamento disponível." });
+      setLoading(false);
+      return;
     }
 
     const { data: inserted, error } = await supabase.from("activities").insert(list).select();
     if (error) { setMessage({ type: "error", text: "Erro: " + error.message }); setLoading(false); return; }
 
-    // GERA LOGS DE ENVOLVIMENTO – cada envolvido recebe seu próprio log
+    // Logs de envolvimento
     if (inserted && inserted.length > 0) {
       const involvementLogs = [];
       for (const activity of inserted) {
@@ -161,7 +259,16 @@ export default function NewActivity() {
 
     setMessage({ type: "success", text: `${list.length} atividade(s) lançada(s)!` });
     setLastInserted({ program: selectedProgram, responsible: selectedPerson, weekStart: list[0].week_start, activities: list });
-    setWeekText(""); setQuickActivities([{ date: format(new Date(), "yyyy-MM-dd"), title: "", description: "", involvedIds: [], priority: "Média" }]); setInvolvedIdsGlobal([]); setSelectedPriority("Média"); setMode("wpp"); setLoading(false);
+    setWeekText(""); setQuickActivities([{ date: format(new Date(), "yyyy-MM-dd"), title: "", description: "", involvedIds: [], priority: "Média", repeat: false, repeatEndDate: "", repeatDays: [] }]); setInvolvedIdsGlobal([]); setSelectedPriority("Média"); setLoading(false);
+  }
+
+  if (!modes.wpp && !modes.quick) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 md:px-0 mt-20 text-center">
+        <h2 className="font-roboto text-headline-lg text-primary dark:text-white mb-4">Lançar Atividades</h2>
+        <p className="text-on-surface-variant dark:text-gray-400">Nenhum modo de lançamento está habilitado no momento.</p>
+      </div>
+    );
   }
 
   return (
@@ -171,14 +278,16 @@ export default function NewActivity() {
         <p className="font-roboto text-body-lg text-on-surface-variant dark:text-gray-400">Compartilhe o planejamento da semana.</p>
       </header>
 
-      <div className="flex mb-6 bg-surface dark:bg-dark-surface rounded-xl p-1.5 border border-surface-variant dark:border-dark-surface-variant">
-        <button onClick={() => setMode("wpp")} className={`flex-1 py-2 rounded-lg font-roboto text-label-sm flex items-center justify-center gap-2 transition-all ${mode === "wpp" ? "bg-[#075E54] text-white shadow-sm" : "text-on-surface-variant dark:text-gray-400 hover:bg-[#075E54]/10 dark:hover:bg-[#075E54]/30 hover:text-[#075E54] dark:hover:text-green-400"}`}>
-          <span className="material-symbols-outlined text-[18px]">chat</span> WhatsApp
-        </button>
-        <button onClick={() => setMode("quick")} className={`flex-1 py-2 rounded-lg font-roboto text-label-sm flex items-center justify-center gap-2 transition-all ${mode === "quick" ? "bg-[#F59E0B] text-white shadow-sm" : "text-on-surface-variant dark:text-gray-400 hover:bg-[#F59E0B]/10 dark:hover:bg-[#F59E0B]/30 hover:text-[#D97706] dark:hover:text-amber-400"}`}>
-          <span className="material-symbols-outlined text-[18px]">bolt</span> Rápido
-        </button>
-      </div>
+      {modes.wpp && modes.quick && (
+        <div className="flex mb-6 bg-surface dark:bg-dark-surface rounded-xl p-1.5 border border-surface-variant dark:border-dark-surface-variant">
+          <button onClick={() => setMode("wpp")} className={`flex-1 py-2 rounded-lg font-roboto text-label-sm flex items-center justify-center gap-2 transition-all ${mode === "wpp" ? "bg-[#075E54] text-white shadow-sm" : "text-on-surface-variant dark:text-gray-400 hover:bg-[#075E54]/10 dark:hover:bg-[#075E54]/30 hover:text-[#075E54] dark:hover:text-green-400"}`}>
+            <span className="material-symbols-outlined text-[18px]">chat</span> WhatsApp
+          </button>
+          <button onClick={() => setMode("quick")} className={`flex-1 py-2 rounded-lg font-roboto text-label-sm flex items-center justify-center gap-2 transition-all ${mode === "quick" ? "bg-[#F59E0B] text-white shadow-sm" : "text-on-surface-variant dark:text-gray-400 hover:bg-[#F59E0B]/10 dark:hover:bg-[#F59E0B]/30 hover:text-[#D97706] dark:hover:text-amber-400"}`}>
+            <span className="material-symbols-outlined text-[18px]">bolt</span> Rápido
+          </button>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="bg-white dark:bg-dark-surface border border-surface-variant dark:border-dark-surface-variant rounded-xl p-6 shadow-sm space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -207,7 +316,7 @@ export default function NewActivity() {
           </div>
         </div>
 
-        {mode === "wpp" ? (
+        {mode === "wpp" && (
           <>
             <div className="text-on-surface dark:text-gray-200 font-roboto text-sm flex items-center gap-2 mb-2">
               <span className="material-symbols-outlined text-accent">event_note</span>
@@ -227,7 +336,9 @@ export default function NewActivity() {
               </div>
             </div>
           </>
-        ) : (
+        )}
+
+        {mode === "quick" && (
           <div className="space-y-4">
             <h3 className="font-roboto text-label-md text-outline dark:text-gray-400 uppercase">Atividades Rápidas</h3>
             {quickActivities.map((qa, idx) => (
@@ -251,6 +362,52 @@ export default function NewActivity() {
                     </select>
                   </div>
                 </div>
+
+                {/* Toggle de repetição */}
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={qa.repeat || false}
+                    onChange={(e) => updateQuickActivity(idx, "repeat", e.target.checked)}
+                    className="rounded border-outline dark:border-gray-600 text-primary focus:ring-accent"
+                    id={`repeat-${idx}`}
+                  />
+                  <label htmlFor={`repeat-${idx}`} className="font-roboto text-sm text-on-surface dark:text-gray-200 cursor-pointer">
+                    Repetir em várias datas
+                  </label>
+                </div>
+
+                {/* Opções de repetição (aparecem se repeat estiver ativo) */}
+                {qa.repeat && (
+                  <div className="pl-4 space-y-3 border-l-2 border-accent/30">
+                    <div>
+                      <label className="font-roboto text-[10px] uppercase text-outline">Data de término</label>
+                      <input
+                        type="date"
+                        value={qa.repeatEndDate || ""}
+                        onChange={(e) => updateQuickActivity(idx, "repeatEndDate", e.target.value)}
+                        className="w-full bg-transparent border-b border-primary/20 focus:border-accent outline-none py-1 text-sm text-on-surface dark:text-white font-roboto"
+                      />
+                    </div>
+                    <div>
+                      <label className="font-roboto text-[10px] uppercase text-outline mb-1">Dias da semana</label>
+                      <div className="flex flex-wrap gap-2">
+                        {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => (
+                          <label key={day} className="flex items-center gap-1 text-sm text-on-surface dark:text-gray-200 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={(qa.repeatDays || []).includes(day)}
+                              onChange={() => toggleRepeatDay(idx, day)}
+                              className="rounded border-outline dark:border-gray-600 text-primary focus:ring-accent"
+                            />
+                            {day}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div>
                   <label className="font-roboto text-[10px] uppercase text-outline">Descrição / Ocorrências</label>
                   <textarea rows={3} placeholder="Detalhes..." value={qa.description} onChange={e => updateQuickActivity(idx, "description", e.target.value)} className="w-full bg-transparent border-b border-primary/20 focus:border-accent outline-none py-1 text-sm resize-none text-on-surface dark:text-white font-roboto" />

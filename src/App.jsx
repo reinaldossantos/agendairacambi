@@ -14,6 +14,7 @@ import Calendar from "./pages/Calendar";
 import Stats from "./pages/Stats";
 import Announcements from "./pages/Announcements";
 import ProgramFiles from "./pages/ProgramFiles";
+import AdvancedSettings from "./pages/AdvancedSettings";
 
 function App() {
   return (
@@ -32,6 +33,7 @@ function App() {
         <Route path="/stats" element={<Stats />} />
         <Route path="/announcements" element={<Announcements />} />
         <Route path="/files" element={<ProgramFiles />} />
+        <Route path="/advanced-settings" element={<AdvancedSettings />} />
         <Route path="/about" element={<About />} />
       </Route>
     </Routes>
