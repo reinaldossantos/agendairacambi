@@ -18,6 +18,11 @@ export default function AdvancedSettings() {
     }
   };
 
+  const handleResetLocal = () => {
+    localStorage.removeItem("iracambi_launch_modes");
+    window.location.reload();
+  };
+
   if (!authenticated) {
     return (
       <div className="max-w-md mx-auto mt-20 px-4">
@@ -81,8 +86,19 @@ export default function AdvancedSettings() {
             <div className={`w-5 h-5 rounded-full bg-white shadow-sm transform transition-transform ${modes.quick ? "translate-x-6" : "translate-x-0.5"}`} />
           </button>
         </div>
+        <div className="pt-4 border-t border-surface-variant dark:border-white/10">
+          <button
+            onClick={handleResetLocal}
+            className="px-4 py-2 rounded-full bg-red-100 text-red-700 font-roboto text-label-sm hover:bg-red-200 transition-all active:scale-95 min-h-[44px]"
+          >
+            Resetar configurações locais
+          </button>
+          <p className="text-xs text-outline dark:text-gray-400 mt-2">
+            Se as alterações não estão sendo salvas no banco, clique aqui para limpar o cache local e recarregar.
+          </p>
+        </div>
         <p className="text-sm text-outline dark:text-gray-400">
-          As alterações são salvas automaticamente.
+          As alterações são salvas automaticamente no banco e no navegador.
         </p>
       </div>
     </div>

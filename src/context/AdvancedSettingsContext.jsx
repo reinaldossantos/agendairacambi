@@ -4,7 +4,7 @@ import { supabase } from "../lib/supabaseClient";
 const AdvancedSettingsContext = createContext();
 
 export function AdvancedSettingsProvider({ children }) {
-  const [modes, setModes] = useState({ wpp: true, quick: true });
+  const [modes, setModes] = useState(null);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
@@ -18,11 +18,13 @@ export function AdvancedSettingsProvider({ children }) {
 
         if (error) throw error;
         if (data?.value) {
-          console.log("Configurações carregadas do banco:", data.value);
           setModes(data.value);
+          localStorage.setItem("iracambi_launch_modes", JSON.stringify(data.value));
         }
       } catch (err) {
-        console.warn("Usando configurações padrão (banco indisponível).", err);
+        console.warn("Banco indisponível, usando localStorage.", err);
+        const local = localStorage.getItem("iracambi_launch_modes");
+        setModes(local ? JSON.parse(local) : { wpp: true, quick: true });
       } finally {
         setLoaded(true);
       }
@@ -33,16 +35,18 @@ export function AdvancedSettingsProvider({ children }) {
   const toggleMode = async (mode) => {
     const newModes = { ...modes, [mode]: !modes[mode] };
     setModes(newModes);
-    console.log("Salvando novas configurações:", newModes);
+    localStorage.setItem("iracambi_launch_modes", JSON.stringify(newModes));
+
     try {
       const { error } = await supabase
         .from("app_settings")
         .upsert({ key: "launch_modes", value: newModes }, { onConflict: "key" });
 
-      if (error) throw error;
-      console.log("Configurações salvas com sucesso!");
+      if (error) {
+        console.warn("Erro ao salvar no banco, mas localStorage foi atualizado.", error);
+      }
     } catch (err) {
-      console.warn("Não foi possível salvar a configuração no banco.", err);
+      console.warn("Erro ao salvar no banco, mas localStorage foi atualizado.", err);
     }
   };
 

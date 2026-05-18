@@ -77,7 +77,6 @@ export default function ProgramFiles() {
   // Notifica o(s) líder(es) do programa (ou todos se "Todos")
   async function notifyLeaders(programId, fileName, uploaderName) {
     if (programId) {
-      // Programa específico: notifica o líder
       const { data: prog } = await supabase
         .from("programs")
         .select("leader_id")
@@ -85,14 +84,13 @@ export default function ProgramFiles() {
         .single();
       if (prog?.leader_id) {
         await supabase.from("activity_logs").insert({
-          activity_id: null, // não vinculado a atividade
+          activity_id: null,
           person_id: prog.leader_id,
           type: "file",
           content: `${uploaderName} enviou um arquivo "${fileName}" para o programa.`,
         });
       }
     } else {
-      // "Todos" – notifica todos os líderes de todos os programas
       const { data: leaders } = await supabase
         .from("programs")
         .select("leader_id");
@@ -109,26 +107,77 @@ export default function ProgramFiles() {
     }
   }
 
+  // Remove acentos, caracteres especiais e espaços do nome do arquivo
+  function sanitizeFileName(fileName) {
+    const lastDot = fileName.lastIndexOf(".");
+    const name = lastDot > 0 ? fileName.substring(0, lastDot) : fileName;
+    const ext = lastDot > 0 ? fileName.substring(lastDot) : "";
+
+    // Remove acentos
+    const noAccents = name
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[çÇ]/g, "c")
+      .replace(/[ñÑ]/g, "n");
+    // Substitui espaços e caracteres não alfanuméricos por underscore
+    const clean = noAccents.replace(/[^a-zA-Z0-9_-]/g, "_");
+    // Remove múltiplos underscores consecutivos
+    const singleUnderscore = clean.replace(/_+/g, "_");
+    // Remove underscores no início ou fim
+    const trimmed = singleUnderscore.replace(/^_|_$/g, "");
+    // Limita o tamanho do nome
+    const truncated = trimmed.substring(0, 100) || "arquivo";
+
+    const sanitized = `${truncated}${ext}`;
+    console.log("Nome original:", fileName, "-> Nome sanitizado:", sanitized);
+    return sanitized;
+  }
+
   async function handleUpload(e) {
     const file = e.target.files?.[0];
     if (!file) return;
-    setUploading(true);
-    const fileName = `${Date.now()}-${file.name}`;
-    const { error: uploadError } = await supabase.storage
-      .from("program-files")
-      .upload(fileName, file);
 
-    if (uploadError) {
-      setMessage({ type: "error", text: "Erro no upload." });
-      setUploading(false);
+    // Verifica tamanho máximo (5 MB)
+    const MAX_SIZE_MB = 5;
+    const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
+    if (file.size > MAX_SIZE_BYTES) {
+      setMessage({
+        type: "error",
+        text: `O arquivo "${file.name}" excede o limite de ${MAX_SIZE_MB} MB do Supabase. Por favor, reduza o tamanho ou compacte o arquivo.`,
+      });
+      setTimeout(() => setMessage(null), 5000);
       return;
     }
 
-    const url = supabase.storage.from("program-files").getPublicUrl(fileName).data.publicUrl;
+    setUploading(true);
+
+    // Nome seguro para o Storage
+    const safeName = sanitizeFileName(file.name);
+    const storagePath = `${Date.now()}-${safeName}`;
+
+    // Upload
+    const { error: uploadError } = await supabase.storage
+      .from("program-files")
+      .upload(storagePath, file);
+
+    if (uploadError) {
+      console.error("Erro detalhado do upload:", JSON.stringify(uploadError));
+      setMessage({
+        type: "error",
+        text: `Erro no upload: ${uploadError.message || "Falha ao enviar o arquivo."}`,
+      });
+      setUploading(false);
+      setTimeout(() => setMessage(null), 5000);
+      return;
+    }
+
+    const url = supabase.storage.from("program-files").getPublicUrl(storagePath).data.publicUrl;
+
+    // Insere referência no banco (com nome original)
     const { error: dbError } = await supabase.from("program_files").insert({
       program_id: selectedProgram || null,
       uploader_id: currentUser?.id || null,
-      name: file.name,
+      name: file.name,          // nome original para exibição
       description,
       file_url: url,
       file_type: file.type,
@@ -136,18 +185,20 @@ export default function ProgramFiles() {
     });
 
     if (dbError) {
-      setMessage({ type: "error", text: "Erro ao salvar referência." });
+      console.error("Erro ao inserir referência:", JSON.stringify(dbError));
+      setMessage({
+        type: "error",
+        text: `Erro ao salvar registro: ${dbError.message || "Falha no banco de dados."}`,
+      });
     } else {
-      // Notifica líderes
       const uploaderName = currentUser?.name || "Alguém";
       await notifyLeaders(selectedProgram, file.name, uploaderName);
-
       setMessage({ type: "success", text: "Arquivo enviado!" });
       setDescription("");
       fetchFiles();
     }
     setUploading(false);
-    setTimeout(() => setMessage(null), 3000);
+    setTimeout(() => setMessage(null), 4000);
   }
 
   function requestDelete(file) {
@@ -219,8 +270,11 @@ export default function ProgramFiles() {
             <input type="file" onChange={handleUpload} disabled={uploading} className="hidden" />
           </label>
         </div>
+        <p className="text-[10px] text-outline dark:text-gray-500 mt-2">
+          Limite máximo: 5 MB por arquivo.
+        </p>
         {message && (
-          <div className={`mt-4 p-3 rounded-xl ${message.type === "success" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>
+          <div className={`mt-4 p-3 rounded-xl text-sm font-roboto ${message.type === "success" ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"}`}>
             {message.text}
           </div>
         )}
@@ -232,11 +286,11 @@ export default function ProgramFiles() {
         ) : (
           files.map((f) => (
             <div key={f.id} className="bg-white dark:bg-dark-surface border border-surface-variant dark:border-white/10 rounded-xl p-4 flex justify-between items-center">
-              <div className="flex-1">
-                <a href={f.file_url} target="_blank" rel="noreferrer" className="font-roboto font-semibold text-primary dark:text-white hover:underline">
+              <div className="flex-1 min-w-0">
+                <a href={f.file_url} target="_blank" rel="noreferrer" className="font-roboto font-semibold text-primary dark:text-white hover:underline truncate block">
                   {f.name}
                 </a>
-                <p className="text-sm text-on-surface-variant dark:text-gray-400">{f.description}</p>
+                <p className="text-sm text-on-surface-variant dark:text-gray-400 truncate">{f.description}</p>
                 <p className="text-xs text-outline dark:text-gray-500">
                   {f.uploader?.name} • {format(parseISO(f.created_at), "dd/MM/yyyy")}
                   {f.program ? ` • ${f.program.name}` : " • Todos os programas"}
@@ -244,7 +298,7 @@ export default function ProgramFiles() {
               </div>
               <button
                 onClick={() => requestDelete(f)}
-                className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-full ml-2"
+                className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-full ml-2 flex-shrink-0"
               >
                 <span className="material-symbols-outlined">delete</span>
               </button>

@@ -10,21 +10,20 @@ import { useAdvancedSettings } from "../context/AdvancedSettingsContext";
 export default function NewActivity() {
   const navigate = useNavigate();
   const { currentUser } = useCurrentUser();
-  const { modes } = useAdvancedSettings();
+  const { modes } = useAdvancedSettings(); // { wpp: boolean, quick: boolean }
+
   const [programs, setPrograms] = useState([]);
   const [persons, setPersons] = useState([]);
   const [selectedProgram, setSelectedProgram] = useState("");
   const [selectedPerson, setSelectedPerson] = useState("");
   const [selectedPriority, setSelectedPriority] = useState("Média");
 
-  // Define o modo inicial com base nas configurações
-  const getInitialMode = () => {
-    if (modes.wpp) return "wpp";
-    if (modes.quick) return "quick";
-    return null;
-  };
-
-  const [mode, setMode] = useState(getInitialMode());
+  // Modo selecionado: se apenas um estiver ativo, força-o; caso contrário, usa um estado local para alternar
+  const [selectedMode, setSelectedMode] = useState(() => {
+    if (modes.wpp && !modes.quick) return "wpp";
+    if (!modes.wpp && modes.quick) return "quick";
+    return modes.wpp ? "wpp" : "quick"; // padrão ao abrir com ambos habilitados
+  });
 
   const [weekText, setWeekText] = useState("");
   const rawWeekDate = format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd");
@@ -36,26 +35,26 @@ export default function NewActivity() {
   const [message, setMessage] = useState({ type: "", text: "" });
   const [lastInserted, setLastInserted] = useState(null);
 
-  // Sincroniza o modo com as configurações sempre que as configurações mudarem
-  useEffect(() => {
-    if (!modes.wpp && mode === "wpp") {
-      setMode(modes.quick ? "quick" : null);
-    }
-    if (!modes.quick && mode === "quick") {
-      setMode(modes.wpp ? "wpp" : null);
-    }
-  }, [modes, mode]);
-
   useEffect(() => {
     supabase.from("programs").select("id, name").order("name").then(({ data }) => setPrograms(data || []));
     supabase.from("persons").select("id, name").order("name").then(({ data }) => setPersons(data || []));
   }, []);
 
+  // Ajusta o modo selecionado se as configurações mudarem enquanto o componente está montado
+  useEffect(() => {
+    if (!modes.wpp && selectedMode === "wpp") {
+      setSelectedMode(modes.quick ? "quick" : null);
+    }
+    if (!modes.quick && selectedMode === "quick") {
+      setSelectedMode(modes.wpp ? "wpp" : null);
+    }
+  }, [modes, selectedMode]);
+
   const weekStartDate = format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd");
   const weekEndDate = format(addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), 5), "yyyy-MM-dd");
   const weekDisplay = `${format(parseISO(weekStartDate), "dd 'de' MMM", { locale: ptBR })} – ${format(parseISO(weekEndDate), "dd 'de' MMM", { locale: ptBR })}`;
 
-  // --- funções de parser (mantidas) ---
+  // --- funções de parser (mesmas de antes) ---
   function parseWeekText(text, mondayDate) {
     const dayMap = {
       'segunda': 0, 'segunda-feira': 0, 'segunda feira': 0,
@@ -132,39 +131,24 @@ export default function NewActivity() {
   const updateQuickActivity = (i, f, v) => { const u = [...quickActivities]; u[i][f] = v; setQuickActivities(u); };
   const toggleInvolved = (i, id) => { const u = [...quickActivities]; u[i].involvedIds = u[i].involvedIds.includes(id) ? u[i].involvedIds.filter(x => x !== id) : [...u[i].involvedIds, id]; setQuickActivities(u); };
   const toggleInvolvedGlobal = (id) => setInvolvedIdsGlobal(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
-
-  // Toggle para dia da semana no repeat
-  const toggleRepeatDay = (i, day) => {
-    const u = [...quickActivities];
-    const days = u[i].repeatDays || [];
-    if (days.includes(day)) u[i].repeatDays = days.filter(d => d !== day);
-    else u[i].repeatDays = [...days, day];
-    setQuickActivities(u);
-  };
+  const toggleRepeatDay = (i, day) => { const u = [...quickActivities]; const days = u[i].repeatDays || []; if (days.includes(day)) u[i].repeatDays = days.filter(d => d !== day); else u[i].repeatDays = [...days, day]; setQuickActivities(u); };
 
   const switchToQuickWithText = () => {
     setQuickActivities([{ date: rawWeekDate, title: weekText.split('\n')[0] || "Atividade", description: weekText, involvedIds: involvedIdsGlobal, priority: selectedPriority, repeat: false, repeatEndDate: "", repeatDays: [] }]);
-    setMode("quick");
+    setSelectedMode("quick");
     setMessage({ type: "", text: "" });
   };
 
-  // Gera as datas a partir do repeat
   function generateRepeatDates(startDateStr, endDateStr, daysOfWeek) {
     const start = parseISO(startDateStr);
     const end = parseISO(endDateStr);
     if (!isValid(start) || !isValid(end) || daysOfWeek.length === 0) return [];
-
     const dates = [];
     let current = start;
     while (current <= end) {
-      const dayOfWeek = current.getDay(); // 0=dom, 1=seg, ...
-      const targetDays = daysOfWeek.map(d => {
-        const map = { 'Seg': 1, 'Ter': 2, 'Qua': 3, 'Qui': 4, 'Sex': 5, 'Sáb': 6 };
-        return map[d];
-      });
-      if (targetDays.includes(dayOfWeek)) {
-        dates.push(format(current, "yyyy-MM-dd"));
-      }
+      const dayOfWeek = current.getDay();
+      const targetDays = daysOfWeek.map(d => ({ 'Seg': 1, 'Ter': 2, 'Qua': 3, 'Qui': 4, 'Sex': 5, 'Sáb': 6 }[d]));
+      if (targetDays.includes(dayOfWeek)) dates.push(format(current, "yyyy-MM-dd"));
       current = addDays(current, 1);
     }
     return dates;
@@ -178,93 +162,55 @@ export default function NewActivity() {
     const personId = persons.find(p => p.name === selectedPerson)?.id || null;
     let list = [];
 
-    if (mode === "wpp") {
+    if (selectedMode === "wpp") {
       const parsed = parseWeekText(weekText, parseISO(weekStartDate));
-      if (parsed.length === 0) {
-        setMessage({ type: "error", text: "Não foram encontrados dias da semana no texto.", action: "switch" });
-        setLoading(false);
-        return;
-      }
+      if (parsed.length === 0) { setMessage({ type: "error", text: "Não foram encontrados dias da semana no texto.", action: "switch" }); setLoading(false); return; }
       list = parsed.map(item => ({
-        program_id: programId,
-        responsible_id: personId,
-        created_by: personId,
-        title: item.title,
-        description: item.description,
-        week_start: item.week_start,
-        due_date: item.due_date,
-        status: "Planejado",
-        priority: selectedPriority,
-        involved_ids: involvedIdsGlobal,
+        program_id: programId, responsible_id: personId, created_by: personId,
+        title: item.title, description: item.description, week_start: item.week_start,
+        due_date: item.due_date, status: "Planejado", priority: selectedPriority, involved_ids: involvedIdsGlobal,
       }));
-    } else if (mode === "quick") {
+    } else if (selectedMode === "quick") {
       for (let i = 0; i < quickActivities.length; i++) {
         const q = quickActivities[i];
         if (!q.title.trim() || !q.date) { setMessage({ type: "error", text: "Preencha título e data." }); setLoading(false); return; }
-
         if (q.repeat && q.repeatEndDate && q.repeatDays.length > 0) {
-          // Gera múltiplas atividades
           const dates = generateRepeatDates(q.date, q.repeatEndDate, q.repeatDays);
           dates.forEach(date => {
             list.push({
-              program_id: programId,
-              responsible_id: personId,
-              created_by: personId,
-              title: q.title,
-              description: q.description,
+              program_id: programId, responsible_id: personId, created_by: personId,
+              title: q.title, description: q.description,
               week_start: format(startOfWeek(parseISO(date), { weekStartsOn: 1 }), "yyyy-MM-dd"),
-              due_date: date,
-              status: "Planejado",
-              priority: q.priority || "Média",
-              involved_ids: q.involvedIds || [],
+              due_date: date, status: "Planejado", priority: q.priority || "Média", involved_ids: q.involvedIds || [],
             });
           });
         } else {
           list.push({
-            program_id: programId,
-            responsible_id: personId,
-            created_by: personId,
-            title: q.title,
-            description: q.description,
+            program_id: programId, responsible_id: personId, created_by: personId,
+            title: q.title, description: q.description,
             week_start: format(startOfWeek(parseISO(q.date), { weekStartsOn: 1 }), "yyyy-MM-dd"),
-            due_date: q.date,
-            status: "Planejado",
-            priority: q.priority || "Média",
-            involved_ids: q.involvedIds || [],
+            due_date: q.date, status: "Planejado", priority: q.priority || "Média", involved_ids: q.involvedIds || [],
           });
         }
       }
     } else {
-      setMessage({ type: "error", text: "Nenhum modo de lançamento disponível." });
-      setLoading(false);
-      return;
+      setMessage({ type: "error", text: "Nenhum modo de lançamento disponível." }); setLoading(false); return;
     }
 
     const { data: inserted, error } = await supabase.from("activities").insert(list).select();
     if (error) { setMessage({ type: "error", text: "Erro: " + error.message }); setLoading(false); return; }
 
-    // Logs de envolvimento
     if (inserted && inserted.length > 0) {
       const involvementLogs = [];
       for (const activity of inserted) {
         if (activity.involved_ids && activity.involved_ids.length > 0) {
           for (const pid of activity.involved_ids) {
             const person = persons.find(p => p.id === pid);
-            if (person) {
-              involvementLogs.push({
-                activity_id: activity.id,
-                person_id: pid,
-                type: "involvement",
-                content: `${currentUser?.name || "Alguém"} envolveu você na atividade "${activity.title}".`,
-                metadata: { involved_person_id: pid, action: "added" },
-              });
-            }
+            if (person) involvementLogs.push({ activity_id: activity.id, person_id: pid, type: "involvement", content: `${currentUser?.name || "Alguém"} envolveu você na atividade "${activity.title}".`, metadata: { involved_person_id: pid, action: "added" } });
           }
         }
       }
-      if (involvementLogs.length > 0) {
-        await supabase.from("activity_logs").insert(involvementLogs);
-      }
+      if (involvementLogs.length > 0) await supabase.from("activity_logs").insert(involvementLogs);
     }
 
     setMessage({ type: "success", text: `${list.length} atividade(s) lançada(s)!` });
@@ -278,15 +224,10 @@ export default function NewActivity() {
       <div className="max-w-4xl mx-auto px-4 md:px-0 mt-20 text-center">
         <h2 className="font-roboto text-headline-lg text-primary dark:text-white mb-4">Lançar Atividades</h2>
         <p className="text-on-surface-variant dark:text-gray-400">Nenhum modo de lançamento está habilitado no momento.</p>
-        <Link to="/" className="inline-block mt-4 px-6 py-2 rounded-full bg-accent text-primary font-roboto text-label-md hover:bg-yellow-400 transition-all">
-          Voltar ao Dashboard
-        </Link>
+        <Link to="/" className="inline-block mt-4 px-6 py-2 rounded-full bg-accent text-primary font-roboto text-label-md hover:bg-yellow-400 transition-all">Voltar ao Dashboard</Link>
       </div>
     );
   }
-
-  // Se apenas um modo estiver ativo, força-o
-  const activeMode = modes.wpp && !modes.quick ? "wpp" : !modes.wpp && modes.quick ? "quick" : mode;
 
   return (
     <div className="max-w-4xl mx-auto px-4 md:px-0">
@@ -298,13 +239,21 @@ export default function NewActivity() {
       {/* Seletor de modo (só aparece se ambos habilitados) */}
       {modes.wpp && modes.quick && (
         <div className="flex mb-6 bg-surface dark:bg-dark-surface rounded-xl p-1.5 border border-surface-variant dark:border-dark-surface-variant">
-          <button onClick={() => setMode("wpp")} className={`flex-1 py-2 rounded-lg font-roboto text-label-sm flex items-center justify-center gap-2 transition-all ${activeMode === "wpp" ? "bg-[#075E54] text-white shadow-sm" : "text-on-surface-variant dark:text-gray-400 hover:bg-[#075E54]/10 dark:hover:bg-[#075E54]/30 hover:text-[#075E54] dark:hover:text-green-400"}`}>
+          <button onClick={() => setSelectedMode("wpp")} className={`flex-1 py-2 rounded-lg font-roboto text-label-sm flex items-center justify-center gap-2 transition-all ${selectedMode === "wpp" ? "bg-[#075E54] text-white shadow-sm" : "text-on-surface-variant dark:text-gray-400 hover:bg-[#075E54]/10 dark:hover:bg-[#075E54]/30 hover:text-[#075E54] dark:hover:text-green-400"}`}>
             <span className="material-symbols-outlined text-[18px]">chat</span> WhatsApp
           </button>
-          <button onClick={() => setMode("quick")} className={`flex-1 py-2 rounded-lg font-roboto text-label-sm flex items-center justify-center gap-2 transition-all ${activeMode === "quick" ? "bg-[#F59E0B] text-white shadow-sm" : "text-on-surface-variant dark:text-gray-400 hover:bg-[#F59E0B]/10 dark:hover:bg-[#F59E0B]/30 hover:text-[#D97706] dark:hover:text-amber-400"}`}>
+          <button onClick={() => setSelectedMode("quick")} className={`flex-1 py-2 rounded-lg font-roboto text-label-sm flex items-center justify-center gap-2 transition-all ${selectedMode === "quick" ? "bg-[#F59E0B] text-white shadow-sm" : "text-on-surface-variant dark:text-gray-400 hover:bg-[#F59E0B]/10 dark:hover:bg-[#F59E0B]/30 hover:text-[#D97706] dark:hover:text-amber-400"}`}>
             <span className="material-symbols-outlined text-[18px]">bolt</span> Rápido
           </button>
         </div>
+      )}
+
+      {/* Se apenas um modo estiver ativo, força a exibição do formulário correspondente */}
+      {(!modes.wpp || !modes.quick) && modes.wpp && (
+        <div className="mb-4 text-sm text-on-surface dark:text-gray-200">Modo WhatsApp ativado</div>
+      )}
+      {(!modes.wpp || !modes.quick) && modes.quick && (
+        <div className="mb-4 text-sm text-on-surface dark:text-gray-200">Modo Rápido ativado</div>
       )}
 
       <form onSubmit={handleSubmit} className="bg-white dark:bg-dark-surface border border-surface-variant dark:border-dark-surface-variant rounded-xl p-6 shadow-sm space-y-6">
@@ -334,8 +283,8 @@ export default function NewActivity() {
           </div>
         </div>
 
-        {/* Conteúdo do modo WhatsApp */}
-        {(activeMode === "wpp") && (
+        {/* WhatsApp */}
+        {selectedMode === "wpp" && modes.wpp && (
           <>
             <div className="text-on-surface dark:text-gray-200 font-roboto text-sm flex items-center gap-2 mb-2">
               <span className="material-symbols-outlined text-accent">event_note</span>
@@ -357,101 +306,36 @@ export default function NewActivity() {
           </>
         )}
 
-        {/* Conteúdo do modo Rápido */}
-        {(activeMode === "quick") && (
+        {/* Rápido */}
+        {selectedMode === "quick" && modes.quick && (
           <div className="space-y-4">
             <h3 className="font-roboto text-label-md text-outline dark:text-gray-400 uppercase">Atividades Rápidas</h3>
             {quickActivities.map((qa, idx) => (
               <div key={idx} className="p-4 bg-surface dark:bg-dark-background rounded-xl border border-surface-variant dark:border-dark-surface-variant space-y-3">
                 <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-                  <div>
-                    <label className="font-roboto text-[10px] uppercase text-outline">Data</label>
-                    <input type="date" value={qa.date} onChange={e => updateQuickActivity(idx, "date", e.target.value)} className="w-full bg-transparent border-b border-primary/20 focus:border-accent outline-none py-1 text-sm text-on-surface dark:text-white font-roboto" />
-                  </div>
-                  <div className="sm:col-span-2">
-                    <label className="font-roboto text-[10px] uppercase text-outline">Título</label>
-                    <input type="text" placeholder="Título" value={qa.title} onChange={e => updateQuickActivity(idx, "title", e.target.value)} className="w-full bg-transparent border-b border-primary/20 focus:border-accent outline-none py-1 text-sm text-on-surface dark:text-white font-roboto" />
-                  </div>
-                  <div>
-                    <label className="font-roboto text-[10px] uppercase text-outline">Prioridade</label>
-                    <select value={qa.priority || "Média"} onChange={e => updateQuickActivity(idx, "priority", e.target.value)} className="w-full bg-transparent border-b border-primary/20 focus:border-accent outline-none py-1 text-sm text-on-surface dark:text-white font-roboto">
-                      <option value="Baixa">🟢 Baixa</option>
-                      <option value="Média">🟡 Média</option>
-                      <option value="Alta">🟠 Alta</option>
-                      <option value="Urgente">🔴 Urgente</option>
-                    </select>
-                  </div>
+                  <div><label className="font-roboto text-[10px] uppercase text-outline">Data</label><input type="date" value={qa.date} onChange={e => updateQuickActivity(idx, "date", e.target.value)} className="w-full bg-transparent border-b border-primary/20 focus:border-accent outline-none py-1 text-sm text-on-surface dark:text-white font-roboto" /></div>
+                  <div className="sm:col-span-2"><label className="font-roboto text-[10px] uppercase text-outline">Título</label><input type="text" placeholder="Título" value={qa.title} onChange={e => updateQuickActivity(idx, "title", e.target.value)} className="w-full bg-transparent border-b border-primary/20 focus:border-accent outline-none py-1 text-sm text-on-surface dark:text-white font-roboto" /></div>
+                  <div><label className="font-roboto text-[10px] uppercase text-outline">Prioridade</label><select value={qa.priority || "Média"} onChange={e => updateQuickActivity(idx, "priority", e.target.value)} className="w-full bg-transparent border-b border-primary/20 focus:border-accent outline-none py-1 text-sm text-on-surface dark:text-white font-roboto">
+                    <option value="Baixa">🟢 Baixa</option><option value="Média">🟡 Média</option><option value="Alta">🟠 Alta</option><option value="Urgente">🔴 Urgente</option>
+                  </select></div>
                 </div>
-
-                {/* Toggle de repetição */}
                 <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={qa.repeat || false}
-                    onChange={(e) => updateQuickActivity(idx, "repeat", e.target.checked)}
-                    className="rounded border-outline dark:border-gray-600 text-primary focus:ring-accent"
-                    id={`repeat-${idx}`}
-                  />
-                  <label htmlFor={`repeat-${idx}`} className="font-roboto text-sm text-on-surface dark:text-gray-200 cursor-pointer">
-                    Repetir em várias datas
-                  </label>
+                  <input type="checkbox" checked={qa.repeat || false} onChange={(e) => updateQuickActivity(idx, "repeat", e.target.checked)} className="rounded border-outline dark:border-gray-600 text-primary focus:ring-accent" id={`repeat-${idx}`} />
+                  <label htmlFor={`repeat-${idx}`} className="font-roboto text-sm text-on-surface dark:text-gray-200 cursor-pointer">Repetir em várias datas</label>
                 </div>
-
-                {/* Opções de repetição (aparecem se repeat estiver ativo) */}
                 {qa.repeat && (
                   <div className="pl-4 space-y-3 border-l-2 border-accent/30">
-                    <div>
-                      <label className="font-roboto text-[10px] uppercase text-outline">Data de término</label>
-                      <input
-                        type="date"
-                        value={qa.repeatEndDate || ""}
-                        onChange={(e) => updateQuickActivity(idx, "repeatEndDate", e.target.value)}
-                        className="w-full bg-transparent border-b border-primary/20 focus:border-accent outline-none py-1 text-sm text-on-surface dark:text-white font-roboto"
-                      />
-                    </div>
-                    <div>
-                      <label className="font-roboto text-[10px] uppercase text-outline mb-1">Dias da semana</label>
-                      <div className="flex flex-wrap gap-2">
-                        {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => (
-                          <label key={day} className="flex items-center gap-1 text-sm text-on-surface dark:text-gray-200 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={(qa.repeatDays || []).includes(day)}
-                              onChange={() => toggleRepeatDay(idx, day)}
-                              className="rounded border-outline dark:border-gray-600 text-primary focus:ring-accent"
-                            />
-                            {day}
-                          </label>
-                        ))}
-                      </div>
-                    </div>
+                    <div><label className="font-roboto text-[10px] uppercase text-outline">Data de término</label><input type="date" value={qa.repeatEndDate || ""} onChange={(e) => updateQuickActivity(idx, "repeatEndDate", e.target.value)} className="w-full bg-transparent border-b border-primary/20 focus:border-accent outline-none py-1 text-sm text-on-surface dark:text-white font-roboto" /></div>
+                    <div><label className="font-roboto text-[10px] uppercase text-outline mb-1">Dias da semana</label><div className="flex flex-wrap gap-2">{['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => <label key={day} className="flex items-center gap-1 text-sm text-on-surface dark:text-gray-200 cursor-pointer"><input type="checkbox" checked={(qa.repeatDays || []).includes(day)} onChange={() => toggleRepeatDay(idx, day)} className="rounded border-outline dark:border-gray-600 text-primary focus:ring-accent" />{day}</label>)}</div></div>
                   </div>
                 )}
-
-                <div>
-                  <label className="font-roboto text-[10px] uppercase text-outline">Descrição / Ocorrências</label>
-                  <textarea rows={3} placeholder="Detalhes..." value={qa.description} onChange={e => updateQuickActivity(idx, "description", e.target.value)} className="w-full bg-transparent border-b border-primary/20 focus:border-accent outline-none py-1 text-sm resize-none text-on-surface dark:text-white font-roboto" />
-                </div>
-                <div>
-                  <label className="font-roboto text-[10px] uppercase text-outline">Envolver nesta atividade</label>
-                  <div className="flex flex-wrap gap-2 mt-1">
-                    {persons.filter(p => p.name !== selectedPerson).map(p => (
-                      <button type="button" key={p.id} onClick={() => toggleInvolved(idx, p.id)} className={`text-xs font-roboto px-4 py-1.5 rounded-full border transition-colors ${(qa.involvedIds || []).includes(p.id) ? "bg-accent/20 border-accent text-primary dark:text-white" : "bg-white dark:bg-dark-background border-outline text-on-surface dark:text-gray-300"}`}>{p.name}</button>
-                    ))}
-                  </div>
-                </div>
-                <div className="flex justify-end">
-                  <button type="button" onClick={() => removeQuickActivity(idx)} disabled={quickActivities.length === 1} className="text-error/70 hover:text-error p-1 disabled:opacity-30"><span className="material-symbols-outlined">delete</span></button>
-                </div>
+                <div><label className="font-roboto text-[10px] uppercase text-outline">Descrição / Ocorrências</label><textarea rows={3} placeholder="Detalhes..." value={qa.description} onChange={e => updateQuickActivity(idx, "description", e.target.value)} className="w-full bg-transparent border-b border-primary/20 focus:border-accent outline-none py-1 text-sm resize-none text-on-surface dark:text-white font-roboto" /></div>
+                <div><label className="font-roboto text-[10px] uppercase text-outline">Envolver nesta atividade</label><div className="flex flex-wrap gap-2 mt-1">{persons.filter(p => p.name !== selectedPerson).map(p => <button type="button" key={p.id} onClick={() => toggleInvolved(idx, p.id)} className={`text-xs font-roboto px-4 py-1.5 rounded-full border transition-colors ${(qa.involvedIds || []).includes(p.id) ? "bg-accent/20 border-accent text-primary dark:text-white" : "bg-white dark:bg-dark-background border-outline text-on-surface dark:text-gray-300"}`}>{p.name}</button>)}</div></div>
+                <div className="flex justify-end"><button type="button" onClick={() => removeQuickActivity(idx)} disabled={quickActivities.length === 1} className="text-error/70 hover:text-error p-1 disabled:opacity-30"><span className="material-symbols-outlined">delete</span></button></div>
               </div>
             ))}
-            <button
-              type="button"
-              onClick={addQuickActivity}
-              className="bg-accent/10 text-primary dark:text-white font-roboto text-label-sm px-4 py-2 rounded-full flex items-center gap-2 hover:bg-accent/20 transition-all active:scale-95 min-h-[44px] shadow-sm"
-            >
-              <span className="material-symbols-outlined text-[18px]">add</span>
-              Adicionar atividade
+            <button type="button" onClick={addQuickActivity} className="bg-accent/10 text-primary dark:text-white font-roboto text-label-sm px-4 py-2 rounded-full flex items-center gap-2 hover:bg-accent/20 transition-all active:scale-95 min-h-[44px] shadow-sm">
+              <span className="material-symbols-outlined text-[18px]">add</span> Adicionar atividade
             </button>
           </div>
         )}
@@ -459,43 +343,20 @@ export default function NewActivity() {
         {message.text && (
           <div className={`p-4 rounded-xl ${message.type === "success" ? "bg-primary/10 text-primary dark:text-white" : "bg-error-container/20 text-error"}`}>
             <span className="font-roboto text-label-md">{message.text}</span>
-            {message.action === "switch" && (
-              <button
-                type="button"
-                onClick={switchToQuickWithText}
-                className="ml-4 px-4 py-2 rounded-full bg-accent text-primary font-roboto text-label-sm inline-block hover:bg-yellow-400 transition-all"
-              >
-                Usar modo Rápido
-              </button>
-            )}
-            {message.type === "success" && (
-              <Link to="/" className="ml-4 px-4 py-2 rounded-full bg-accent text-primary font-roboto text-label-sm inline-block hover:bg-yellow-400 transition-all">
-                Ir para Dashboard
-              </Link>
-            )}
+            {message.action === "switch" && <button type="button" onClick={switchToQuickWithText} className="ml-4 px-4 py-2 rounded-full bg-accent text-primary font-roboto text-label-sm inline-block hover:bg-yellow-400 transition-all">Usar modo Rápido</button>}
+            {message.type === "success" && <Link to="/" className="ml-4 px-4 py-2 rounded-full bg-accent text-primary font-roboto text-label-sm inline-block hover:bg-yellow-400 transition-all">Ir para Dashboard</Link>}
           </div>
         )}
-
         {message.type === "success" && lastInserted && (
           <div className="flex justify-end">
-            <button
-              type="button"
-              onClick={() => {
-                const text = formatAgendaForWhatsApp(lastInserted);
-                shareViaWhatsApp(text);
-              }}
-              className="bg-[#25D366] text-white font-roboto text-label-sm px-5 py-2 rounded-full flex items-center gap-2 hover:bg-[#128C7E] transition-all active:scale-95 min-h-[44px]"
-            >
-              <span className="material-symbols-outlined text-[18px]">send</span>
-              Enviar via WhatsApp
+            <button type="button" onClick={() => { const text = formatAgendaForWhatsApp(lastInserted); shareViaWhatsApp(text); }} className="bg-[#25D366] text-white font-roboto text-label-sm px-5 py-2 rounded-full flex items-center gap-2 hover:bg-[#128C7E] transition-all active:scale-95 min-h-[44px]">
+              <span className="material-symbols-outlined text-[18px]">send</span> Enviar via WhatsApp
             </button>
           </div>
         )}
-
         <div className="flex justify-end pt-1">
           <button type="submit" disabled={loading} className="bg-accent text-primary font-bold font-roboto py-4 px-12 rounded-full flex items-center gap-3 hover:bg-yellow-400 transition-all active:scale-95 disabled:opacity-50 min-h-[48px]">
-            {loading ? "Publicando..." : "Publicar Agenda"}
-            <span className="material-symbols-outlined">send</span>
+            {loading ? "Publicando..." : "Publicar Agenda"} <span className="material-symbols-outlined">send</span>
           </button>
         </div>
       </form>
