@@ -218,82 +218,55 @@ export default function Header() {
           </button>
 
           <button
-            onClick={() => setMobileMenuOpen(true)}
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full min-h-[44px] min-w-[44px] flex items-center justify-center text-primary dark:text-primary-light"
           >
-            <span className="material-symbols-outlined text-2xl">menu</span>
+            <span className="material-symbols-outlined text-2xl">{mobileMenuOpen ? "close" : "menu"}</span>
           </button>
         </div>
       </div>
 
-      {/* Menu mobile – agora com z-index maior que o header */}
-      <AnimatePresence>
-        {mobileMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 md:hidden"
-          >
-            {/* Overlay escuro */}
-            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)} />
-            {/* Gaveta */}
-            <motion.div
-              initial={{ x: "100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="absolute right-0 top-0 h-full w-80 max-w-[85vw] bg-white dark:bg-dark-surface shadow-2xl p-6 overflow-y-auto z-50"
-            >
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="font-roboto text-headline-md text-primary dark:text-white">Menu</h2>
-                <button onClick={() => setMobileMenuOpen(false)} className="p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full">
-                  <span className="material-symbols-outlined text-2xl text-primary dark:text-white">close</span>
-                </button>
-              </div>
-
-              <div className="space-y-3">
-                <Link to="/calendar" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-on-surface dark:text-gray-200">
-                  <span className="material-symbols-outlined text-primary text-2xl">calendar_month</span>
-                  <span className="font-roboto text-body-md">{t("header.calendar")}</span>
-                </Link>
-                <Link to="/stats" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-on-surface dark:text-gray-200">
-                  <span className="material-symbols-outlined text-primary text-2xl">bar_chart</span>
-                  <span className="font-roboto text-body-md">{t("header.statistics")}</span>
-                </Link>
-                <Link to="/announcements" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-on-surface dark:text-gray-200">
-                  <span className={`material-symbols-outlined text-2xl ${hasNewAnnouncements ? "text-red-500 animate-pulse" : "text-primary"}`}>campaign</span>
-                  <span className="font-roboto text-body-md">{t("header.announcements")}</span>
-                </Link>
-                <Link to="/files" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-on-surface dark:text-gray-200">
-                  <span className={`material-symbols-outlined text-2xl ${hasNewFiles ? "text-blue-500 animate-pulse" : "text-primary"}`}>folder</span>
-                  <span className="font-roboto text-body-md">{t("header.files")}</span>
-                </Link>
-                <Link to="/settings" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-on-surface dark:text-gray-200">
-                  <span className="material-symbols-outlined text-primary text-2xl">settings</span>
-                  <span className="font-roboto text-body-md">{t("header.settings")}</span>
-                </Link>
-                <Link to="/advanced-settings" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-on-surface dark:text-gray-200">
-                  <span className="material-symbols-outlined text-primary text-2xl">tune</span>
-                  <span className="font-roboto text-body-md">Avançado</span>
-                </Link>
-                <Link to="/admin/programs" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-on-surface dark:text-gray-200">
-                  <span className="material-symbols-outlined text-primary text-2xl">admin_panel_settings</span>
-                  <span className="font-roboto text-body-md">{t("header.programs")}</span>
-                </Link>
-                <Link to="/admin/persons" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-on-surface dark:text-gray-200">
-                  <span className="material-symbols-outlined text-primary text-2xl">group</span>
-                  <span className="font-roboto text-body-md">{t("header.people")}</span>
-                </Link>
-                <Link to="/admin/leaders" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-on-surface dark:text-gray-200">
-                  <span className="material-symbols-outlined text-primary text-2xl">diversity_3</span>
-                  <span className="font-roboto text-body-md">{t("header.leaders")}</span>
-                </Link>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Menu mobile convencional (expansão abaixo do header) */}
+      {mobileMenuOpen && (
+        <div className="md:hidden bg-white dark:bg-dark-surface border-t border-surface-variant dark:border-white/10 px-4 py-4 space-y-3">
+          <Link to="/calendar" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-on-surface dark:text-gray-200">
+            <span className="material-symbols-outlined text-primary text-2xl">calendar_month</span>
+            <span className="font-roboto text-body-md">{t("header.calendar")}</span>
+          </Link>
+          <Link to="/stats" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-on-surface dark:text-gray-200">
+            <span className="material-symbols-outlined text-primary text-2xl">bar_chart</span>
+            <span className="font-roboto text-body-md">{t("header.statistics")}</span>
+          </Link>
+          <Link to="/announcements" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-on-surface dark:text-gray-200">
+            <span className={`material-symbols-outlined text-2xl ${hasNewAnnouncements ? "text-red-500 animate-pulse" : "text-primary"}`}>campaign</span>
+            <span className="font-roboto text-body-md">{t("header.announcements")}</span>
+          </Link>
+          <Link to="/files" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-on-surface dark:text-gray-200">
+            <span className={`material-symbols-outlined text-2xl ${hasNewFiles ? "text-blue-500 animate-pulse" : "text-primary"}`}>folder</span>
+            <span className="font-roboto text-body-md">{t("header.files")}</span>
+          </Link>
+          <Link to="/settings" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-on-surface dark:text-gray-200">
+            <span className="material-symbols-outlined text-primary text-2xl">settings</span>
+            <span className="font-roboto text-body-md">{t("header.settings")}</span>
+          </Link>
+          <Link to="/advanced-settings" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-on-surface dark:text-gray-200">
+            <span className="material-symbols-outlined text-primary text-2xl">tune</span>
+            <span className="font-roboto text-body-md">Avançado</span>
+          </Link>
+          <Link to="/admin/programs" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-on-surface dark:text-gray-200">
+            <span className="material-symbols-outlined text-primary text-2xl">admin_panel_settings</span>
+            <span className="font-roboto text-body-md">{t("header.programs")}</span>
+          </Link>
+          <Link to="/admin/persons" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-on-surface dark:text-gray-200">
+            <span className="material-symbols-outlined text-primary text-2xl">group</span>
+            <span className="font-roboto text-body-md">{t("header.people")}</span>
+          </Link>
+          <Link to="/admin/leaders" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-on-surface dark:text-gray-200">
+            <span className="material-symbols-outlined text-primary text-2xl">diversity_3</span>
+            <span className="font-roboto text-body-md">{t("header.leaders")}</span>
+          </Link>
+        </div>
+      )}
     </header>
   );
 }

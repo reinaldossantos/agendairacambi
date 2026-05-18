@@ -17,8 +17,14 @@ export default function NewActivity() {
   const [selectedPerson, setSelectedPerson] = useState("");
   const [selectedPriority, setSelectedPriority] = useState("Média");
 
-  const initialMode = modes.wpp ? "wpp" : modes.quick ? "quick" : null;
-  const [mode, setMode] = useState(initialMode);
+  // Define o modo inicial com base nas configurações
+  const getInitialMode = () => {
+    if (modes.wpp) return "wpp";
+    if (modes.quick) return "quick";
+    return null;
+  };
+
+  const [mode, setMode] = useState(getInitialMode());
 
   const [weekText, setWeekText] = useState("");
   const rawWeekDate = format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd");
@@ -30,9 +36,14 @@ export default function NewActivity() {
   const [message, setMessage] = useState({ type: "", text: "" });
   const [lastInserted, setLastInserted] = useState(null);
 
+  // Sincroniza o modo com as configurações sempre que as configurações mudarem
   useEffect(() => {
-    if (!modes.wpp && mode === "wpp") setMode(modes.quick ? "quick" : null);
-    if (!modes.quick && mode === "quick") setMode(modes.wpp ? "wpp" : null);
+    if (!modes.wpp && mode === "wpp") {
+      setMode(modes.quick ? "quick" : null);
+    }
+    if (!modes.quick && mode === "quick") {
+      setMode(modes.wpp ? "wpp" : null);
+    }
   }, [modes, mode]);
 
   useEffect(() => {
@@ -147,7 +158,6 @@ export default function NewActivity() {
     let current = start;
     while (current <= end) {
       const dayOfWeek = current.getDay(); // 0=dom, 1=seg, ...
-      // Mapeamos nossos dias (seg=1, ter=2, ... sáb=6) para getDay()
       const targetDays = daysOfWeek.map(d => {
         const map = { 'Seg': 1, 'Ter': 2, 'Qua': 3, 'Qui': 4, 'Sex': 5, 'Sáb': 6 };
         return map[d];
@@ -262,14 +272,21 @@ export default function NewActivity() {
     setWeekText(""); setQuickActivities([{ date: format(new Date(), "yyyy-MM-dd"), title: "", description: "", involvedIds: [], priority: "Média", repeat: false, repeatEndDate: "", repeatDays: [] }]); setInvolvedIdsGlobal([]); setSelectedPriority("Média"); setLoading(false);
   }
 
+  // Se nenhum modo estiver habilitado
   if (!modes.wpp && !modes.quick) {
     return (
       <div className="max-w-4xl mx-auto px-4 md:px-0 mt-20 text-center">
         <h2 className="font-roboto text-headline-lg text-primary dark:text-white mb-4">Lançar Atividades</h2>
         <p className="text-on-surface-variant dark:text-gray-400">Nenhum modo de lançamento está habilitado no momento.</p>
+        <Link to="/" className="inline-block mt-4 px-6 py-2 rounded-full bg-accent text-primary font-roboto text-label-md hover:bg-yellow-400 transition-all">
+          Voltar ao Dashboard
+        </Link>
       </div>
     );
   }
+
+  // Se apenas um modo estiver ativo, força-o
+  const activeMode = modes.wpp && !modes.quick ? "wpp" : !modes.wpp && modes.quick ? "quick" : mode;
 
   return (
     <div className="max-w-4xl mx-auto px-4 md:px-0">
@@ -278,12 +295,13 @@ export default function NewActivity() {
         <p className="font-roboto text-body-lg text-on-surface-variant dark:text-gray-400">Compartilhe o planejamento da semana.</p>
       </header>
 
+      {/* Seletor de modo (só aparece se ambos habilitados) */}
       {modes.wpp && modes.quick && (
         <div className="flex mb-6 bg-surface dark:bg-dark-surface rounded-xl p-1.5 border border-surface-variant dark:border-dark-surface-variant">
-          <button onClick={() => setMode("wpp")} className={`flex-1 py-2 rounded-lg font-roboto text-label-sm flex items-center justify-center gap-2 transition-all ${mode === "wpp" ? "bg-[#075E54] text-white shadow-sm" : "text-on-surface-variant dark:text-gray-400 hover:bg-[#075E54]/10 dark:hover:bg-[#075E54]/30 hover:text-[#075E54] dark:hover:text-green-400"}`}>
+          <button onClick={() => setMode("wpp")} className={`flex-1 py-2 rounded-lg font-roboto text-label-sm flex items-center justify-center gap-2 transition-all ${activeMode === "wpp" ? "bg-[#075E54] text-white shadow-sm" : "text-on-surface-variant dark:text-gray-400 hover:bg-[#075E54]/10 dark:hover:bg-[#075E54]/30 hover:text-[#075E54] dark:hover:text-green-400"}`}>
             <span className="material-symbols-outlined text-[18px]">chat</span> WhatsApp
           </button>
-          <button onClick={() => setMode("quick")} className={`flex-1 py-2 rounded-lg font-roboto text-label-sm flex items-center justify-center gap-2 transition-all ${mode === "quick" ? "bg-[#F59E0B] text-white shadow-sm" : "text-on-surface-variant dark:text-gray-400 hover:bg-[#F59E0B]/10 dark:hover:bg-[#F59E0B]/30 hover:text-[#D97706] dark:hover:text-amber-400"}`}>
+          <button onClick={() => setMode("quick")} className={`flex-1 py-2 rounded-lg font-roboto text-label-sm flex items-center justify-center gap-2 transition-all ${activeMode === "quick" ? "bg-[#F59E0B] text-white shadow-sm" : "text-on-surface-variant dark:text-gray-400 hover:bg-[#F59E0B]/10 dark:hover:bg-[#F59E0B]/30 hover:text-[#D97706] dark:hover:text-amber-400"}`}>
             <span className="material-symbols-outlined text-[18px]">bolt</span> Rápido
           </button>
         </div>
@@ -316,7 +334,8 @@ export default function NewActivity() {
           </div>
         </div>
 
-        {mode === "wpp" && (
+        {/* Conteúdo do modo WhatsApp */}
+        {(activeMode === "wpp") && (
           <>
             <div className="text-on-surface dark:text-gray-200 font-roboto text-sm flex items-center gap-2 mb-2">
               <span className="material-symbols-outlined text-accent">event_note</span>
@@ -338,7 +357,8 @@ export default function NewActivity() {
           </>
         )}
 
-        {mode === "quick" && (
+        {/* Conteúdo do modo Rápido */}
+        {(activeMode === "quick") && (
           <div className="space-y-4">
             <h3 className="font-roboto text-label-md text-outline dark:text-gray-400 uppercase">Atividades Rápidas</h3>
             {quickActivities.map((qa, idx) => (
