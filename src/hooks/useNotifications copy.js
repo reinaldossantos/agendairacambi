@@ -41,6 +41,7 @@ export function useNotifications(currentUser) {
       .limit(30);
 
     if (activityIds.length > 0) {
+      // Logs das atividades vinculadas OU logs diretos para o usuário
       query = query.or(
         `activity_id.in.(${activityIds.join(",")}),person_id.eq.${currentUser.id}`
       );
@@ -53,39 +54,26 @@ export function useNotifications(currentUser) {
     setUnreadCount(logs?.length || 0);
   }, [currentUser]);
 
-  // Carga inicial e inscrição em tempo real (sem polling)
+  // Polling a cada 5 segundos
+  useEffect(() => {
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 5000);
+    return () => clearInterval(interval);
+  }, [fetchNotifications]);
+
+  // Realtime (Supabase)
   useEffect(() => {
     if (!currentUser?.id) return;
-
-    // Busca notificações iniciais
-    fetchNotifications();
-
-    // Inscreve-se em INSERT, UPDATE e DELETE na tabela activity_logs
     const channel = supabase
       .channel("public:activity_logs")
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "activity_logs" },
         () => {
-          fetchNotifications(); // atualiza instantaneamente
-        }
-      )
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "activity_logs" },
-        () => {
-          fetchNotifications();
-        }
-      )
-      .on(
-        "postgres_changes",
-        { event: "DELETE", schema: "public", table: "activity_logs" },
-        () => {
           fetchNotifications();
         }
       )
       .subscribe();
-
     return () => {
       supabase.removeChannel(channel);
     };
@@ -110,7 +98,7 @@ export function useNotifications(currentUser) {
 
   const toggleOpen = () => {
     setOpen((prev) => !prev);
-    if (!open) fetchNotifications(); // atualiza ao abrir (segurança extra)
+    if (!open) fetchNotifications();
   };
 
   return { notifications, unreadCount, open, toggleOpen, dropdownRef };

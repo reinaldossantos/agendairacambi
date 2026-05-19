@@ -316,10 +316,41 @@ export default function ActivityDetail() {
   const handleDeleteConfirm = async () => {
     setShowDeleteConfirm(false);
     setDeleting(true);
+
+    // Remove todas as fotos do storage ANTES de excluir a atividade
+    if (activity.images && activity.images.length > 0) {
+      const paths = activity.images
+        .map(url => {
+          try {
+            // Extrai o nome do arquivo da URL pública
+            return url.split("/").pop();
+          } catch (e) {
+            console.error("Erro ao extrair path da URL:", url, e);
+            return null;
+          }
+        })
+        .filter(Boolean);
+      
+      if (paths.length > 0) {
+        const { error: storageError } = await supabase.storage
+          .from("activity-attachments")
+          .remove(paths);
+        if (storageError) {
+          console.error("Erro ao remover fotos do storage:", storageError);
+        } else {
+          console.log(`${paths.length} foto(s) removida(s) do storage.`);
+        }
+      }
+    }
+
+    // Agora exclui o registro da atividade
     const { error } = await supabase.from("activities").delete().eq("id", activity.id);
     setDeleting(false);
-    if (error) alert("Erro ao excluir: " + error.message);
-    else setShowDeleteSuccess(true);
+    if (error) {
+      alert("Erro ao excluir: " + error.message);
+    } else {
+      setShowDeleteSuccess(true);
+    }
   };
 
   const handleWhatsAppShare = () => {

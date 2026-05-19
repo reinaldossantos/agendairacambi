@@ -146,7 +146,9 @@ export default function FAB() {
           className="relative bg-gradient-to-br from-yellow-300 to-yellow-500 text-black w-16 h-16 rounded-full flex items-center justify-center"
         >
           <div className="absolute inset-0 rounded-full bg-white/20 blur-sm" />
-          <span className="material-symbols-outlined text-3xl relative">add</span>
+          <span className="material-symbols-outlined text-3xl relative">
+            add
+          </span>
         </motion.button>
       </motion.div>
     </>

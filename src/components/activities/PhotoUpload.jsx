@@ -34,7 +34,18 @@ export default function PhotoUpload({ onUploadComplete, existingPhotos = [] }) {
     setUploading(false);
   };
 
-  const removePhoto = (index) => {
+  const removePhoto = async (index) => {
+    const urlToRemove = photos[index];
+    if (urlToRemove) {
+      // Extrai o nome do arquivo da URL pública
+      const path = urlToRemove.split("/").pop();
+      if (path) {
+        const { error } = await supabase.storage
+          .from("activity-attachments")
+          .remove([path]);
+        if (error) console.error("Erro ao remover foto do storage:", error);
+      }
+    }
     const updated = photos.filter((_, i) => i !== index);
     setPhotos(updated);
     if (onUploadComplete) onUploadComplete(updated);

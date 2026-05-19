@@ -20,15 +20,43 @@ const priorityEmojis = {
   Urgente: "🔴",
 };
 
-// Abreviações para nomes de programas longos (opcional, só se quiser)
+// Mapeamento manual de abreviações (prioridade)
 const programShortNames = {
   "Relações Institucionais": "Rel. Institucionais",
   "Assistente de Colegiado": "Assist. Colegiado",
   "Pesquisas e Monitoramento": "Pesq. e Monitor.",
+  "Viveiro e Manutenção": "Viveiro e Manut.",
+  "Educação Ambiental": "Educ. Ambiental",
+  "Florestas para Água": "Florestas p/ Água",
+  "Gestão Financeira": "Gestão Financeira", // já curto
+  "Voluntariado": "Voluntariado",
 };
 
-function getShortProgramName(name) {
-  return programShortNames[name] || name;
+// Função genérica de abreviação para qualquer nome longo
+function shortenProgramName(name) {
+  if (!name) return "";
+  // Se já tem abreviação manual, usa ela
+  if (programShortNames[name]) return programShortNames[name];
+  
+  // Limite de caracteres antes de abreviar
+  const MAX_LEN = 18;
+  if (name.length <= MAX_LEN) return name;
+
+  // Tenta abreviar mantendo primeira palavra e última (se houver mais de uma)
+  const words = name.split(" ");
+  if (words.length > 1) {
+    const firstWord = words[0];
+    const lastWord = words[words.length - 1];
+    // Se a junção da primeira e última for menor que o limite, faz "Primeira Última"
+    if ((firstWord + " " + lastWord).length <= MAX_LEN + 2) {
+      return `${firstWord} ${lastWord}`;
+    }
+    // Caso contrário, mantém só a primeira palavra
+    return firstWord;
+  }
+  
+  // Último recurso: corta com "..."
+  return name.substring(0, MAX_LEN - 3) + "...";
 }
 
 export default function ActivityCard({ activity }) {
@@ -55,8 +83,8 @@ export default function ActivityCard({ activity }) {
   };
 
   const fullProgramName = activity.programs?.name || "Programa";
-  const shortProgramName = getShortProgramName(fullProgramName);
-  const programColor = getProgramColor(fullProgramName); // cor ainda usa nome completo
+  const shortProgramName = shortenProgramName(fullProgramName);
+  const programColor = getProgramColor(fullProgramName);
 
   const textColorClass = programColor.text || "text-[#2E7D32]";
   const hexColor = textColorClass.match(/#[0-9A-Fa-f]{6}/)?.[0] || "#2E7D32";

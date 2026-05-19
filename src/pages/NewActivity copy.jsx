@@ -6,7 +6,6 @@ import { ptBR } from "date-fns/locale";
 import { shareViaWhatsApp, formatAgendaForWhatsApp } from "../lib/whatsapp";
 import { useCurrentUser } from "../context/CurrentUserContext";
 import { useAdvancedSettings } from "../context/AdvancedSettingsContext";
-import { getUserColor } from "../lib/colors";
 
 export default function NewActivity() {
   const navigate = useNavigate();
@@ -35,12 +34,11 @@ export default function NewActivity() {
   const [message, setMessage] = useState({ type: "", text: "" });
   const [lastInserted, setLastInserted] = useState(null);
 
-  // ---- Menções com navegação por teclado ----
+  // ---- Menções ----
   const [mentionIndex, setMentionIndex] = useState(null);
   const [mentionQuery, setMentionQuery] = useState("");
   const [mentionList, setMentionList] = useState([]);
   const [showMentions, setShowMentions] = useState(false);
-  const [selectedMentionIdx, setSelectedMentionIdx] = useState(0); // índice do item destacado
   const textareaRefs = useRef([]);
 
   useEffect(() => {
@@ -50,14 +48,14 @@ export default function NewActivity() {
 
   useEffect(() => {
     supabase.from("programs").select("id, name").order("name").then(({ data }) => setPrograms(data || []));
-    supabase.from("persons").select("id, name, initials").order("name").then(({ data }) => setPersons(data || []));
+    supabase.from("persons").select("id, name").order("name").then(({ data }) => setPersons(data || []));
   }, []);
 
   const weekStartDate = format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd");
   const weekEndDate = format(addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), 5), "yyyy-MM-dd");
   const weekDisplay = `${format(parseISO(weekStartDate), "dd 'de' MMM", { locale: ptBR })} – ${format(parseISO(weekEndDate), "dd 'de' MMM", { locale: ptBR })}`;
 
-  // --- parser ---
+  // --- parser (mantido) ---
   function parseWeekText(text, mondayDate) {
     const dayMap = {
       'segunda': 0, 'segunda-feira': 0, 'segunda feira': 0,
@@ -152,7 +150,7 @@ export default function NewActivity() {
     return dates;
   }
 
-  // Handlers de menção com teclado
+  // Handlers de menção
   const handleDescriptionChange = (index, value) => {
     updateQuickActivity(index, "description", value);
     const textarea = textareaRefs.current[index];
@@ -167,46 +165,11 @@ export default function NewActivity() {
       setMentionList(filtered.slice(0, 5));
       setShowMentions(true);
       setMentionIndex(index);
-      setSelectedMentionIdx(0); // reset ao abrir
     } else {
       setShowMentions(false);
       setMentionIndex(null);
-      setSelectedMentionIdx(0);
     }
   };
-
-  const handleKeyDown = (e, idx) => {
-    if (!showMentions || mentionIndex !== idx) return;
-
-    switch (e.key) {
-      case "ArrowDown":
-        e.preventDefault();
-        setSelectedMentionIdx(prev => Math.min(prev + 1, mentionList.length - 1));
-        break;
-      case "ArrowUp":
-        e.preventDefault();
-        setSelectedMentionIdx(prev => Math.max(prev - 1, 0));
-        break;
-      case "Enter":
-      case " ":
-      case "Space":
-      case "Tab":
-        e.preventDefault();
-        if (mentionList.length > 0) {
-          const selectedPerson = mentionList[selectedMentionIdx];
-          if (selectedPerson) handleMentionClick(selectedPerson);
-        }
-        break;
-      case "Escape":
-        e.preventDefault();
-        setShowMentions(false);
-        setMentionIndex(null);
-        break;
-      default:
-        break;
-    }
-  };
-
   const handleMentionClick = (person) => {
     if (mentionIndex === null) return;
     const textarea = textareaRefs.current[mentionIndex];
@@ -221,7 +184,6 @@ export default function NewActivity() {
     toggleInvolved(mentionIndex, person.id);
     setShowMentions(false);
     setMentionIndex(null);
-    setSelectedMentionIdx(0);
     setTimeout(() => {
       textarea.focus();
       textarea.setSelectionRange(newText.length, newText.length);
@@ -256,41 +218,19 @@ export default function NewActivity() {
     if (error) { setMessage({ type: "error", text: "Erro: " + error.message }); setLoading(false); return; }
     if (inserted && inserted.length > 0) {
       const involvementLogs = [];
-      const creatorLogs = [];
-
       for (const activity of inserted) {
-        creatorLogs.push({
-          activity_id: activity.id,
-          person_id: personId,
-          type: "create",
-          content: `Atividade publicada: "${activity.title}"`,
-          metadata: { program_id: activity.program_id, due_date: activity.due_date }
-        });
         if (activity.involved_ids && activity.involved_ids.length > 0) {
           for (const pid of activity.involved_ids) {
             const person = persons.find(p => p.id === pid);
-            if (person) {
-              involvementLogs.push({
-                activity_id: activity.id,
-                person_id: pid,
-                type: "involvement",
-                content: `${currentUser?.name || "Alguém"} envolveu você na atividade "${activity.title}".`,
-                metadata: { involved_person_id: pid, action: "added" }
-              });
-            }
+            if (person) involvementLogs.push({ activity_id: activity.id, person_id: pid, type: "involvement", content: `${currentUser?.name || "Alguém"} envolveu você na atividade "${activity.title}".`, metadata: { involved_person_id: pid, action: "added" } });
           }
         }
       }
-      if (creatorLogs.length > 0) await supabase.from("activity_logs").insert(creatorLogs);
       if (involvementLogs.length > 0) await supabase.from("activity_logs").insert(involvementLogs);
     }
     setMessage({ type: "success", text: `${list.length} atividade(s) lançada(s)!` });
     setLastInserted({ program: selectedProgram, responsible: selectedPerson, weekStart: list[0].week_start, activities: list });
-    setWeekText("");
-    setQuickActivities([{ date: format(new Date(), "yyyy-MM-dd"), title: "", description: "", involvedIds: [], priority: "Média", repeat: false, repeatEndDate: "", repeatDays: [] }]);
-    setInvolvedIdsGlobal([]);
-    setSelectedPriority("Média");
-    setLoading(false);
+    setWeekText(""); setQuickActivities([{ date: format(new Date(), "yyyy-MM-dd"), title: "", description: "", involvedIds: [], priority: "Média", repeat: false, repeatEndDate: "", repeatDays: [] }]); setInvolvedIdsGlobal([]); setSelectedPriority("Média"); setLoading(false);
   }
 
   if (!modes.wpp && !modes.quick) {
@@ -393,46 +333,31 @@ export default function NewActivity() {
                     <div><label className="font-roboto text-[10px] uppercase text-outline mb-1">Dias da semana</label><div className="flex flex-wrap gap-2">{['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => <label key={day} className="flex items-center gap-1 text-sm text-on-surface dark:text-gray-200 cursor-pointer"><input type="checkbox" checked={(qa.repeatDays || []).includes(day)} onChange={() => toggleRepeatDay(idx, day)} className="rounded border-outline dark:border-gray-600 text-primary focus:ring-accent" />{day}</label>)}</div></div>
                   </div>
                 )}
-                {/* Descrição com menções e suporte a teclado */}
+                {/* Descrição com menções */}
                 <div>
                   <label className="font-roboto text-[10px] uppercase text-outline">Descrição / Ocorrências</label>
                   <div className="relative">
                     <textarea
                       ref={(el) => (textareaRefs.current[idx] = el)}
                       rows={3}
-                      placeholder="Descreva a atividade. Caso queira mencionar alguém, use @nome (ex: @Gabriela)."
+                      placeholder="Detalhes... Use @nome para mencionar"
                       value={qa.description}
                       onChange={(e) => handleDescriptionChange(idx, e.target.value)}
-                      onKeyDown={(e) => handleKeyDown(e, idx)}
                       className="w-full bg-transparent border-b border-primary/20 focus:border-accent outline-none py-1 text-sm resize-none text-on-surface dark:text-white font-roboto"
                     />
                     {showMentions && mentionIndex === idx && mentionList.length > 0 && (
                       <div className="absolute bottom-full left-0 mb-1 w-56 bg-white dark:bg-gray-800 border border-surface-variant dark:border-gray-700 rounded-xl shadow-lg z-10 py-1">
-                        {mentionList.map((person, i) => {
-                          const color = getUserColor(person.id);
-                          const isSelected = i === selectedMentionIdx;
-                          return (
-                            <button
-                              key={person.id}
-                              type="button"
-                              onClick={() => handleMentionClick(person)}
-                              className={`w-full text-left px-3 py-2 flex items-center gap-2 transition-colors ${
-                                isSelected
-                                  ? "bg-gray-100 dark:bg-gray-700"
-                                  : "hover:bg-gray-100 dark:hover:bg-gray-700"
-                              }`}
-                            >
-                              <span
-                                className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${color.bg} ${color.text} ${color.ring} ring-1`}
-                              >
-                                {person.initials}
-                              </span>
-                              <span className={`text-sm font-medium ${color.text}`}>
-                                {person.name}
-                              </span>
-                            </button>
-                          );
-                        })}
+                        {mentionList.map((person) => (
+                          <button
+                            key={person.id}
+                            type="button"
+                            onClick={() => handleMentionClick(person)}
+                            className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+                          >
+                            <span className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">{person.initials}</span>
+                            <span className="text-sm text-on-surface dark:text-gray-200">{person.name}</span>
+                          </button>
+                        ))}
                       </div>
                     )}
                   </div>
