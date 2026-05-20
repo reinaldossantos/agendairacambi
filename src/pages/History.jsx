@@ -14,8 +14,8 @@ export default function History() {
   const [endDate, setEndDate] = useState("");
   const [programs, setPrograms] = useState([]);
   const [persons, setPersons] = useState([]);
+  const [programNameToId, setProgramNameToId] = useState({});
 
-  // Modal de relatório
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportStart, setReportStart] = useState("");
   const [reportEnd, setReportEnd] = useState("");
@@ -27,10 +27,14 @@ export default function History() {
 
   async function fetchMeta() {
     const [progRes, persRes] = await Promise.all([
-      supabase.from("programs").select("name").order("name"),
+      supabase.from("programs").select("id, name").order("name"),
       supabase.from("persons").select("id, name").order("name"),
     ]);
-    setPrograms(progRes.data || []);
+    const progList = progRes.data || [];
+    setPrograms(progList);
+    const mapping = {};
+    progList.forEach(p => { mapping[p.name] = p.id; });
+    setProgramNameToId(mapping);
     setPersons(persRes.data || []);
   }
 
@@ -41,11 +45,21 @@ export default function History() {
       .select("*, programs:program_id(name), persons:responsible_id(name)")
       .order("due_date", { ascending: false });
 
-    if (filterProgram) query = query.eq("programs.name", filterProgram);
-    if (filterPerson) query = query.eq("responsible_id", filterPerson);
-    if (filterStatus) query = query.eq("status", filterStatus);
-    if (startDate) query = query.gte("due_date", startDate);
-    if (endDate) query = query.lte("due_date", endDate);
+    if (filterProgram && programNameToId[filterProgram]) {
+      query = query.eq("program_id", programNameToId[filterProgram]);
+    }
+    if (filterPerson) {
+      query = query.eq("responsible_id", filterPerson);
+    }
+    if (filterStatus) {
+      query = query.eq("status", filterStatus);
+    }
+    if (startDate) {
+      query = query.gte("due_date", startDate);
+    }
+    if (endDate) {
+      query = query.lte("due_date", endDate);
+    }
 
     const { data, error } = await query.limit(100);
     if (!error) setActivities(data || []);
@@ -63,7 +77,7 @@ export default function History() {
     setFilterStatus("");
     setStartDate("");
     setEndDate("");
-    fetchHistory();
+    setTimeout(() => fetchHistory(), 0);
   }
 
   function exportCSV() {
@@ -107,9 +121,15 @@ export default function History() {
       .lte("due_date", reportEnd)
       .order("due_date", { ascending: true });
 
-    if (filterProgram) query = query.eq("programs.name", filterProgram);
-    if (filterPerson) query = query.eq("responsible_id", filterPerson);
-    if (filterStatus) query = query.eq("status", filterStatus);
+    if (filterProgram && programNameToId[filterProgram]) {
+      query = query.eq("program_id", programNameToId[filterProgram]);
+    }
+    if (filterPerson) {
+      query = query.eq("responsible_id", filterPerson);
+    }
+    if (filterStatus) {
+      query = query.eq("status", filterStatus);
+    }
 
     const { data } = await query;
     if (!data || data.length === 0) {
@@ -159,7 +179,6 @@ export default function History() {
         </div>
       </div>
 
-      {/* Modal de período personalizado */}
       {showReportModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
           <div className="bg-white dark:bg-dark-surface rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl">
@@ -189,7 +208,7 @@ export default function History() {
           <label className="font-roboto text-[10px] uppercase text-outline dark:text-gray-400 block mb-1">Programa</label>
           <select value={filterProgram} onChange={(e) => setFilterProgram(e.target.value)} className="w-full bg-surface dark:bg-gray-800 border-b-2 border-primary/20 focus:border-accent outline-none py-2 px-3 text-sm text-on-surface dark:text-white rounded-t-lg">
             <option value="">Todos</option>
-            {programs.map((p) => (<option key={p.name} value={p.name}>{p.name}</option>))}
+            {programs.map((p) => (<option key={p.id} value={p.name}>{p.name}</option>))}
           </select>
         </div>
         <div>
@@ -229,7 +248,6 @@ export default function History() {
         </div>
       </form>
 
-      {/* Tabela com rolagem horizontal e linhas alternadas */}
       <div className="bg-white dark:bg-gray-900 border border-surface-variant dark:border-gray-700 rounded-xl overflow-hidden">
         <div className="overflow-x-auto -mx-4 md:mx-0 scrollbar-thin">
           <div className="inline-block min-w-full align-middle px-4 md:px-0">
@@ -267,7 +285,7 @@ export default function History() {
                           {a.title}
                         </Link>
                         <p className="text-[10px] md:text-xs text-outline dark:text-gray-500 line-clamp-1">{a.description}</p>
-                      </td>
+                       </td>
                       <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-on-surface dark:text-gray-300 whitespace-nowrap">{a.programs?.name}</td>
                       <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-on-surface dark:text-gray-300 whitespace-nowrap">{format(parseISO(a.due_date || a.week_start), "dd/MM/yyyy")}</td>
                       <td className="px-2 md:px-4 py-3">
@@ -278,7 +296,7 @@ export default function History() {
                           a.status === "Cancelado" ? "bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-200" :
                           "bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 border-red-200"
                         }`}>{a.status}</span>
-                      </td>
+                       </td>
                       <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-on-surface dark:text-gray-300 whitespace-nowrap">{a.persons?.name}</td>
                     </tr>
                   ))

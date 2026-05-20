@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
-import { startOfWeek, addDays, subDays, subWeeks, addWeeks, format } from "date-fns";
+import { startOfWeek, addDays, subWeeks, addWeeks, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import ActivityCard from "../components/activities/ActivityCard";
 import SkeletonCard from "../components/ui/SkeletonCard";
@@ -20,6 +20,13 @@ function getCurrentMonday() {
   } else {
     return startOfWeek(today, { weekStartsOn: 1 });
   }
+}
+
+// Helper para subDays (caso não importado do date-fns)
+function subDays(date, days) {
+  const result = new Date(date);
+  result.setDate(result.getDate() - days);
+  return result;
 }
 
 export default function Dashboard() {
@@ -144,7 +151,8 @@ export default function Dashboard() {
 
   return (
     <section className="px-4 md:px-0">
-      <div className="max-w-4xl mx-auto">
+      {/* Container principal: largura máxima aumentada para max-w-7xl (1280px) em vez de max-w-4xl */}
+      <div className="max-w-7xl mx-auto">
         {currentUser && (
           <p className="text-body-md text-on-surface dark:text-gray-200 mb-4">
             {t("common.welcome")},{" "}
@@ -244,9 +252,10 @@ export default function Dashboard() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* Grid de cards responsivo: mais colunas em telas grandes */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {loading ? (
-            Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)
+            Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)
           ) : activities.length === 0 ? (
             <div className="col-span-full text-center py-20 text-on-surface-variant dark:text-gray-400">
               {selectedProgram === "Todos"

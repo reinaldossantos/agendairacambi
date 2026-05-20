@@ -8,7 +8,7 @@ import CommentSection from "../components/activities/CommentSection";
 import ConfirmDialog from "../components/ui/ConfirmDialog";
 import PhotoUpload from "../components/activities/PhotoUpload";
 import { getUserColor } from "../lib/colors";
-import { shareViaWhatsApp, formatAgendaForWhatsApp } from "../lib/whatsapp";
+import { shareViaWhatsApp, formatSingleActivityForWhatsAppSimple } from "../lib/whatsapp";
 
 const priorityColors = {
   Baixa: "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400",
@@ -322,7 +322,6 @@ export default function ActivityDetail() {
       const paths = activity.images
         .map(url => {
           try {
-            // Extrai o nome do arquivo da URL pública
             return url.split("/").pop();
           } catch (e) {
             console.error("Erro ao extrair path da URL:", url, e);
@@ -343,7 +342,6 @@ export default function ActivityDetail() {
       }
     }
 
-    // Agora exclui o registro da atividade
     const { error } = await supabase.from("activities").delete().eq("id", activity.id);
     setDeleting(false);
     if (error) {
@@ -355,17 +353,12 @@ export default function ActivityDetail() {
 
   const handleWhatsAppShare = () => {
     if (!activity) return;
-    const text = formatAgendaForWhatsApp({
+    const text = formatSingleActivityForWhatsAppSimple({
+      title: activity.title,
+      description: activity.description || "Sem descrição",
+      dueDate: activity.due_date || activity.week_start,
       program: activity.programs?.name || "N/D",
-      responsible: activity.persons?.name || "N/D",
-      weekStart: activity.week_start,
-      activities: [
-        {
-          title: activity.title,
-          description: activity.description,
-          due_date: activity.due_date,
-        },
-      ],
+      responsible: activity.persons?.name || "N/D"
     });
     shareViaWhatsApp(text);
   };

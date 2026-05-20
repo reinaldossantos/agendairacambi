@@ -3,10 +3,11 @@ import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 import { startOfWeek, addDays, format, parseISO, isValid } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { shareViaWhatsApp, formatAgendaForWhatsApp } from "../lib/whatsapp";
+import { shareViaWhatsApp, formatAgendaForWhatsAppSimple } from "../lib/whatsapp"; // <-- ALTERADO
 import { useCurrentUser } from "../context/CurrentUserContext";
 import { useAdvancedSettings } from "../context/AdvancedSettingsContext";
 import { getUserColor } from "../lib/colors";
+import PhotoUpload from "../components/activities/PhotoUpload";
 
 export default function NewActivity() {
   const navigate = useNavigate();
@@ -28,19 +29,19 @@ export default function NewActivity() {
   const [weekText, setWeekText] = useState("");
   const rawWeekDate = format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd");
   const [quickActivities, setQuickActivities] = useState([
-    { date: format(new Date(), "yyyy-MM-dd"), title: "", description: "", involvedIds: [], priority: "Média", repeat: false, repeatEndDate: "", repeatDays: [] },
+    { date: format(new Date(), "yyyy-MM-dd"), title: "", description: "", involvedIds: [], priority: "Média", repeat: false, repeatEndDate: "", repeatDays: [], images: [] },
   ]);
   const [involvedIdsGlobal, setInvolvedIdsGlobal] = useState([]);
+  const [globalImages, setGlobalImages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
   const [lastInserted, setLastInserted] = useState(null);
 
-  // ---- Menções com navegação por teclado ----
+  // ---- Menções ----
   const [mentionIndex, setMentionIndex] = useState(null);
   const [mentionQuery, setMentionQuery] = useState("");
   const [mentionList, setMentionList] = useState([]);
   const [showMentions, setShowMentions] = useState(false);
-  const [selectedMentionIdx, setSelectedMentionIdx] = useState(0); // índice do item destacado
   const textareaRefs = useRef([]);
 
   useEffect(() => {
@@ -57,7 +58,7 @@ export default function NewActivity() {
   const weekEndDate = format(addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), 5), "yyyy-MM-dd");
   const weekDisplay = `${format(parseISO(weekStartDate), "dd 'de' MMM", { locale: ptBR })} – ${format(parseISO(weekEndDate), "dd 'de' MMM", { locale: ptBR })}`;
 
-  // --- parser ---
+  // --- parser (mantido) ---
   function parseWeekText(text, mondayDate) {
     const dayMap = {
       'segunda': 0, 'segunda-feira': 0, 'segunda feira': 0,
@@ -126,17 +127,18 @@ export default function NewActivity() {
     return { title: cleaned[0], description: cleaned.join('; ') };
   }
 
-  const addQuickActivity = () => setQuickActivities([...quickActivities, { date: format(new Date(), "yyyy-MM-dd"), title: "", description: "", involvedIds: [], priority: "Média", repeat: false, repeatEndDate: "", repeatDays: [] }]);
+  const addQuickActivity = () => setQuickActivities([...quickActivities, { date: format(new Date(), "yyyy-MM-dd"), title: "", description: "", involvedIds: [], priority: "Média", repeat: false, repeatEndDate: "", repeatDays: [], images: [] }]);
   const removeQuickActivity = (i) => { if (quickActivities.length > 1) setQuickActivities(quickActivities.filter((_, idx) => idx !== i)); };
   const updateQuickActivity = (i, f, v) => { const u = [...quickActivities]; u[i][f] = v; setQuickActivities(u); };
   const toggleInvolved = (i, id) => { const u = [...quickActivities]; u[i].involvedIds = u[i].involvedIds.includes(id) ? u[i].involvedIds.filter(x => x !== id) : [...u[i].involvedIds, id]; setQuickActivities(u); };
   const toggleInvolvedGlobal = (id) => setInvolvedIdsGlobal(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   const toggleRepeatDay = (i, day) => { const u = [...quickActivities]; const days = u[i].repeatDays || []; if (days.includes(day)) u[i].repeatDays = days.filter(d => d !== day); else u[i].repeatDays = [...days, day]; setQuickActivities(u); };
   const switchToQuickWithText = () => {
-    setQuickActivities([{ date: rawWeekDate, title: weekText.split('\n')[0] || "Atividade", description: weekText, involvedIds: involvedIdsGlobal, priority: selectedPriority, repeat: false, repeatEndDate: "", repeatDays: [] }]);
+    setQuickActivities([{ date: rawWeekDate, title: weekText.split('\n')[0] || "Atividade", description: weekText, involvedIds: involvedIdsGlobal, priority: selectedPriority, repeat: false, repeatEndDate: "", repeatDays: [], images: [] }]);
     setSelectedMode("quick");
     setMessage({ type: "", text: "" });
   };
+
   function generateRepeatDates(startDateStr, endDateStr, daysOfWeek) {
     const start = parseISO(startDateStr);
     const end = parseISO(endDateStr);
@@ -152,7 +154,7 @@ export default function NewActivity() {
     return dates;
   }
 
-  // Handlers de menção com teclado
+  // Handlers de menção
   const handleDescriptionChange = (index, value) => {
     updateQuickActivity(index, "description", value);
     const textarea = textareaRefs.current[index];
@@ -167,43 +169,9 @@ export default function NewActivity() {
       setMentionList(filtered.slice(0, 5));
       setShowMentions(true);
       setMentionIndex(index);
-      setSelectedMentionIdx(0); // reset ao abrir
     } else {
       setShowMentions(false);
       setMentionIndex(null);
-      setSelectedMentionIdx(0);
-    }
-  };
-
-  const handleKeyDown = (e, idx) => {
-    if (!showMentions || mentionIndex !== idx) return;
-
-    switch (e.key) {
-      case "ArrowDown":
-        e.preventDefault();
-        setSelectedMentionIdx(prev => Math.min(prev + 1, mentionList.length - 1));
-        break;
-      case "ArrowUp":
-        e.preventDefault();
-        setSelectedMentionIdx(prev => Math.max(prev - 1, 0));
-        break;
-      case "Enter":
-      case " ":
-      case "Space":
-      case "Tab":
-        e.preventDefault();
-        if (mentionList.length > 0) {
-          const selectedPerson = mentionList[selectedMentionIdx];
-          if (selectedPerson) handleMentionClick(selectedPerson);
-        }
-        break;
-      case "Escape":
-        e.preventDefault();
-        setShowMentions(false);
-        setMentionIndex(null);
-        break;
-      default:
-        break;
     }
   };
 
@@ -221,7 +189,6 @@ export default function NewActivity() {
     toggleInvolved(mentionIndex, person.id);
     setShowMentions(false);
     setMentionIndex(null);
-    setSelectedMentionIdx(0);
     setTimeout(() => {
       textarea.focus();
       textarea.setSelectionRange(newText.length, newText.length);
@@ -234,43 +201,64 @@ export default function NewActivity() {
     setLoading(true);
     const programId = programs.find(p => p.name === selectedProgram)?.id || null;
     const personId = persons.find(p => p.name === selectedPerson)?.id || null;
+    
+    if (!personId) {
+      setMessage({ type: "error", text: "Responsável não encontrado na base." });
+      setLoading(false);
+      return;
+    }
+
     let list = [];
     if (selectedMode === "wpp") {
       const parsed = parseWeekText(weekText, parseISO(weekStartDate));
       if (parsed.length === 0) { setMessage({ type: "error", text: "Não foram encontrados dias da semana no texto.", action: "switch" }); setLoading(false); return; }
-      list = parsed.map(item => ({ program_id: programId, responsible_id: personId, created_by: personId, title: item.title, description: item.description, week_start: item.week_start, due_date: item.due_date, status: "Planejado", priority: selectedPriority, involved_ids: involvedIdsGlobal }));
+      list = parsed.map(item => ({ 
+        program_id: programId, 
+        responsible_id: personId, 
+        created_by: personId, 
+        title: item.title, 
+        description: item.description, 
+        week_start: item.week_start, 
+        due_date: item.due_date, 
+        status: "Planejado", 
+        priority: selectedPriority, 
+        involved_ids: involvedIdsGlobal,
+        images: globalImages 
+      }));
     } else if (selectedMode === "quick") {
       for (let i = 0; i < quickActivities.length; i++) {
         const q = quickActivities[i];
         if (!q.title.trim() || !q.date) { setMessage({ type: "error", text: "Preencha título e data." }); setLoading(false); return; }
         if (q.repeat && q.repeatEndDate && q.repeatDays.length > 0) {
           const dates = generateRepeatDates(q.date, q.repeatEndDate, q.repeatDays);
-          dates.forEach(date => list.push({ program_id: programId, responsible_id: personId, created_by: personId, title: q.title, description: q.description, week_start: format(startOfWeek(parseISO(date), { weekStartsOn: 1 }), "yyyy-MM-dd"), due_date: date, status: "Planejado", priority: q.priority || "Média", involved_ids: q.involvedIds || [] }));
+          dates.forEach(date => list.push({ program_id: programId, responsible_id: personId, created_by: personId, title: q.title, description: q.description, week_start: format(startOfWeek(parseISO(date), { weekStartsOn: 1 }), "yyyy-MM-dd"), due_date: date, status: "Planejado", priority: q.priority || "Média", involved_ids: q.involvedIds || [], images: q.images || [] }));
         } else {
-          list.push({ program_id: programId, responsible_id: personId, created_by: personId, title: q.title, description: q.description, week_start: format(startOfWeek(parseISO(q.date), { weekStartsOn: 1 }), "yyyy-MM-dd"), due_date: q.date, status: "Planejado", priority: q.priority || "Média", involved_ids: q.involvedIds || [] });
+          list.push({ program_id: programId, responsible_id: personId, created_by: personId, title: q.title, description: q.description, week_start: format(startOfWeek(parseISO(q.date), { weekStartsOn: 1 }), "yyyy-MM-dd"), due_date: q.date, status: "Planejado", priority: q.priority || "Média", involved_ids: q.involvedIds || [], images: q.images || [] });
         }
       }
     } else { setMessage({ type: "error", text: "Nenhum modo disponível." }); setLoading(false); return; }
 
     const { data: inserted, error } = await supabase.from("activities").insert(list).select();
     if (error) { setMessage({ type: "error", text: "Erro: " + error.message }); setLoading(false); return; }
+    
+    // NOTIFICAÇÕES CORRIGIDAS
     if (inserted && inserted.length > 0) {
-      const involvementLogs = [];
-      const creatorLogs = [];
-
+      const allLogs = [];
       for (const activity of inserted) {
-        creatorLogs.push({
-          activity_id: activity.id,
-          person_id: personId,
-          type: "create",
-          content: `Atividade publicada: "${activity.title}"`,
-          metadata: { program_id: activity.program_id, due_date: activity.due_date }
-        });
-        if (activity.involved_ids && activity.involved_ids.length > 0) {
+        if (personId) {
+          allLogs.push({
+            activity_id: activity.id,
+            person_id: personId,
+            type: "create",
+            content: `Atividade publicada: "${activity.title}"`,
+            metadata: { program_id: activity.program_id, due_date: activity.due_date }
+          });
+        }
+        if (activity.involved_ids && Array.isArray(activity.involved_ids) && activity.involved_ids.length > 0) {
           for (const pid of activity.involved_ids) {
             const person = persons.find(p => p.id === pid);
             if (person) {
-              involvementLogs.push({
+              allLogs.push({
                 activity_id: activity.id,
                 person_id: pid,
                 type: "involvement",
@@ -281,14 +269,19 @@ export default function NewActivity() {
           }
         }
       }
-      if (creatorLogs.length > 0) await supabase.from("activity_logs").insert(creatorLogs);
-      if (involvementLogs.length > 0) await supabase.from("activity_logs").insert(involvementLogs);
+      if (allLogs.length > 0) {
+        const { error: logsError } = await supabase.from("activity_logs").insert(allLogs);
+        if (logsError) console.error("Erro ao inserir notificações:", logsError);
+        else console.log(`${allLogs.length} notificações inseridas com sucesso.`);
+      }
     }
+
     setMessage({ type: "success", text: `${list.length} atividade(s) lançada(s)!` });
     setLastInserted({ program: selectedProgram, responsible: selectedPerson, weekStart: list[0].week_start, activities: list });
     setWeekText("");
-    setQuickActivities([{ date: format(new Date(), "yyyy-MM-dd"), title: "", description: "", involvedIds: [], priority: "Média", repeat: false, repeatEndDate: "", repeatDays: [] }]);
+    setQuickActivities([{ date: format(new Date(), "yyyy-MM-dd"), title: "", description: "", involvedIds: [], priority: "Média", repeat: false, repeatEndDate: "", repeatDays: [], images: [] }]);
     setInvolvedIdsGlobal([]);
+    setGlobalImages([]);
     setSelectedPriority("Média");
     setLoading(false);
   }
@@ -350,7 +343,7 @@ export default function NewActivity() {
           </div>
         </div>
 
-        {/* WhatsApp */}
+        {/* WhatsApp Mode */}
         {activeMode === "wpp" && modes.wpp && (
           <>
             <div className="text-on-surface dark:text-gray-200 font-roboto text-sm flex items-center gap-2 mb-2">
@@ -369,10 +362,17 @@ export default function NewActivity() {
                 ))}
               </div>
             </div>
+            <div>
+              <label className="font-roboto text-[10px] uppercase text-outline">Fotos (para todas as atividades)</label>
+              <PhotoUpload
+                onUploadComplete={(newPhotos) => setGlobalImages(newPhotos)}
+                existingPhotos={globalImages}
+              />
+            </div>
           </>
         )}
 
-        {/* Rápido */}
+        {/* Quick Mode */}
         {activeMode === "quick" && modes.quick && (
           <div className="space-y-4">
             <h3 className="font-roboto text-label-md text-outline dark:text-gray-400 uppercase">Atividades Rápidas</h3>
@@ -393,7 +393,7 @@ export default function NewActivity() {
                     <div><label className="font-roboto text-[10px] uppercase text-outline mb-1">Dias da semana</label><div className="flex flex-wrap gap-2">{['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => <label key={day} className="flex items-center gap-1 text-sm text-on-surface dark:text-gray-200 cursor-pointer"><input type="checkbox" checked={(qa.repeatDays || []).includes(day)} onChange={() => toggleRepeatDay(idx, day)} className="rounded border-outline dark:border-gray-600 text-primary focus:ring-accent" />{day}</label>)}</div></div>
                   </div>
                 )}
-                {/* Descrição com menções e suporte a teclado */}
+                {/* Descrição com menções */}
                 <div>
                   <label className="font-roboto text-[10px] uppercase text-outline">Descrição / Ocorrências</label>
                   <div className="relative">
@@ -403,33 +403,29 @@ export default function NewActivity() {
                       placeholder="Descreva a atividade. Caso queira mencionar alguém, use @nome (ex: @Gabriela)."
                       value={qa.description}
                       onChange={(e) => handleDescriptionChange(idx, e.target.value)}
-                      onKeyDown={(e) => handleKeyDown(e, idx)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Escape" && showMentions) {
+                          setShowMentions(false);
+                          e.preventDefault();
+                        }
+                      }}
                       className="w-full bg-transparent border-b border-primary/20 focus:border-accent outline-none py-1 text-sm resize-none text-on-surface dark:text-white font-roboto"
                     />
                     {showMentions && mentionIndex === idx && mentionList.length > 0 && (
                       <div className="absolute bottom-full left-0 mb-1 w-56 bg-white dark:bg-gray-800 border border-surface-variant dark:border-gray-700 rounded-xl shadow-lg z-10 py-1">
-                        {mentionList.map((person, i) => {
+                        {mentionList.map((person) => {
                           const color = getUserColor(person.id);
-                          const isSelected = i === selectedMentionIdx;
                           return (
                             <button
                               key={person.id}
                               type="button"
                               onClick={() => handleMentionClick(person)}
-                              className={`w-full text-left px-3 py-2 flex items-center gap-2 transition-colors ${
-                                isSelected
-                                  ? "bg-gray-100 dark:bg-gray-700"
-                                  : "hover:bg-gray-100 dark:hover:bg-gray-700"
-                              }`}
+                              className="w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                             >
-                              <span
-                                className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${color.bg} ${color.text} ${color.ring} ring-1`}
-                              >
+                              <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${color.bg} ${color.text} ${color.ring} ring-1`}>
                                 {person.initials}
                               </span>
-                              <span className={`text-sm font-medium ${color.text}`}>
-                                {person.name}
-                              </span>
+                              <span className={`text-sm font-medium ${color.text}`}>{person.name}</span>
                             </button>
                           );
                         })}
@@ -445,7 +441,18 @@ export default function NewActivity() {
                     ))}
                   </div>
                 </div>
-                <div className="flex justify-end"><button type="button" onClick={() => removeQuickActivity(idx)} disabled={quickActivities.length === 1} className="text-error/70 hover:text-error p-1 disabled:opacity-30"><span className="material-symbols-outlined">delete</span></button></div>
+                <div>
+                  <label className="font-roboto text-[10px] uppercase text-outline">Registro Fotográfico</label>
+                  <PhotoUpload
+                    onUploadComplete={(newPhotos) => updateQuickActivity(idx, "images", newPhotos)}
+                    existingPhotos={qa.images || []}
+                  />
+                </div>
+                <div className="flex justify-end">
+                  <button type="button" onClick={() => removeQuickActivity(idx)} disabled={quickActivities.length === 1} className="text-error/70 hover:text-error p-1 disabled:opacity-30">
+                    <span className="material-symbols-outlined">delete</span>
+                  </button>
+                </div>
               </div>
             ))}
             <button type="button" onClick={addQuickActivity} className="bg-accent/10 text-primary dark:text-white font-roboto text-label-sm px-4 py-2 rounded-full flex items-center gap-2 hover:bg-accent/20 transition-all active:scale-95 min-h-[44px] shadow-sm">
@@ -463,7 +470,7 @@ export default function NewActivity() {
         )}
         {message.type === "success" && lastInserted && (
           <div className="flex justify-end">
-            <button type="button" onClick={() => { const text = formatAgendaForWhatsApp(lastInserted); shareViaWhatsApp(text); }} className="bg-[#25D366] text-white font-roboto text-label-sm px-5 py-2 rounded-full flex items-center gap-2 hover:bg-[#128C7E] transition-all active:scale-95 min-h-[44px]">
+            <button type="button" onClick={() => { const text = formatAgendaForWhatsAppSimple(lastInserted); shareViaWhatsApp(text); }} className="bg-[#25D366] text-white font-roboto text-label-sm px-5 py-2 rounded-full flex items-center gap-2 hover:bg-[#128C7E] transition-all active:scale-95 min-h-[44px]">
               <span className="material-symbols-outlined text-[18px]">send</span> Enviar via WhatsApp
             </button>
           </div>

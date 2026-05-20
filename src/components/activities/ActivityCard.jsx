@@ -3,7 +3,7 @@ import { format, parseISO, isValid } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "../../lib/supabaseClient";
 import { useState, useEffect } from "react";
-import { shareViaWhatsApp } from "../../lib/whatsapp";
+import { shareViaWhatsApp, formatSingleActivityForWhatsAppSimple } from "../../lib/whatsapp";
 import { getProgramColor } from "../../lib/colors";
 
 const statusColors = {
@@ -20,7 +20,6 @@ const priorityEmojis = {
   Urgente: "🔴",
 };
 
-// Mapeamento manual de abreviações (prioridade)
 const programShortNames = {
   "Relações Institucionais": "Rel. Institucionais",
   "Assistente de Colegiado": "Assist. Colegiado",
@@ -28,34 +27,24 @@ const programShortNames = {
   "Viveiro e Manutenção": "Viveiro e Manut.",
   "Educação Ambiental": "Educ. Ambiental",
   "Florestas para Água": "Florestas p/ Água",
-  "Gestão Financeira": "Gestão Financeira", // já curto
+  "Gestão Financeira": "Gestão Financeira",
   "Voluntariado": "Voluntariado",
 };
 
-// Função genérica de abreviação para qualquer nome longo
 function shortenProgramName(name) {
   if (!name) return "";
-  // Se já tem abreviação manual, usa ela
   if (programShortNames[name]) return programShortNames[name];
-  
-  // Limite de caracteres antes de abreviar
   const MAX_LEN = 18;
   if (name.length <= MAX_LEN) return name;
-
-  // Tenta abreviar mantendo primeira palavra e última (se houver mais de uma)
   const words = name.split(" ");
   if (words.length > 1) {
     const firstWord = words[0];
     const lastWord = words[words.length - 1];
-    // Se a junção da primeira e última for menor que o limite, faz "Primeira Última"
     if ((firstWord + " " + lastWord).length <= MAX_LEN + 2) {
       return `${firstWord} ${lastWord}`;
     }
-    // Caso contrário, mantém só a primeira palavra
     return firstWord;
   }
-  
-  // Último recurso: corta com "..."
   return name.substring(0, MAX_LEN - 3) + "...";
 }
 
@@ -78,7 +67,13 @@ export default function ActivityCard({ activity }) {
   const handleShare = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    const text = `📋 *Atividade – Iracambi*\n\n*Título:* ${activity.title}\n*Programa:* ${activity.programs?.name || "N/D"}\n*Data:* ${displayDate}\n*Status:* ${activity.status}\n*Responsável:* ${activity.persons?.name || "N/D"}\n\n📝 *Descrição:* ${activity.description || "Sem descrição"}\n\n🌿 *Colegiado IRACAMBI®*`;
+    const text = formatSingleActivityForWhatsAppSimple({
+      title: activity.title,
+      description: activity.description || "Sem descrição",
+      dueDate: activity.due_date || activity.week_start,
+      program: activity.programs?.name || "N/D",
+      responsible: activity.persons?.name || "N/D"
+    });
     shareViaWhatsApp(text);
   };
 
