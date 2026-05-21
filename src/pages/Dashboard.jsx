@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
-import { startOfWeek, addDays, subWeeks, addWeeks, format } from "date-fns";
+import { startOfWeek, addDays, subDays, subWeeks, addWeeks, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import ActivityCard from "../components/activities/ActivityCard";
 import SkeletonCard from "../components/ui/SkeletonCard";
@@ -20,13 +20,6 @@ function getCurrentMonday() {
   } else {
     return startOfWeek(today, { weekStartsOn: 1 });
   }
-}
-
-// Helper para subDays (caso não importado do date-fns)
-function subDays(date, days) {
-  const result = new Date(date);
-  result.setDate(result.getDate() - days);
-  return result;
 }
 
 export default function Dashboard() {
@@ -65,12 +58,9 @@ export default function Dashboard() {
   }, [selectedProgram, currentMonday]);
 
   async function fetchPrograms() {
-    const { data } = await supabase
-      .from("programs")
-      .select("id, name")
-      .order("name");
+    const { data } = await supabase.from("programs").select("id, name").order("name");
     if (data) {
-      setPrograms(data || []);
+      setPrograms(data);
       const idMap = {};
       data.forEach((prog) => {
         idMap[prog.name] = prog.id;
@@ -93,9 +83,7 @@ export default function Dashboard() {
       query = query.eq("program_id", programIds[selectedProgram]);
     }
 
-    const { data, error } = await query
-      .order("due_date", { ascending: true })
-      .order("id", { ascending: true });
+    const { data, error } = await query.order("due_date", { ascending: true }).order("id", { ascending: true });
 
     if (error) {
       console.error("Erro ao buscar atividades:", error);
@@ -127,9 +115,7 @@ export default function Dashboard() {
 
   const handleMouseUp = () => {
     setIsDragging(false);
-    if (filterContainerRef.current) {
-      filterContainerRef.current.style.cursor = "grab";
-    }
+    if (filterContainerRef.current) filterContainerRef.current.style.cursor = "grab";
   };
 
   const handleMouseMove = (e) => {
@@ -143,23 +129,17 @@ export default function Dashboard() {
   const handleMouseLeave = () => {
     if (isDragging) {
       setIsDragging(false);
-      if (filterContainerRef.current) {
-        filterContainerRef.current.style.cursor = "grab";
-      }
+      if (filterContainerRef.current) filterContainerRef.current.style.cursor = "grab";
     }
   };
 
   return (
     <section className="px-4 md:px-0">
-      {/* Container principal: largura máxima aumentada para max-w-7xl (1280px) em vez de max-w-4xl */}
       <div className="max-w-7xl mx-auto">
         {currentUser && (
           <p className="text-body-md text-on-surface dark:text-gray-200 mb-4">
             {t("common.welcome")},{" "}
-            <span className="font-semibold text-primary dark:text-white">
-              {currentUser.name}
-            </span>
-            .
+            <span className="font-semibold text-primary dark:text-white">{currentUser.name}</span>.
           </p>
         )}
 
@@ -192,14 +172,12 @@ export default function Dashboard() {
             >
               <span className="material-symbols-outlined text-green-700 dark:text-green-300">chevron_right</span>
             </button>
-
             <button
               onClick={handleExportPDF}
               className="px-4 py-2 rounded-full bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50 font-roboto text-label-sm min-h-[44px] flex items-center gap-2 transition-all active:scale-95"
               title="Exportar relatório em PDF"
             >
-              <span className="material-symbols-outlined text-[18px]">picture_as_pdf</span>
-              PDF
+              <span className="material-symbols-outlined text-[18px]">picture_as_pdf</span> PDF
             </button>
           </div>
         </div>
@@ -224,13 +202,12 @@ export default function Dashboard() {
           </button>
           {programs.map((prog) => {
             const color = getProgramColor(prog.name);
-            const isSelected = selectedProgram === prog.name;
             return (
               <button
                 key={prog.id}
                 onClick={() => setSelectedProgram(prog.name)}
                 className={`px-4 py-2 rounded-full font-roboto text-label-sm transition-all active:scale-95 min-h-[44px] flex items-center justify-center border whitespace-nowrap ${
-                  isSelected
+                  selectedProgram === prog.name
                     ? `${color.bg} ${color.text} ${color.border} shadow-sm`
                     : `bg-surface dark:bg-white/5 text-on-surface dark:text-gray-300 border-surface-variant dark:border-white/10 ${color.hover}`
                 }`}
@@ -243,7 +220,9 @@ export default function Dashboard() {
 
         {selectedProgram !== "Todos" && (
           <div className="mb-4">
-            <span className={`inline-block px-4 py-1.5 rounded-full font-roboto text-label-md font-semibold ${getProgramColor(selectedProgram).bg} ${getProgramColor(selectedProgram).text} border ${getProgramColor(selectedProgram).border}`}>
+            <span
+              className={`inline-block px-4 py-1.5 rounded-full font-roboto text-label-md font-semibold ${getProgramColor(selectedProgram).bg} ${getProgramColor(selectedProgram).text} border ${getProgramColor(selectedProgram).border}`}
+            >
               {selectedProgram}
             </span>
             <span className="ml-2 text-sm text-on-surface-variant dark:text-gray-300">
@@ -252,19 +231,18 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Grid de cards responsivo: mais colunas em telas grandes */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {loading ? (
-            Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)
-          ) : activities.length === 0 ? (
-            <div className="col-span-full text-center py-20 text-on-surface-variant dark:text-gray-400">
-              {selectedProgram === "Todos"
-                ? t("dashboard.noActivities")
-                : t("dashboard.noActivitiesForProgram", { program: selectedProgram })}
-            </div>
-          ) : (
-            activities.map((activity) => <ActivityCard key={activity.id} activity={activity} />)
-          )}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3">
+          {loading
+            ? Array.from({ length: 10 }).map((_, i) => <SkeletonCard key={i} />)
+            : activities.length === 0
+            ? (
+                <div className="col-span-full text-center py-20 text-on-surface-variant dark:text-gray-400">
+                  {selectedProgram === "Todos"
+                    ? t("dashboard.noActivities")
+                    : t("dashboard.noActivitiesForProgram", { program: selectedProgram })}
+                </div>
+              )
+            : activities.map((activity) => <ActivityCard key={activity.id} activity={activity} />)}
         </div>
       </div>
     </section>

@@ -8,9 +8,9 @@ import { getProgramColor } from "../../lib/colors";
 
 const statusColors = {
   Planejado: "bg-gray-100 text-gray-600 dark:bg-white/10 dark:text-gray-300",
-  "Em andamento": "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200",
-  Realizado: "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-green-200",
-  Pendente: "bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400 border-red-200",
+  "Em andamento": "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+  Realizado: "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+  Pendente: "bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400",
 };
 
 const priorityEmojis = {
@@ -72,7 +72,7 @@ export default function ActivityCard({ activity }) {
       description: activity.description || "Sem descrição",
       dueDate: activity.due_date || activity.week_start,
       program: activity.programs?.name || "N/D",
-      responsible: activity.persons?.name || "N/D"
+      responsible: activity.persons?.name || "N/D",
     });
     shareViaWhatsApp(text);
   };
@@ -92,59 +92,67 @@ export default function ActivityCard({ activity }) {
     <Link
       to={`/activity/${activity.id}`}
       style={hoverShadowStyle}
-      className={`group bg-white dark:bg-white/5 backdrop-blur-sm border-l-4 ${programColor.border} border-t border-r border-b border-surface-variant dark:border-white/10 rounded-xl p-4 hover:shadow-md transition-all duration-300 flex flex-col relative max-w-sm`}
+      className={`group bg-white dark:bg-white/5 backdrop-blur-sm border-l-4 ${programColor.border} border-t border-r border-b border-surface-variant dark:border-white/10 rounded-xl p-3 hover:shadow-md transition-all duration-300 flex flex-col relative`}
     >
-      <div className="flex items-start justify-between mb-3">
-        <span className={`inline-block px-2.5 py-0.5 rounded-full ${programColor.bgLight} ${programColor.text} text-[11px] font-roboto font-medium border ${programColor.border}`}>
+      <div className="flex items-start justify-between mb-2">
+        <span
+          className={`inline-block px-2 py-0.5 rounded-full ${programColor.bgLight} ${programColor.text} text-[10px] font-roboto font-medium border ${programColor.border}`}
+        >
           {shortProgramName}
         </span>
         <div className="flex gap-1">
-          <span className="text-[10px] font-roboto font-semibold px-2 py-0.5 rounded-full border bg-white dark:bg-white/5">
+          <span className="text-[9px] font-roboto font-semibold px-1.5 py-0.5 rounded-full border bg-white dark:bg-white/5">
             {emoji} {priority}
           </span>
-          <span className={`text-[10px] font-roboto font-semibold px-2 py-0.5 rounded-full border ${statusColors[activity.status] || statusColors.Planejado}`}>
+          <span
+            className={`text-[9px] font-roboto font-semibold px-1.5 py-0.5 rounded-full border ${
+              statusColors[activity.status] || statusColors.Planejado
+            }`}
+          >
             {activity.status}
           </span>
         </div>
       </div>
 
-      <div className="flex items-center gap-2 text-gray-500 dark:text-gray-300 mb-2">
-        <span className="material-symbols-outlined text-[16px]">calendar_today</span>
-        <span className="font-roboto text-label-sm">{displayDate}</span>
+      <div className="flex items-center gap-1 text-gray-500 dark:text-gray-300 mb-1">
+        <span className="material-symbols-outlined text-[14px]">calendar_today</span>
+        <span className="font-roboto text-[10px]">{displayDate}</span>
       </div>
 
-      <h3 className="font-roboto text-headline-md text-primary dark:text-white mb-2 leading-tight line-clamp-2">
+      <h3 className="font-roboto text-sm font-semibold text-primary dark:text-white mb-1 leading-tight line-clamp-2">
         {activity.title}
       </h3>
 
-      <p className="text-on-surface dark:text-gray-200 font-roboto text-body-md line-clamp-2 mb-4 flex-grow">
+      <p className="text-on-surface dark:text-gray-200 font-roboto text-xs line-clamp-2 mb-2 flex-grow">
         {activity.description || "Sem descrição"}
       </p>
 
-      <div className="pt-3 border-t border-surface-variant dark:border-white/10 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className={`w-7 h-7 rounded-full ${programColor.bg} flex items-center justify-center text-xs font-bold ${programColor.text}`}>
+      <div className="pt-2 border-t border-surface-variant dark:border-white/10 flex items-center justify-between">
+        <div className="flex items-center gap-1.5">
+          <div
+            className={`w-6 h-6 rounded-full ${programColor.bg} flex items-center justify-center text-[10px] font-bold ${programColor.text}`}
+          >
             {activity.persons?.initials || "?"}
           </div>
-          <span className="font-roboto text-label-sm text-primary dark:text-white">
+          <span className="font-roboto text-[11px] text-primary dark:text-white truncate max-w-[80px]">
             {activity.persons?.name || "Responsável"}
           </span>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5">
           {involvedNames.length > 0 && (
-            <span className="text-xs text-green-600 dark:text-green-400 font-roboto px-2 py-1 font-medium">
+            <span className="text-[10px] text-green-600 dark:text-green-400 font-roboto px-1">
               +{involvedNames.length}
             </span>
           )}
           <button
             onClick={handleShare}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full min-h-[44px] min-w-[44px] flex items-center justify-center transition-all active:scale-95"
+            className="p-1 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full min-h-[32px] min-w-[32px] flex items-center justify-center transition-all active:scale-95"
           >
-            <span className="material-symbols-outlined text-green-600 dark:text-green-400 text-[20px]">
+            <span className="material-symbols-outlined text-green-600 dark:text-green-400 text-[16px]">
               share
             </span>
           </button>
-          <span className="material-symbols-outlined text-accent dark:text-accent group-hover:text-yellow-400 transition-colors">
+          <span className="material-symbols-outlined text-accent dark:text-accent group-hover:text-yellow-400 transition-colors text-[16px]">
             arrow_forward
           </span>
         </div>

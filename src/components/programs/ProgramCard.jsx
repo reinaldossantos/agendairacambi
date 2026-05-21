@@ -22,27 +22,40 @@ export default function ProgramCard({ program, index }) {
   const saturday = addDays(monday, 5);
 
   useEffect(() => {
-    supabase
-      .from("activities")
-      .select("id", { count: "exact" })
-      .eq("program_id", program.id)
-      .gte("due_date", format(monday, "yyyy-MM-dd"))
-      .lte("due_date", format(saturday, "yyyy-MM-dd"))
-      .then(({ count }) => setCount(count || 0));
-  }, [program.id]);
+    const fetchCount = async () => {
+      const { count, error } = await supabase
+        .from("activities")
+        .select("id", { count: "exact", head: true })
+        .eq("program_id", program.id)
+        .gte("due_date", format(monday, "yyyy-MM-dd"))
+        .lte("due_date", format(saturday, "yyyy-MM-dd"));
+      if (!error) setCount(count || 0);
+    };
+    fetchCount();
+  }, [program.id, monday, saturday]);
 
   return (
     <Link
       to={`/?program=${encodeURIComponent(program.name)}`}
-      className={`${bgColor} rounded-2xl p-6 border border-surface-variant dark:border-gray-700 hover:shadow-lg transition-all duration-300 flex flex-col justify-between h-48`}
+      className={`${bgColor} rounded-xl p-4 border border-surface-variant dark:border-gray-700 hover:shadow-lg transition-all duration-300 flex flex-col justify-between h-36 sm:h-40`}
     >
       <div>
-        <h3 className="font-epilogue text-headline-md text-primary dark:text-white mb-2">{program.name}</h3>
-        {program.leader && <p className="text-sm text-on-surface dark:text-gray-300">Líder: {program.leader.name}</p>}
+        <h3 className="font-epilogue text-base sm:text-lg font-semibold text-primary dark:text-white mb-1 line-clamp-2">
+          {program.name}
+        </h3>
+        {program.leader && (
+          <p className="text-xs text-on-surface dark:text-gray-300 truncate">
+            Líder: {program.leader.name}
+          </p>
+        )}
       </div>
-      <div className="flex items-end justify-between">
-        <span className="text-3xl font-bold text-primary dark:text-white">{count}</span>
-        <span className="text-xs text-outline dark:text-gray-400">atividades esta semana</span>
+      <div className="flex items-end justify-between mt-2">
+        <span className="text-2xl sm:text-3xl font-bold text-primary dark:text-white">
+          {count}
+        </span>
+        <span className="text-[10px] sm:text-xs text-outline dark:text-gray-400 text-right leading-tight">
+          atividades<br />esta semana
+        </span>
       </div>
     </Link>
   );

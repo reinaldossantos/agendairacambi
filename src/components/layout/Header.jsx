@@ -328,7 +328,7 @@ export default function Header() {
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full min-h-[44px] min-w-[44px] flex items-center justify-center text-primary dark:text-primary-light"
           >
-            <span className="material-symbols-outlined text-2xl">
+            <span className={`material-symbols-outlined ${mobileMenuOpen ? "text-red-500 text-3xl" : "text-2xl"}`}>
               {mobileMenuOpen ? "close" : "menu"}
             </span>
           </button>
@@ -373,9 +373,9 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Menu mobile (links adicionais) */}
+      {/* Menu mobile (links adicionais) - com rolagem */}
       {mobileMenuOpen && (
-        <div className="md:hidden bg-white dark:bg-dark-surface border-t border-surface-variant dark:border-white/10 px-4 py-4 space-y-3">
+        <div className="md:hidden bg-white dark:bg-dark-surface border-t border-surface-variant dark:border-white/10 px-4 py-4 space-y-3 max-h-[70vh] overflow-y-auto">
           <Link
             to="/history"
             onClick={() => setMobileMenuOpen(false)}
