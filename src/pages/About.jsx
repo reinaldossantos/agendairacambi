@@ -15,8 +15,8 @@ const sections = [
         </p>
         <p>
           Com esta plataforma você pode lançar tarefas, acompanhar status, envolver
-          pessoas, exportar relatórios, anexar fotos, publicar avisos, gerenciar
-          arquivos e muito mais — tudo de forma simples, intuitiva e responsiva.
+          pessoas, exportar relatórios, anexar fotos e arquivos, publicar avisos,
+          gerenciar documentos e muito mais — tudo de forma simples, intuitiva e responsiva.
         </p>
       </>
     ),
@@ -27,8 +27,8 @@ const sections = [
     content: (
       <ol className="list-decimal ml-5 space-y-2">
         <li>
-          <strong>Selecione seu nome</strong> no seletor do canto superior direito.
-          Isso identificará você nos comentários, edições e notificações.
+          <strong>Selecione seu nome</strong> no seletor do canto superior direito (desktop)
+          ou na barra inferior (mobile). Isso identificará você nos comentários, edições e notificações.
         </li>
         <li>
           No computador, clique em{" "}
@@ -60,7 +60,7 @@ const sections = [
     title: "📋 Lançar Atividades",
     content: (
       <>
-        <p className="mb-4">Existem dois modos de lançamento:</p>
+        <p className="mb-4">Existem dois modos de lançamento (configuráveis nas Configurações Avançadas):</p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div className="bg-surface dark:bg-white/5 p-4 rounded-xl">
             <h4 className="font-roboto text-label-md mb-2 flex items-center gap-2">
@@ -77,6 +77,10 @@ const sections = [
               <strong>"Usar modo Rápido"</strong> transfere automaticamente o
               conteúdo para o modo manual.
             </p>
+            <p className="text-sm mt-2">
+              Você pode anexar <strong>fotos e arquivos</strong> – eles serão aplicados a todas
+              as atividades geradas.
+            </p>
           </div>
           <div className="bg-surface dark:bg-white/5 p-4 rounded-xl">
             <h4 className="font-roboto text-label-md mb-2 flex items-center gap-2">
@@ -84,9 +88,12 @@ const sections = [
               Modo Rápido
             </h4>
             <p className="text-sm">
-              Preencha manualmente data, título, descrição e prioridade de cada
-              atividade. Você pode adicionar várias atividades de uma vez e marcar
-              pessoas envolvidas.
+              Preencha manualmente data, título, descrição (use <code className="bg-gray-200 dark:bg-gray-700 px-1 rounded">@nome</code>{" "}
+              para mencionar e envolver automaticamente), prioridade e <strong>finalização prevista</strong>.
+            </p>
+            <p className="text-sm mt-2">
+              Adicione quantas atividades desejar, marque <strong>repetição</strong> (várias datas)
+              e anexe <strong>fotos e arquivos</strong> (PDF, DOC, XLS, ZIP, etc.) por atividade.
             </p>
           </div>
         </div>
@@ -99,7 +106,7 @@ const sections = [
           <span className="bg-[#25D366] text-white px-2 py-0.5 rounded-full text-xs font-roboto">
             Enviar via WhatsApp
           </span>{" "}
-          gera um relatório formatado pronto para compartilhar no grupo.
+          gera um relatório formatado sem emojis (compatível com WhatsApp Desktop).
         </p>
       </>
     ),
@@ -111,7 +118,8 @@ const sections = [
       <>
         <p className="mb-4">
           O painel principal exibe as atividades de <strong>segunda a sábado</strong>.
-          No domingo, o sistema já mostra a semana seguinte.
+          No domingo, o sistema já mostra a semana seguinte. Os cards são compactos
+          (até 5 por linha em desktop).
         </p>
         <ul className="list-disc ml-5 space-y-2">
           <li>
@@ -127,31 +135,34 @@ const sections = [
             filtros para os lados.
           </li>
           <li>
-            Cada card exibe o nome do programa, prioridade (com emoji), status,
-            responsável e um ícone de compartilhamento. O círculo com as iniciais e
-            a sombra ao passar o mouse herdam a cor do programa.
+            Cada card exibe o programa (abreviado), prioridade (com emoji), status,
+            data, título, descrição resumida, responsável (com iniciais) e um contador
+            <strong> +n</strong> de envolvidos.
           </li>
           <li>
-            O contador <strong>+2</strong> indica quantas pessoas estão envolvidas
-            naquela atividade.
+            Ícones: <strong>compartilhar WhatsApp</strong> (texto sem emojis) e <strong>seta</strong> para detalhes.
           </li>
         </ul>
+        <p className="mt-2">
+          Botão <strong>PDF</strong> no canto superior direito gera um relatório semanal profissional.
+        </p>
       </>
     ),
   },
   {
     id: "interaction",
-    title: "💬 Interações e Edição",
+    title: "💬 Interações, Edição e Prorrogação",
     content: (
       <>
         <p className="mb-4">Dentro de cada atividade você pode:</p>
         <ul className="list-disc ml-5 space-y-2">
-          <li><strong>Comentar</strong> — qualquer pessoa pode deixar mensagens.</li>
+          <li><strong>Comentar</strong> — qualquer pessoa pode deixar mensagens (use <code className="bg-gray-200 dark:bg-gray-700 px-1 rounded">@nome</code> para mencionar).</li>
           <li><strong>Alterar status</strong> — Planejado, Em andamento, Realizado, Pendente ou Cancelado.</li>
           <li><strong>Cancelar atividade</strong> — exige uma justificativa que fica registrada no histórico.</li>
           <li><strong>Editar</strong> — modificar título, descrição, data, prioridade, programa e pessoas envolvidas.</li>
-          <li><strong>Excluir</strong> — remove a atividade permanentemente (com confirmação visual).</li>
-          <li><strong>Anexar fotos</strong> — faça upload de imagens para comprovar ocorrências.</li>
+          <li><strong>Prorrogar a finalização prevista</strong> — durante a edição, use os botões +1/-1 dia, +1/-1 semana ou +1/-1 mês.</li>
+          <li><strong>Anexar fotos e arquivos</strong> — suporte para imagens, PDFs, documentos Office, ZIP, TXT.</li>
+          <li><strong>Excluir</strong> — remove a atividade permanentemente (e também os anexos do storage).</li>
         </ul>
         <p className="mt-4">
           Toda mudança fica registrada no <strong>Histórico de Atualizações</strong>,
@@ -162,23 +173,23 @@ const sections = [
   },
   {
     id: "notifications",
-    title: "🔔 Notificações",
+    title: "🔔 Notificações em Tempo Real",
     content: (
       <>
         <p className="mb-4">
           O ícone de sino no cabeçalho exibe um número sempre que há novidades
-          para você. Você será notificado quando:
+          para você. As notificações são <strong>instantâneas</strong> (via Supabase Realtime),
+          sem necessidade de recarregar a página. Você será notificado quando:
         </p>
         <ul className="list-disc ml-5 space-y-2">
-          <li>Alguém comentar em uma atividade sua.</li>
-          <li>Você for <strong>envolvido(a)</strong> em uma atividade.</li>
-          <li>O status de uma atividade sua for alterado (inclusive cancelamento).</li>
-          <li>Um <strong>lembrete</strong> automático for gerado (atividades que vencem amanhã).</li>
+          <li>Você <strong>publicar uma atividade</strong> (responsável).</li>
+          <li>Alguém <strong>comentar</strong> em uma atividade sua.</li>
+          <li>Você for <strong>envolvido(a)</strong> ou <strong>mencionado(a)</strong> em uma atividade.</li>
+          <li>O <strong>status</strong> de uma atividade sua for alterado (inclusive cancelamento).</li>
           <li>Um <strong>arquivo</strong> for enviado para o seu programa ou para todos os programas.</li>
         </ul>
         <p className="mt-4">
-          As notificações são atualizadas a cada 5 segundos e também em tempo real
-          via Supabase. Para fechar a lista, clique fora ou no próprio ícone.
+          Para fechar a lista de notificações, clique fora ou no próprio ícone.
         </p>
       </>
     ),
@@ -192,11 +203,12 @@ const sections = [
         <ul className="list-disc ml-5 space-y-2">
           <li>
             No <strong>card da atividade</strong>, o ícone verde de compartilhar
-            envia os dados daquela atividade para o WhatsApp.
+            envia os dados daquela atividade para o WhatsApp (versão sem emojis,
+            compatível com desktop).
           </li>
           <li>
             Após <strong>publicar uma agenda</strong>, o botão "Enviar via WhatsApp"
-            gera um relatório formatado com emojis e marcadores.
+            gera um relatório formatado com marcadores simples.
           </li>
           <li>
             No <strong>Dashboard</strong> e no <strong>Histórico</strong>, o botão{" "}
@@ -207,6 +219,34 @@ const sections = [
         <p className="text-sm mt-2">
           O PDF pode ser salvo, impresso ou compartilhado oficialmente.
         </p>
+      </>
+    ),
+  },
+  {
+    id: "stats-history",
+    title: "📊 Estatísticas e Histórico",
+    content: (
+      <>
+        <p className="mb-4">
+          Acesse as estatísticas pelo ícone{" "}
+          <span className="material-symbols-outlined align-middle">bar_chart</span>{" "}
+          no cabeçalho. Você verá:
+        </p>
+        <ul className="list-disc ml-5 space-y-2">
+          <li>Cards com a contagem de atividades por status na semana atual.</li>
+          <li><strong>Clique em qualquer card de status</strong> para ir ao Histórico com aquele status pré‑filtrado.</li>
+          <li>Um gráfico de barras colorido mostrando a distribuição de atividades por programa.</li>
+          <li>Navegação entre semanas (setas + Hoje) para comparar períodos.</li>
+        </ul>
+        <p className="mt-4">
+          No <strong>Histórico</strong> (acessível pelo menu), você pode:
+        </p>
+        <ul className="list-disc ml-5 space-y-2">
+          <li>Filtrar por período, programa, responsável ou status (incluindo Cancelado).</li>
+          <li>Visualizar uma tabela completa com todas as atividades.</li>
+          <li><strong>Exportar CSV</strong> para análise externa.</li>
+          <li><strong>Exportar PDF</strong> com o mesmo formato profissional.</li>
+        </ul>
       </>
     ),
   },
@@ -225,24 +265,6 @@ const sections = [
           <li>Filtrar por programa usando os botões coloridos (arrastáveis).</li>
           <li>Clicar em um dia para ver a lista de atividades daquela data.</li>
           <li>Os dias que possuem atividades mostram bolinhas coloridas e uma legenda abaixo da grade.</li>
-        </ul>
-      </>
-    ),
-  },
-  {
-    id: "stats",
-    title: "📊 Dashboard de Estatísticas",
-    content: (
-      <>
-        <p className="mb-4">
-          Acesse as estatísticas pelo ícone{" "}
-          <span className="material-symbols-outlined align-middle">bar_chart</span>{" "}
-          no cabeçalho. Você verá:
-        </p>
-        <ul className="list-disc ml-5 space-y-2">
-          <li>Cards com a contagem de atividades por status.</li>
-          <li>Um gráfico de barras colorido mostrando a distribuição de atividades por programa na semana atual.</li>
-          <li>Navegação entre semanas (setas + Hoje) para comparar períodos.</li>
         </ul>
       </>
     ),
@@ -278,28 +300,11 @@ const sections = [
           <strong className="text-blue-500">pulsa em azul</strong>. Você pode:
         </p>
         <ul className="list-disc ml-5 space-y-2">
-          <li><strong>Enviar</strong> arquivos para um programa específico ou para <strong>todos os programas</strong>.</li>
+          <li><strong>Enviar</strong> arquivos (PDF, DOC, XLS, ZIP, etc.) para um programa específico ou para <strong>todos os programas</strong>.</li>
           <li>Adicionar uma <strong>descrição</strong> ao arquivo antes do upload.</li>
           <li>Visualizar os arquivos por semana (com navegação igual ao Dashboard).</li>
           <li><strong>Excluir</strong> arquivos manualmente (ou aguardar a exclusão automática após 30 dias).</li>
           <li>Quando um arquivo é enviado, o(s) líder(es) do programa recebem uma <strong>notificação</strong>.</li>
-        </ul>
-      </>
-    ),
-  },
-  {
-    id: "history",
-    title: "📜 Histórico e Relatórios",
-    content: (
-      <>
-        <p className="mb-4">
-          Acesse o histórico pela barra inferior (mobile) ou pelo menu. Você pode:
-        </p>
-        <ul className="list-disc ml-5 space-y-2">
-          <li>Filtrar por período, programa, responsável ou status (incluindo Cancelado).</li>
-          <li>Visualizar uma tabela completa com todas as atividades.</li>
-          <li><strong>Exportar CSV</strong> para análise externa.</li>
-          <li><strong>Exportar PDF</strong> com o mesmo formato profissional.</li>
         </ul>
       </>
     ),
@@ -349,6 +354,11 @@ const sections = [
             <span className="material-symbols-outlined align-middle">settings</span>{" "}
             <strong>Configurações</strong> — ativar modo escuro e selecionar idioma.
           </li>
+          <li>
+            <span className="material-symbols-outlined align-middle">tune</span>{" "}
+            <strong>Configurações Avançadas</strong> — habilitar/desabilitar os modos WhatsApp e Rápido
+            (protegido por senha – usuário <strong>Reinaldo</strong>).
+          </li>
         </ul>
         <p className="mt-4">
           Todos os botões possuem dicas (passe o mouse para ver a descrição).
@@ -397,7 +407,7 @@ export default function About() {
           Manual do AGENDA IRACAMBI
         </h2>
         <p className="font-roboto text-on-surface-variant dark:text-gray-400">
-          Um guia rápido para todas as funcionalidades.
+          Um guia completo para todas as funcionalidades.
         </p>
       </div>
 

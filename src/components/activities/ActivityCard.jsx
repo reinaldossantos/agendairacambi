@@ -3,13 +3,18 @@ import { format, parseISO, isValid } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "../../lib/supabaseClient";
 import { useState, useEffect } from "react";
-import { shareViaWhatsApp, formatSingleActivityForWhatsAppSimple } from "../../lib/whatsapp";
+import {
+  shareViaWhatsApp,
+  formatSingleActivityForWhatsAppSimple,
+} from "../../lib/whatsapp";
 import { getProgramColor } from "../../lib/colors";
 
 const statusColors = {
   Planejado: "bg-gray-100 text-gray-600 dark:bg-white/10 dark:text-gray-300",
-  "Em andamento": "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-  Realizado: "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+  "Em andamento":
+    "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+  Realizado:
+    "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400",
   Pendente: "bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400",
 };
 
@@ -28,7 +33,7 @@ const programShortNames = {
   "Educação Ambiental": "Educ. Ambiental",
   "Florestas para Água": "Florestas p/ Água",
   "Gestão Financeira": "Gestão Financeira",
-  "Voluntariado": "Voluntariado",
+  Voluntariado: "Voluntariado",
 };
 
 function shortenProgramName(name) {
@@ -52,7 +57,9 @@ export default function ActivityCard({ activity }) {
   const [involvedNames, setInvolvedNames] = useState([]);
   const dateToShow = activity.due_date || activity.week_start;
   const dateObj = parseISO(dateToShow);
-  const displayDate = isValid(dateObj) ? format(dateObj, "EEEE, dd MMM", { locale: ptBR }) : dateToShow;
+  const displayDate = isValid(dateObj)
+    ? format(dateObj, "EEEE, dd MMM", { locale: ptBR })
+    : dateToShow;
 
   useEffect(() => {
     if (activity.involved_ids?.length) {
@@ -115,7 +122,9 @@ export default function ActivityCard({ activity }) {
       </div>
 
       <div className="flex items-center gap-1 text-gray-500 dark:text-gray-300 mb-1">
-        <span className="material-symbols-outlined text-[14px]">calendar_today</span>
+        <span className="material-symbols-outlined text-[14px]">
+          calendar_today
+        </span>
         <span className="font-roboto text-[10px]">{displayDate}</span>
       </div>
 

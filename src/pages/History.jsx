@@ -1,15 +1,18 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 import { format, parseISO, startOfWeek, addDays } from "date-fns";
 import { generateWeeklyPDF } from "../lib/pdfGenerator";
 
 export default function History() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterProgram, setFilterProgram] = useState("");
   const [filterPerson, setFilterPerson] = useState("");
-  const [filterStatus, setFilterStatus] = useState("");
+  const [filterStatus, setFilterStatus] = useState(() => {
+    return searchParams.get("status") || "";
+  });
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [programs, setPrograms] = useState([]);
@@ -21,9 +24,19 @@ export default function History() {
   const [reportEnd, setReportEnd] = useState("");
 
   useEffect(() => {
+    const statusParam = searchParams.get("status");
+    if (statusParam) {
+      setFilterStatus(statusParam);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
     fetchMeta();
-    fetchHistory();
   }, []);
+
+  useEffect(() => {
+    fetchHistory();
+  }, [filterProgram, filterPerson, filterStatus, startDate, endDate]);
 
   async function fetchMeta() {
     const [progRes, persRes] = await Promise.all([
@@ -68,6 +81,7 @@ export default function History() {
 
   function handleFilter(e) {
     e.preventDefault();
+    setSearchParams({ status: filterStatus });
     fetchHistory();
   }
 
@@ -77,7 +91,7 @@ export default function History() {
     setFilterStatus("");
     setStartDate("");
     setEndDate("");
-    setTimeout(() => fetchHistory(), 0);
+    setSearchParams({});
   }
 
   function exportCSV() {
@@ -155,7 +169,6 @@ export default function History() {
       link.download = `iracambi_relatorio_${reportStart}_${reportEnd}.csv`;
       link.click();
     }
-
     setShowReportModal(false);
   };
 
@@ -296,7 +309,7 @@ export default function History() {
                           a.status === "Cancelado" ? "bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-200" :
                           "bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 border-red-200"
                         }`}>{a.status}</span>
-                       </td>
+                      </td>
                       <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-on-surface dark:text-gray-300 whitespace-nowrap">{a.persons?.name}</td>
                     </tr>
                   ))
