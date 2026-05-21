@@ -152,7 +152,8 @@ export default function ActivityCard({ activity }) {
               share
             </span>
           </button>
-          <span className="material-symbols-outlined text-accent dark:text-accent group-hover:text-yellow-400 transition-colors text-[16px]">
+          {/* Seta com mesmo efeito hover do compartilhamento */}
+          <span className="material-symbols-outlined text-green-600 dark:text-green-400 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full p-1 -m-1 active:scale-95 transition-all cursor-pointer text-[16px]">
             arrow_forward
           </span>
         </div>

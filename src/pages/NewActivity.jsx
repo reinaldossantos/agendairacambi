@@ -3,11 +3,12 @@ import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 import { startOfWeek, addDays, format, parseISO, isValid } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { shareViaWhatsApp, formatAgendaForWhatsAppSimple } from "../lib/whatsapp"; // <-- ALTERADO
+import { shareViaWhatsApp, formatAgendaForWhatsAppSimple } from "../lib/whatsapp";
 import { useCurrentUser } from "../context/CurrentUserContext";
 import { useAdvancedSettings } from "../context/AdvancedSettingsContext";
 import { getUserColor } from "../lib/colors";
 import PhotoUpload from "../components/activities/PhotoUpload";
+import FileUpload from "../components/activities/FileUpload";
 
 export default function NewActivity() {
   const navigate = useNavigate();
@@ -29,10 +30,23 @@ export default function NewActivity() {
   const [weekText, setWeekText] = useState("");
   const rawWeekDate = format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd");
   const [quickActivities, setQuickActivities] = useState([
-    { date: format(new Date(), "yyyy-MM-dd"), title: "", description: "", involvedIds: [], priority: "Média", repeat: false, repeatEndDate: "", repeatDays: [], images: [] },
+    { 
+      date: format(new Date(), "yyyy-MM-dd"), 
+      title: "", 
+      description: "", 
+      involvedIds: [], 
+      priority: "Média", 
+      repeat: false, 
+      repeatEndDate: "", 
+      repeatDays: [], 
+      images: [],
+      files: [],
+      endDateTime: "" 
+    },
   ]);
   const [involvedIdsGlobal, setInvolvedIdsGlobal] = useState([]);
   const [globalImages, setGlobalImages] = useState([]);
+  const [globalFiles, setGlobalFiles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
   const [lastInserted, setLastInserted] = useState(null);
@@ -127,14 +141,14 @@ export default function NewActivity() {
     return { title: cleaned[0], description: cleaned.join('; ') };
   }
 
-  const addQuickActivity = () => setQuickActivities([...quickActivities, { date: format(new Date(), "yyyy-MM-dd"), title: "", description: "", involvedIds: [], priority: "Média", repeat: false, repeatEndDate: "", repeatDays: [], images: [] }]);
+  const addQuickActivity = () => setQuickActivities([...quickActivities, { date: format(new Date(), "yyyy-MM-dd"), title: "", description: "", involvedIds: [], priority: "Média", repeat: false, repeatEndDate: "", repeatDays: [], images: [], files: [], endDateTime: "" }]);
   const removeQuickActivity = (i) => { if (quickActivities.length > 1) setQuickActivities(quickActivities.filter((_, idx) => idx !== i)); };
   const updateQuickActivity = (i, f, v) => { const u = [...quickActivities]; u[i][f] = v; setQuickActivities(u); };
   const toggleInvolved = (i, id) => { const u = [...quickActivities]; u[i].involvedIds = u[i].involvedIds.includes(id) ? u[i].involvedIds.filter(x => x !== id) : [...u[i].involvedIds, id]; setQuickActivities(u); };
   const toggleInvolvedGlobal = (id) => setInvolvedIdsGlobal(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   const toggleRepeatDay = (i, day) => { const u = [...quickActivities]; const days = u[i].repeatDays || []; if (days.includes(day)) u[i].repeatDays = days.filter(d => d !== day); else u[i].repeatDays = [...days, day]; setQuickActivities(u); };
   const switchToQuickWithText = () => {
-    setQuickActivities([{ date: rawWeekDate, title: weekText.split('\n')[0] || "Atividade", description: weekText, involvedIds: involvedIdsGlobal, priority: selectedPriority, repeat: false, repeatEndDate: "", repeatDays: [], images: [] }]);
+    setQuickActivities([{ date: rawWeekDate, title: weekText.split('\n')[0] || "Atividade", description: weekText, involvedIds: involvedIdsGlobal, priority: selectedPriority, repeat: false, repeatEndDate: "", repeatDays: [], images: [], files: [], endDateTime: "" }]);
     setSelectedMode("quick");
     setMessage({ type: "", text: "" });
   };
@@ -223,7 +237,9 @@ export default function NewActivity() {
         status: "Planejado", 
         priority: selectedPriority, 
         involved_ids: involvedIdsGlobal,
-        images: globalImages 
+        images: globalImages,
+        files: globalFiles,
+        end_datetime: null
       }));
     } else if (selectedMode === "quick") {
       for (let i = 0; i < quickActivities.length; i++) {
@@ -231,9 +247,37 @@ export default function NewActivity() {
         if (!q.title.trim() || !q.date) { setMessage({ type: "error", text: "Preencha título e data." }); setLoading(false); return; }
         if (q.repeat && q.repeatEndDate && q.repeatDays.length > 0) {
           const dates = generateRepeatDates(q.date, q.repeatEndDate, q.repeatDays);
-          dates.forEach(date => list.push({ program_id: programId, responsible_id: personId, created_by: personId, title: q.title, description: q.description, week_start: format(startOfWeek(parseISO(date), { weekStartsOn: 1 }), "yyyy-MM-dd"), due_date: date, status: "Planejado", priority: q.priority || "Média", involved_ids: q.involvedIds || [], images: q.images || [] }));
+          dates.forEach(date => list.push({ 
+            program_id: programId, 
+            responsible_id: personId, 
+            created_by: personId, 
+            title: q.title, 
+            description: q.description, 
+            week_start: format(startOfWeek(parseISO(date), { weekStartsOn: 1 }), "yyyy-MM-dd"), 
+            due_date: date, 
+            status: "Planejado", 
+            priority: q.priority || "Média", 
+            involved_ids: q.involvedIds || [], 
+            images: q.images || [],
+            files: q.files || [],
+            end_datetime: q.endDateTime || null
+          }));
         } else {
-          list.push({ program_id: programId, responsible_id: personId, created_by: personId, title: q.title, description: q.description, week_start: format(startOfWeek(parseISO(q.date), { weekStartsOn: 1 }), "yyyy-MM-dd"), due_date: q.date, status: "Planejado", priority: q.priority || "Média", involved_ids: q.involvedIds || [], images: q.images || [] });
+          list.push({ 
+            program_id: programId, 
+            responsible_id: personId, 
+            created_by: personId, 
+            title: q.title, 
+            description: q.description, 
+            week_start: format(startOfWeek(parseISO(q.date), { weekStartsOn: 1 }), "yyyy-MM-dd"), 
+            due_date: q.date, 
+            status: "Planejado", 
+            priority: q.priority || "Média", 
+            involved_ids: q.involvedIds || [], 
+            images: q.images || [],
+            files: q.files || [],
+            end_datetime: q.endDateTime || null
+          });
         }
       }
     } else { setMessage({ type: "error", text: "Nenhum modo disponível." }); setLoading(false); return; }
@@ -241,7 +285,7 @@ export default function NewActivity() {
     const { data: inserted, error } = await supabase.from("activities").insert(list).select();
     if (error) { setMessage({ type: "error", text: "Erro: " + error.message }); setLoading(false); return; }
     
-    // NOTIFICAÇÕES CORRIGIDAS
+    // Notificações
     if (inserted && inserted.length > 0) {
       const allLogs = [];
       for (const activity of inserted) {
@@ -279,9 +323,10 @@ export default function NewActivity() {
     setMessage({ type: "success", text: `${list.length} atividade(s) lançada(s)!` });
     setLastInserted({ program: selectedProgram, responsible: selectedPerson, weekStart: list[0].week_start, activities: list });
     setWeekText("");
-    setQuickActivities([{ date: format(new Date(), "yyyy-MM-dd"), title: "", description: "", involvedIds: [], priority: "Média", repeat: false, repeatEndDate: "", repeatDays: [], images: [] }]);
+    setQuickActivities([{ date: format(new Date(), "yyyy-MM-dd"), title: "", description: "", involvedIds: [], priority: "Média", repeat: false, repeatEndDate: "", repeatDays: [], images: [], files: [], endDateTime: "" }]);
     setInvolvedIdsGlobal([]);
     setGlobalImages([]);
+    setGlobalFiles([]);
     setSelectedPriority("Média");
     setLoading(false);
   }
@@ -369,6 +414,13 @@ export default function NewActivity() {
                 existingPhotos={globalImages}
               />
             </div>
+            <div>
+              <label className="font-roboto text-[10px] uppercase text-outline">Arquivos (para todas as atividades)</label>
+              <FileUpload
+                onUploadComplete={(newFiles) => setGlobalFiles(newFiles)}
+                existingFiles={globalFiles}
+              />
+            </div>
           </>
         )}
 
@@ -379,9 +431,27 @@ export default function NewActivity() {
             {quickActivities.map((qa, idx) => (
               <div key={idx} className="p-4 bg-surface dark:bg-dark-background rounded-xl border border-surface-variant dark:border-dark-surface-variant space-y-3">
                 <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-                  <div><label className="font-roboto text-[10px] uppercase text-outline">Data</label><input type="date" value={qa.date} onChange={e => updateQuickActivity(idx, "date", e.target.value)} className="w-full bg-transparent border-b border-primary/20 focus:border-accent outline-none py-1 text-sm text-on-surface dark:text-white font-roboto" /></div>
-                  <div className="sm:col-span-2"><label className="font-roboto text-[10px] uppercase text-outline">Título</label><input type="text" placeholder="Título" value={qa.title} onChange={e => updateQuickActivity(idx, "title", e.target.value)} className="w-full bg-transparent border-b border-primary/20 focus:border-accent outline-none py-1 text-sm text-on-surface dark:text-white font-roboto" /></div>
-                  <div><label className="font-roboto text-[10px] uppercase text-outline">Prioridade</label><select value={qa.priority || "Média"} onChange={e => updateQuickActivity(idx, "priority", e.target.value)} className="w-full bg-transparent border-b border-primary/20 focus:border-accent outline-none py-1 text-sm text-on-surface dark:text-white font-roboto"><option value="Baixa">🟢 Baixa</option><option value="Média">🟡 Média</option><option value="Alta">🟠 Alta</option><option value="Urgente">🔴 Urgente</option></select></div>
+                  <div>
+                    <label className="font-roboto text-[10px] uppercase text-outline">Data</label>
+                    <input type="date" value={qa.date} onChange={e => updateQuickActivity(idx, "date", e.target.value)} className="w-full bg-transparent border-b border-primary/20 focus:border-accent outline-none py-1 text-sm text-on-surface dark:text-white font-roboto" />
+                  </div>
+                  <div>
+                    <label className="font-roboto text-[10px] uppercase text-outline">Finalização</label>
+                    <input type="datetime-local" value={qa.endDateTime || ""} onChange={e => updateQuickActivity(idx, "endDateTime", e.target.value)} className="w-full bg-transparent border-b border-primary/20 focus:border-accent outline-none py-1 text-sm text-on-surface dark:text-white font-roboto" />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="font-roboto text-[10px] uppercase text-outline">Título</label>
+                    <input type="text" placeholder="Título" value={qa.title} onChange={e => updateQuickActivity(idx, "title", e.target.value)} className="w-full bg-transparent border-b border-primary/20 focus:border-accent outline-none py-1 text-sm text-on-surface dark:text-white font-roboto" />
+                  </div>
+                  <div>
+                    <label className="font-roboto text-[10px] uppercase text-outline">Prioridade</label>
+                    <select value={qa.priority || "Média"} onChange={e => updateQuickActivity(idx, "priority", e.target.value)} className="w-full bg-transparent border-b border-primary/20 focus:border-accent outline-none py-1 text-sm text-on-surface dark:text-white font-roboto">
+                      <option value="Baixa">🟢 Baixa</option>
+                      <option value="Média">🟡 Média</option>
+                      <option value="Alta">🟠 Alta</option>
+                      <option value="Urgente">🔴 Urgente</option>
+                    </select>
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <input type="checkbox" checked={qa.repeat || false} onChange={(e) => updateQuickActivity(idx, "repeat", e.target.checked)} className="rounded border-outline dark:border-gray-600 text-primary focus:ring-accent" id={`repeat-${idx}`} />
@@ -441,11 +511,20 @@ export default function NewActivity() {
                     ))}
                   </div>
                 </div>
+                {/* Registro fotográfico */}
                 <div>
                   <label className="font-roboto text-[10px] uppercase text-outline">Registro Fotográfico</label>
                   <PhotoUpload
                     onUploadComplete={(newPhotos) => updateQuickActivity(idx, "images", newPhotos)}
                     existingPhotos={qa.images || []}
+                  />
+                </div>
+                {/* Registro arquivos */}
+                <div>
+                  <label className="font-roboto text-[10px] uppercase text-outline">Registro Arquivos (PDF, DOC, XLS, ZIP, TXT, etc.)</label>
+                  <FileUpload
+                    onUploadComplete={(newFiles) => updateQuickActivity(idx, "files", newFiles)}
+                    existingFiles={qa.files || []}
                   />
                 </div>
                 <div className="flex justify-end">

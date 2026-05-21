@@ -7,6 +7,7 @@ import { ptBR } from "date-fns/locale";
 import CommentSection from "../components/activities/CommentSection";
 import ConfirmDialog from "../components/ui/ConfirmDialog";
 import PhotoUpload from "../components/activities/PhotoUpload";
+import FileUpload from "../components/activities/FileUpload";
 import { getUserColor } from "../lib/colors";
 import { shareViaWhatsApp, formatSingleActivityForWhatsAppSimple } from "../lib/whatsapp";
 
@@ -32,10 +33,12 @@ export default function ActivityDetail() {
     status: "",
     priority: "Média",
     due_date: "",
+    end_datetime: "",
     program_id: "",
     responsible_id: "",
     involved_ids: [],
     images: [],
+    files: [],
   });
   const [logs, setLogs] = useState([]);
   const [saving, setSaving] = useState(false);
@@ -64,10 +67,12 @@ export default function ActivityDetail() {
         status: data.status,
         priority: data.priority || "Média",
         due_date: data.due_date || data.week_start,
+        end_datetime: data.end_datetime || "",
         program_id: data.program_id || "",
         responsible_id: data.responsible_id || "",
         involved_ids: data.involved_ids || [],
         images: data.images || [],
+        files: data.files || [],
       });
       if (data.involved_ids?.length) {
         const { data: personsData } = await supabase
@@ -118,10 +123,12 @@ export default function ActivityDetail() {
         status: activity.status,
         priority: activity.priority || "Média",
         due_date: activity.due_date || activity.week_start,
+        end_datetime: activity.end_datetime || "",
         program_id: activity.program_id || "",
         responsible_id: activity.responsible_id || "",
         involved_ids: activity.involved_ids || [],
         images: activity.images || [],
+        files: activity.files || [],
       });
     }
   };
@@ -142,6 +149,10 @@ export default function ActivityDetail() {
 
   const handlePhotosChange = (newPhotos) => {
     setFormData((prev) => ({ ...prev, images: newPhotos }));
+  };
+
+  const handleFilesChange = (newFiles) => {
+    setFormData((prev) => ({ ...prev, files: newFiles }));
   };
 
   const handleStatusClick = (newStatus) => {
@@ -168,10 +179,12 @@ export default function ActivityDetail() {
         status: "Cancelado",
         priority: formData.priority,
         due_date: formData.due_date,
+        end_datetime: formData.end_datetime || null,
         program_id: formData.program_id || null,
         responsible_id: formData.responsible_id || null,
         involved_ids: formData.involved_ids,
         images: formData.images,
+        files: formData.files,
         updated_at: new Date().toISOString(),
       };
       const { error } = await supabase.from("activities").update(updates).eq("id", activity.id);
@@ -196,6 +209,16 @@ export default function ActivityDetail() {
     }
   };
 
+  // Função auxiliar para prorrogação da finalização
+  const postponeEndDate = (days = 0, weeks = 0, months = 0) => {
+    if (!formData.end_datetime) return;
+    const current = new Date(formData.end_datetime);
+    if (days) current.setDate(current.getDate() + days);
+    if (weeks) current.setDate(current.getDate() + weeks * 7);
+    if (months) current.setMonth(current.getMonth() + months);
+    setFormData(prev => ({ ...prev, end_datetime: current.toISOString() }));
+  };
+
   async function handleSave() {
     if (!canEdit || !activity) return;
     setSaving(true);
@@ -207,14 +230,17 @@ export default function ActivityDetail() {
       status: formData.status,
       priority: formData.priority,
       due_date: formData.due_date,
+      end_datetime: formData.end_datetime || null,
       program_id: formData.program_id || null,
       responsible_id: formData.responsible_id || null,
       involved_ids: formData.involved_ids,
       images: formData.images,
+      files: formData.files,
       updated_at: new Date().toISOString(),
     };
     const { error } = await supabase.from("activities").update(updates).eq("id", activity.id);
     if (!error) {
+      // Log de alteração de status
       if (updates.status !== oldActivity.status) {
         await supabase.from("activity_logs").insert({
           activity_id: activity.id,
@@ -226,6 +252,7 @@ export default function ActivityDetail() {
       }
 
       const changes = [];
+
       if (formData.title !== oldActivity.title) {
         changes.push(`Título alterado de "${oldActivity.title}" para "${formData.title}"`);
       }
@@ -244,6 +271,11 @@ export default function ActivityDetail() {
           : formData.due_date;
         changes.push(`Data alterada de ${oldDate} para ${newDate}`);
       }
+      if (formData.end_datetime !== oldActivity.end_datetime) {
+        const oldEnd = oldActivity.end_datetime ? format(parseISO(oldActivity.end_datetime), "dd/MM/yyyy HH:mm") : "não definida";
+        const newEnd = formData.end_datetime ? format(parseISO(formData.end_datetime), "dd/MM/yyyy HH:mm") : "não definida";
+        changes.push(`Finalização prevista alterada de ${oldEnd} para ${newEnd}`);
+      }
       if (formData.program_id !== oldActivity.program_id) {
         const oldProg = programs.find(p => p.id === oldActivity.program_id)?.name || "não definido";
         const newProg = programs.find(p => p.id === formData.program_id)?.name || "não definido";
@@ -253,6 +285,12 @@ export default function ActivityDetail() {
         const oldResp = allPersons.find(p => p.id === oldActivity.responsible_id)?.name || "não definido";
         const newResp = allPersons.find(p => p.id === formData.responsible_id)?.name || "não definido";
         changes.push(`Responsável alterado de "${oldResp}" para "${newResp}"`);
+      }
+      if (JSON.stringify(formData.images) !== JSON.stringify(oldActivity.images)) {
+        changes.push(`Fotos anexadas atualizadas`);
+      }
+      if (JSON.stringify(formData.files) !== JSON.stringify(oldActivity.files)) {
+        changes.push(`Arquivos anexados atualizados`);
       }
 
       if (changes.length > 0) {
@@ -265,6 +303,7 @@ export default function ActivityDetail() {
         });
       }
 
+      // Log de envolvidos adicionados/removidos
       const oldInvolved = oldActivity.involved_ids || [];
       const newInvolved = formData.involved_ids || [];
       const added = newInvolved.filter((pid) => !oldInvolved.includes(pid));
@@ -317,28 +356,19 @@ export default function ActivityDetail() {
     setShowDeleteConfirm(false);
     setDeleting(true);
 
-    // Remove todas as fotos do storage ANTES de excluir a atividade
+    // Remove fotos do storage
     if (activity.images && activity.images.length > 0) {
-      const paths = activity.images
-        .map(url => {
-          try {
-            return url.split("/").pop();
-          } catch (e) {
-            console.error("Erro ao extrair path da URL:", url, e);
-            return null;
-          }
-        })
-        .filter(Boolean);
-      
+      const paths = activity.images.map(url => url.split("/").pop()).filter(Boolean);
       if (paths.length > 0) {
-        const { error: storageError } = await supabase.storage
-          .from("activity-attachments")
-          .remove(paths);
-        if (storageError) {
-          console.error("Erro ao remover fotos do storage:", storageError);
-        } else {
-          console.log(`${paths.length} foto(s) removida(s) do storage.`);
-        }
+        await supabase.storage.from("activity-attachments").remove(paths);
+      }
+    }
+
+    // Remove arquivos do storage
+    if (activity.files && activity.files.length > 0) {
+      const paths = activity.files.map(f => f.url?.split("/").pop()).filter(Boolean);
+      if (paths.length > 0) {
+        await supabase.storage.from("activity-files").remove(paths);
       }
     }
 
@@ -465,6 +495,17 @@ export default function ActivityDetail() {
               </p>
             </div>
           </div>
+          {activity.end_datetime && (
+            <div className="flex items-center gap-3 p-4 bg-surface dark:bg-white/5 rounded-xl md:col-span-2">
+              <span className="material-symbols-outlined text-accent">schedule</span>
+              <div>
+                <p className="text-label-sm font-roboto text-outline dark:text-gray-400">Finalização prevista</p>
+                <p className="font-roboto font-semibold text-on-surface dark:text-white">
+                  {format(parseISO(activity.end_datetime), "dd 'de' MMMM, yyyy 'às' HH:mm", { locale: ptBR })}
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
         {involvedPersons.length > 0 && (
@@ -532,9 +573,89 @@ export default function ActivityDetail() {
         )}
 
         {canEdit && editMode && (
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="font-roboto text-label-md text-outline dark:text-gray-400">Data da atividade</label>
+              <input
+                type="date"
+                name="due_date"
+                value={formData.due_date}
+                onChange={handleChange}
+                className="w-full bg-surface dark:bg-dark-background border-b-2 border-primary/20 focus:border-accent outline-none py-2 px-3 rounded-t-lg text-on-surface dark:text-white"
+              />
+            </div>
+            <div>
+              <label className="font-roboto text-label-md text-outline dark:text-gray-400">Finalização prevista (data/hora)</label>
+              <input
+                type="datetime-local"
+                name="end_datetime"
+                value={formData.end_datetime?.slice(0, 16) || ""}
+                onChange={handleChange}
+                className="w-full bg-surface dark:bg-dark-background border-b-2 border-primary/20 focus:border-accent outline-none py-2 px-3 rounded-t-lg text-on-surface dark:text-white"
+              />
+            </div>
+          </div>
+        )}
+
+        {canEdit && editMode && formData.end_datetime && (
+          <div className="mt-2 flex flex-wrap gap-2 items-center">
+            <span className="font-roboto text-sm font-semibold text-primary dark:text-white">PRORROGAR FINALIZAÇÃO:</span>
+            <button
+              type="button"
+              onClick={() => postponeEndDate(-1)}
+              className="px-3 py-1 text-xs rounded-full bg-red-100 text-red-700 hover:bg-red-200 transition"
+            >
+              -1 dia
+            </button>
+            <button
+              type="button"
+              onClick={() => postponeEndDate(1)}
+              className="px-3 py-1 text-xs rounded-full bg-green-100 text-green-700 hover:bg-green-200 transition"
+            >
+              +1 dia
+            </button>
+            <button
+              type="button"
+              onClick={() => postponeEndDate(0, -1)}
+              className="px-3 py-1 text-xs rounded-full bg-red-100 text-red-700 hover:bg-red-200 transition"
+            >
+              -1 semana
+            </button>
+            <button
+              type="button"
+              onClick={() => postponeEndDate(0, 1)}
+              className="px-3 py-1 text-xs rounded-full bg-green-100 text-green-700 hover:bg-green-200 transition"
+            >
+              +1 semana
+            </button>
+            <button
+              type="button"
+              onClick={() => postponeEndDate(0, 0, -1)}
+              className="px-3 py-1 text-xs rounded-full bg-red-100 text-red-700 hover:bg-red-200 transition"
+            >
+              -1 mês
+            </button>
+            <button
+              type="button"
+              onClick={() => postponeEndDate(0, 0, 1)}
+              className="px-3 py-1 text-xs rounded-full bg-green-100 text-green-700 hover:bg-green-200 transition"
+            >
+              +1 mês
+            </button>
+          </div>
+        )}
+
+        {canEdit && editMode && (
           <div className="mt-4 p-4 bg-surface dark:bg-white/5 rounded-xl">
             <p className="text-label-sm font-roboto text-outline dark:text-gray-400 mb-2">Registro Fotográfico</p>
             <PhotoUpload onUploadComplete={handlePhotosChange} existingPhotos={formData.images} />
+          </div>
+        )}
+
+        {canEdit && editMode && (
+          <div className="mt-4 p-4 bg-surface dark:bg-white/5 rounded-xl">
+            <p className="text-label-sm font-roboto text-outline dark:text-gray-400 mb-2">Registro Arquivos</p>
+            <FileUpload onUploadComplete={handleFilesChange} existingFiles={formData.files} />
           </div>
         )}
 
@@ -543,6 +664,20 @@ export default function ActivityDetail() {
             {activity.images.map((url, idx) => (
               <img key={idx} src={url} alt="Anexo" className="w-full h-32 object-cover rounded-lg border border-surface-variant dark:border-white/10" />
             ))}
+          </div>
+        )}
+
+        {!editMode && activity.files?.length > 0 && (
+          <div className="mt-4 p-4 bg-surface dark:bg-white/5 rounded-xl">
+            <p className="text-label-sm font-roboto text-outline dark:text-gray-400 mb-2">Arquivos Anexados</p>
+            <div className="space-y-2">
+              {activity.files.map((file, idx) => (
+                <a key={idx} href={file.url} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-primary hover:underline">
+                  <span className="material-symbols-outlined text-[18px]">description</span>
+                  <span className="text-sm truncate">{file.name || (file.url.split('/').pop()?.replace(/^\d+-\w+-/, ''))}</span>
+                </a>
+              ))}
+            </div>
           </div>
         )}
 
