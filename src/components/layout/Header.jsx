@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { useCurrentUser } from "../../context/CurrentUserContext";
@@ -19,6 +19,27 @@ export default function Header() {
   const { locale, changeLocale, t } = useLanguage();
   const hasNewAnnouncements = useAnnouncementsAlert();
   const hasNewFiles = useFilesAlert();
+
+  // Fechar modal de notificações mobile ao clicar fora
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showMobileNotifications) {
+        const modalContent = document.querySelector('.mobile-notifications-modal-content');
+        if (modalContent && !modalContent.contains(event.target)) {
+          setShowMobileNotifications(false);
+        }
+      }
+    };
+
+    if (showMobileNotifications) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [showMobileNotifications]);
 
   return (
     <header className="bg-green-50/85 dark:bg-dark-background/30 backdrop-blur-md sticky top-0 z-50 border-b border-surface-variant dark:border-white/10 font-roboto">
@@ -42,7 +63,7 @@ export default function Header() {
 
         {/* Desktop: ícones e selects */}
         <div className="hidden md:flex items-center gap-2 md:gap-3">
-          {/* Botão Nova Atividade estilizado como FAB (amarelo, circular, sem texto) com hover de escala maior */}
+          {/* Botão Nova Atividade estilizado como FAB */}
           <Link
             to="/new"
             title={t("header.newActivity")}
@@ -135,10 +156,11 @@ export default function Header() {
             <span className="material-symbols-outlined text-[22px]">diversity_3</span>
           </Link>
 
+          {/* Botão de Ajuda (Manual) na cor vermelho escuro */}
           <Link
             to="/about"
             title="Manual do Usuário"
-            className="p-2.5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full min-h-[50px] min-w-[50px] flex items-center justify-center transition-colors text-primary dark:text-primary-light shadow-sm bg-white/50 dark:bg-white/5 backdrop-blur-sm"
+            className="p-2.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full min-h-[50px] min-w-[50px] flex items-center justify-center transition-colors text-red-700 dark:text-red-400 shadow-sm bg-white/50 dark:bg-white/5 backdrop-blur-sm"
           >
             <span className="material-symbols-outlined text-[22px]">help</span>
           </Link>
@@ -237,7 +259,6 @@ export default function Header() {
 
         {/* Mobile: ícones essenciais + hambúrguer */}
         <div className="flex md:hidden items-center gap-2">
-          {/* Botão Nova Atividade estilo FAB com active scale */}
           <Link
             to="/new"
             className="bg-gradient-to-br from-yellow-300 to-yellow-500 text-black w-10 h-10 rounded-full flex items-center justify-center shadow-md active:scale-95 transition-transform duration-200"
@@ -268,7 +289,7 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Barra inferior mobile (seletores) - igual original */}
+      {/* Barra inferior mobile (seletores) */}
       <div className="md:hidden bg-white/80 dark:bg-dark-background/50 backdrop-blur-sm border-t border-surface-variant dark:border-white/10 px-4 py-2 flex items-center justify-between gap-3">
         <div className="flex-1 flex items-center gap-2">
           <span className="material-symbols-outlined text-primary text-xl">person</span>
@@ -300,7 +321,7 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Menu mobile - igual original */}
+      {/* Menu mobile (links adicionais) */}
       {mobileMenuOpen && (
         <div className="md:hidden bg-white dark:bg-dark-surface border-t border-surface-variant dark:border-white/10 px-4 py-4 space-y-3 max-h-[70vh] overflow-y-auto">
           <Link to="/history" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-on-surface dark:text-gray-200">
@@ -343,51 +364,82 @@ export default function Header() {
             <span className="material-symbols-outlined text-primary text-2xl">diversity_3</span>
             <span className="font-roboto text-body-md">Líderes</span>
           </Link>
-          <Link to="/about" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-on-surface dark:text-gray-200">
-            <span className="material-symbols-outlined text-primary text-2xl">help</span>
+          {/* Botão de Ajuda no menu mobile também na cor vermelho escuro */}
+          <Link to="/about" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-on-surface dark:text-gray-200">
+            <span className="material-symbols-outlined text-primary text-2xl text-red-700 dark:text-red-400">help</span>
             <span className="font-roboto text-body-md">Manual</span>
           </Link>
         </div>
       )}
 
-      {/* Modal de notificações mobile */}
+      {/* Modal de notificações para mobile - corrigido para fechar ao clicar fora */}
       {showMobileNotifications && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowMobileNotifications(false)}>
-          <div className="bg-white dark:bg-gray-800 w-full max-w-md mx-4 rounded-xl shadow-xl max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-gray-800 w-full max-w-md mx-4 rounded-xl shadow-xl max-h-[80vh] flex flex-col mobile-notifications-modal-content">
             <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
               <h3 className="font-roboto text-label-md text-primary dark:text-white font-semibold">Notificações</h3>
-              <button onClick={() => setShowMobileNotifications(false)} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+              <button
+                onClick={() => setShowMobileNotifications(false)}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              >
                 <span className="material-symbols-outlined">close</span>
               </button>
             </div>
             <div className="overflow-y-auto flex-1">
               {notifications.length === 0 ? (
-                <div className="p-4 text-center text-sm text-on-surface dark:text-gray-300">Nenhuma notificação.</div>
+                <div className="p-4 text-center text-sm text-on-surface dark:text-gray-300">
+                  Nenhuma notificação.
+                </div>
               ) : (
                 <ul className="divide-y divide-surface-variant dark:divide-gray-700">
                   {notifications.map((notif) => (
                     <li key={notif.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50">
                       {notif.activity ? (
-                        <Link to={`/activity/${notif.activity.id}`} onClick={() => setShowMobileNotifications(false)} className="block">
+                        <Link
+                          to={`/activity/${notif.activity.id}`}
+                          onClick={() => setShowMobileNotifications(false)}
+                          className="block"
+                        >
                           <div className="flex justify-between items-start">
                             <span className="text-xs font-bold text-primary dark:text-white">
-                              {notif.type === "comment" ? "Comentário" : notif.type === "involvement" ? "Envolvimento" : notif.type === "reminder" ? "Lembrete" : notif.type === "file" ? "Arquivo" : "Status"}
+                              {notif.type === "comment"
+                                ? "Comentário"
+                                : notif.type === "involvement"
+                                ? "Envolvimento"
+                                : notif.type === "reminder"
+                                ? "Lembrete"
+                                : notif.type === "file"
+                                ? "Arquivo"
+                                : "Status"}
                             </span>
-                            <span className="text-[10px] text-outline dark:text-gray-400">{format(new Date(notif.created_at), "dd/MM HH:mm")}</span>
+                            <span className="text-[10px] text-outline dark:text-gray-400">
+                              {format(new Date(notif.created_at), "dd/MM HH:mm")}
+                            </span>
                           </div>
                           <p className="text-sm text-on-surface dark:text-gray-200 mt-1 truncate">
-                            <span className="font-medium">{notif.person?.name}</span> em <span className="italic">{notif.activity.title}</span>
+                            <span className="font-medium">{notif.person?.name}</span> em{" "}
+                            <span className="italic">{notif.activity.title}</span>
                           </p>
-                          <p className="text-xs text-outline dark:text-gray-400 mt-1 truncate">{notif.content}</p>
+                          <p className="text-xs text-outline dark:text-gray-400 mt-1 truncate">
+                            {notif.content}
+                          </p>
                         </Link>
                       ) : (
                         <div>
                           <div className="flex justify-between items-start">
-                            <span className="text-xs font-bold text-primary dark:text-white">{notif.type === "file" ? "Arquivo" : "Notificação"}</span>
-                            <span className="text-[10px] text-outline dark:text-gray-400">{format(new Date(notif.created_at), "dd/MM HH:mm")}</span>
+                            <span className="text-xs font-bold text-primary dark:text-white">
+                              {notif.type === "file" ? "Arquivo" : "Notificação"}
+                            </span>
+                            <span className="text-[10px] text-outline dark:text-gray-400">
+                              {format(new Date(notif.created_at), "dd/MM HH:mm")}
+                            </span>
                           </div>
-                          <p className="text-sm text-on-surface dark:text-gray-200 mt-1 truncate"><span className="font-medium">{notif.person?.name}</span></p>
-                          <p className="text-xs text-outline dark:text-gray-400 mt-1 truncate">{notif.content}</p>
+                          <p className="text-sm text-on-surface dark:text-gray-200 mt-1 truncate">
+                            <span className="font-medium">{notif.person?.name}</span>
+                          </p>
+                          <p className="text-xs text-outline dark:text-gray-400 mt-1 truncate">
+                            {notif.content}
+                          </p>
                         </div>
                       )}
                     </li>

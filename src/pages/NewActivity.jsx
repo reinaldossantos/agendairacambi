@@ -407,15 +407,25 @@ export default function NewActivity() {
                 ))}
               </div>
             </div>
-            <div>
-              <label className="font-roboto text-[10px] uppercase text-outline">Fotos (para todas as atividades)</label>
+
+            {/* Destaque para Fotos (WhatsApp) */}
+            <div className="mt-4 p-3 border-2 border-dashed border-primary/30 dark:border-primary/40 rounded-xl bg-primary/5 dark:bg-primary/10">
+              <label className="font-roboto text-label-sm text-primary dark:text-white font-semibold flex items-center gap-2 mb-2">
+                <span className="material-symbols-outlined text-primary">photo_camera</span>
+                Fotos (para todas as atividades)
+              </label>
               <PhotoUpload
                 onUploadComplete={(newPhotos) => setGlobalImages(newPhotos)}
                 existingPhotos={globalImages}
               />
             </div>
-            <div>
-              <label className="font-roboto text-[10px] uppercase text-outline">Arquivos (para todas as atividades)</label>
+
+            {/* Destaque para Arquivos (WhatsApp) */}
+            <div className="mt-4 p-3 border-2 border-dashed border-blue-300 dark:border-blue-600 rounded-xl bg-blue-50/30 dark:bg-blue-900/20">
+              <label className="font-roboto text-label-sm text-blue-700 dark:text-blue-300 font-semibold flex items-center gap-2 mb-2">
+                <span className="material-symbols-outlined text-blue-600">attach_file</span>
+                Arquivos (para todas as atividades)
+              </label>
               <FileUpload
                 onUploadComplete={(newFiles) => setGlobalFiles(newFiles)}
                 existingFiles={globalFiles}
@@ -511,22 +521,31 @@ export default function NewActivity() {
                     ))}
                   </div>
                 </div>
-                {/* Registro fotográfico */}
-                <div>
-                  <label className="font-roboto text-[10px] uppercase text-outline">Registro Fotográfico</label>
+
+                {/* Destaque para Registro Fotográfico (modo rápido) */}
+                <div className="mt-3 p-2 border-2 border-dashed border-primary/30 rounded-lg bg-primary/5">
+                  <label className="font-roboto text-label-sm text-primary dark:text-white font-semibold flex items-center gap-2 mb-1">
+                    <span className="material-symbols-outlined text-primary text-[18px]">photo_camera</span>
+                    Registro Fotográfico
+                  </label>
                   <PhotoUpload
                     onUploadComplete={(newPhotos) => updateQuickActivity(idx, "images", newPhotos)}
                     existingPhotos={qa.images || []}
                   />
                 </div>
-                {/* Registro arquivos */}
-                <div>
-                  <label className="font-roboto text-[10px] uppercase text-outline">Registro Arquivos (PDF, DOC, XLS, ZIP, TXT, etc.)</label>
+
+                {/* Destaque para Registro Arquivos (modo rápido) */}
+                <div className="mt-3 p-2 border-2 border-dashed border-blue-300 dark:border-blue-600 rounded-lg bg-blue-50/30 dark:bg-blue-900/20">
+                  <label className="font-roboto text-label-sm text-blue-700 dark:text-blue-300 font-semibold flex items-center gap-2 mb-1">
+                    <span className="material-symbols-outlined text-blue-600 text-[18px]">folder</span>
+                    Registro Arquivos (PDF, DOC, XLS, ZIP, TXT, etc.)
+                  </label>
                   <FileUpload
                     onUploadComplete={(newFiles) => updateQuickActivity(idx, "files", newFiles)}
                     existingFiles={qa.files || []}
                   />
                 </div>
+
                 <div className="flex justify-end">
                   <button type="button" onClick={() => removeQuickActivity(idx)} disabled={quickActivities.length === 1} className="text-error/70 hover:text-error p-1 disabled:opacity-30">
                     <span className="material-symbols-outlined">delete</span>
