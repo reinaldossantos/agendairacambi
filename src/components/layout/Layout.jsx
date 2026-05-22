@@ -11,8 +11,12 @@ export default function Layout() {
   return (
     <div className="flex flex-col min-h-screen bg-background dark:bg-dark-background/30 backdrop-blur-sm">
       <Header />
-      {/* Main agora tem position: relative para servir de referência ao FAB absoluto */}
-      <main className="flex-1 w-full max-w-6xl mx-auto px-3 md:px-5 py-6 md:py-8 pb-24 md:pb-16 relative">
+      {/* 
+        - mobile: padding lateral original (px-4)
+        - desktop (md e acima): padding reduzido (px-2) e largura máxima maior (max-w-screen-2xl)
+        Isso dá mais espaço horizontal para os cards ficarem mais largos/retangulares.
+      */}
+      <main className="flex-1 w-full max-w-screen-2xl mx-auto px-4 md:px-2 py-6 md:py-8 pb-24 md:pb-16 relative">
         <AnimatePresence mode="wait">
           <motion.div
             key={location.pathname}
@@ -24,7 +28,6 @@ export default function Layout() {
             <Outlet />
           </motion.div>
         </AnimatePresence>
-        {/* FAB será posicionado relativamente a este main */}
         <FAB />
       </main>
       <Footer />
