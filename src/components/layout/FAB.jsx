@@ -1,51 +1,9 @@
 import { Link } from "react-router-dom";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function FAB() {
   const [open, setOpen] = useState(false);
-  const [visible, setVisible] = useState(true);
-
-  const lastScrollY = useRef(0);
-  const hideTimer = useRef(null);
-  const isHiding = useRef(false);
-
-  const handleScroll = useCallback(() => {
-    if (typeof window === "undefined") return;
-
-    const currentScroll = window.scrollY;
-    const delta = currentScroll - lastScrollY.current;
-
-    // Ignora scrolls muito curtos (menos de 5px)
-    if (Math.abs(delta) < 5) return;
-
-    if (delta > 0 && currentScroll > 80) {
-      // Rolando para baixo além de 80px -> agenda esconder
-      if (!isHiding.current) {
-        isHiding.current = true;
-      }
-      // Limpa o timer anterior e define um novo
-      clearTimeout(hideTimer.current);
-      hideTimer.current = setTimeout(() => {
-        setVisible(false);
-      }, 300); // 300ms de delay para evitar sumir rápido
-    } else if (delta < 0) {
-      // Rolando para cima -> mostra imediatamente
-      clearTimeout(hideTimer.current);
-      isHiding.current = false;
-      setVisible(true);
-    }
-
-    lastScrollY.current = currentScroll;
-  }, []);
-
-  useEffect(() => {
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-      clearTimeout(hideTimer.current);
-    };
-  }, [handleScroll]);
 
   const actions = [
     {
@@ -61,16 +19,27 @@ export default function FAB() {
       color: "bg-blue-500",
     },
     {
-      label: "Arquivos",
-      icon: "folder",
-      link: "/files",
-      color: "bg-violet-500",
+      label: "Estatísticas",
+      icon: "bar_chart",
+      link: "/stats",
+      color: "bg-purple-500",
+    },
+    {
+      label: "Mural de Avisos",
+      icon: "campaign",
+      link: "/announcements",
+      color: "bg-rose-500",
+    },
+    {
+      label: "Histórico",
+      icon: "history",
+      link: "/history",
+      color: "bg-orange-500",
     },
   ];
 
   return (
     <>
-      {/* Overlay estilo iOS */}
       <AnimatePresence>
         {open && (
           <motion.div
@@ -83,16 +52,8 @@ export default function FAB() {
         )}
       </AnimatePresence>
 
-      <motion.div
-        initial={{ opacity: 0, y: 80 }}
-        animate={{
-          opacity: visible ? 1 : 0,
-          y: visible ? 0 : 80,
-        }}
-        transition={{ duration: 0.35 }}
-        className="fixed bottom-24 md:bottom-10 right-6 z-50 flex flex-col items-end gap-3"
-      >
-        {/* Menu com animação spring */}
+      {/* Botão flutuante agora é ABSOLUTO em relação ao container pai (main) */}
+      <div className="absolute bottom-8 right-4 md:right-6 z-50 flex flex-col items-end gap-3">
         <AnimatePresence>
           {open &&
             actions.map((item, index) => (
@@ -128,7 +89,6 @@ export default function FAB() {
             ))}
         </AnimatePresence>
 
-        {/* Botão principal premium */}
         <motion.button
           onClick={() => setOpen(!open)}
           whileTap={{ scale: 0.92 }}
@@ -146,11 +106,9 @@ export default function FAB() {
           className="relative bg-gradient-to-br from-yellow-300 to-yellow-500 text-black w-16 h-16 rounded-full flex items-center justify-center"
         >
           <div className="absolute inset-0 rounded-full bg-white/20 blur-sm" />
-          <span className="material-symbols-outlined text-3xl relative">
-            add
-          </span>
+          <span className="material-symbols-outlined text-3xl relative">add</span>
         </motion.button>
-      </motion.div>
+      </div>
     </>
   );
 }
