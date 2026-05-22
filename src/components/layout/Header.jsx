@@ -14,6 +14,7 @@ export default function Header() {
   const { notifications, unreadCount, open, toggleOpen, dropdownRef } =
     useNotifications(currentUser);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showMobileNotifications, setShowMobileNotifications] = useState(false);
   const isOnline = useOnlineStatus();
   const { locale, changeLocale, t } = useLanguage();
   const hasNewAnnouncements = useAnnouncementsAlert();
@@ -39,17 +40,15 @@ export default function Header() {
           </h1>
         </Link>
 
-        {/* Desktop: todos os ícones e selects visíveis */}
+        {/* Desktop: ícones e selects */}
         <div className="hidden md:flex items-center gap-2 md:gap-3">
+          {/* Botão Nova Atividade estilizado como FAB (amarelo, circular, sem texto) com hover de escala maior */}
           <Link
             to="/new"
             title={t("header.newActivity")}
-            className="flex items-center gap-1.5 text-primary dark:text-white font-roboto text-label-sm hover:text-primary-light transition-all shadow-sm hover:shadow-md px-4 py-2 rounded-full bg-white/80 dark:bg-white/10 backdrop-blur-sm"
+            className="bg-gradient-to-br from-yellow-300 to-yellow-500 text-black w-10 h-10 rounded-full flex items-center justify-center shadow-md hover:scale-125 hover:shadow-lg transition-transform duration-200"
           >
-            <span className="material-symbols-outlined text-[22px]">
-              add_circle
-            </span>
-            {t("header.newActivity")}
+            <span className="material-symbols-outlined text-2xl">add</span>
           </Link>
 
           <Link
@@ -57,9 +56,7 @@ export default function Header() {
             title={t("header.calendar")}
             className="p-2.5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full min-h-[50px] min-w-[50px] flex items-center justify-center transition-colors text-primary dark:text-primary-light shadow-sm bg-white/50 dark:bg-white/5 backdrop-blur-sm"
           >
-            <span className="material-symbols-outlined text-[22px]">
-              calendar_month
-            </span>
+            <span className="material-symbols-outlined text-[22px]">calendar_month</span>
           </Link>
 
           <Link
@@ -67,9 +64,7 @@ export default function Header() {
             title={t("header.statistics")}
             className="p-2.5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full min-h-[50px] min-w-[50px] flex items-center justify-center transition-colors text-primary dark:text-primary-light shadow-sm bg-white/50 dark:bg-white/5 backdrop-blur-sm"
           >
-            <span className="material-symbols-outlined text-[22px]">
-              bar_chart
-            </span>
+            <span className="material-symbols-outlined text-[22px]">bar_chart</span>
           </Link>
 
           <Link
@@ -77,37 +72,27 @@ export default function Header() {
             title="Histórico e Relatórios"
             className="p-2.5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full min-h-[50px] min-w-[50px] flex items-center justify-center transition-colors text-primary dark:text-primary-light shadow-sm bg-white/50 dark:bg-white/5 backdrop-blur-sm"
           >
-            <span className="material-symbols-outlined text-[22px]">
-              history
-            </span>
+            <span className="material-symbols-outlined text-[22px]">history</span>
           </Link>
 
           <Link
             to="/announcements"
             title={t("header.announcements")}
             className={`p-2.5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full min-h-[50px] min-w-[50px] flex items-center justify-center transition-colors shadow-sm bg-white/50 dark:bg-white/5 backdrop-blur-sm ${
-              hasNewAnnouncements
-                ? "text-red-500 animate-pulse"
-                : "text-primary dark:text-primary-light"
+              hasNewAnnouncements ? "text-red-500 animate-pulse" : "text-primary dark:text-primary-light"
             }`}
           >
-            <span className="material-symbols-outlined text-[22px]">
-              campaign
-            </span>
+            <span className="material-symbols-outlined text-[22px]">campaign</span>
           </Link>
 
           <Link
             to="/files"
             title={t("header.files")}
             className={`p-2.5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full min-h-[50px] min-w-[50px] flex items-center justify-center transition-colors shadow-sm bg-white/50 dark:bg-white/5 backdrop-blur-sm ${
-              hasNewFiles
-                ? "text-blue-500 animate-pulse"
-                : "text-primary dark:text-primary-light"
+              hasNewFiles ? "text-blue-500 animate-pulse" : "text-primary dark:text-primary-light"
             }`}
           >
-            <span className="material-symbols-outlined text-[22px]">
-              folder
-            </span>
+            <span className="material-symbols-outlined text-[22px]">folder</span>
           </Link>
 
           <Link
@@ -115,9 +100,7 @@ export default function Header() {
             title={t("header.settings")}
             className="p-2.5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full min-h-[50px] min-w-[50px] flex items-center justify-center transition-colors text-primary dark:text-primary-light shadow-sm bg-white/50 dark:bg-white/5 backdrop-blur-sm"
           >
-            <span className="material-symbols-outlined text-[22px]">
-              settings
-            </span>
+            <span className="material-symbols-outlined text-[22px]">settings</span>
           </Link>
 
           <Link
@@ -133,9 +116,7 @@ export default function Header() {
             title={t("header.programs")}
             className="p-2.5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full min-h-[50px] min-w-[50px] flex items-center justify-center transition-colors text-primary dark:text-primary-light shadow-sm bg-white/50 dark:bg-white/5 backdrop-blur-sm"
           >
-            <span className="material-symbols-outlined text-[22px]">
-              admin_panel_settings
-            </span>
+            <span className="material-symbols-outlined text-[22px]">admin_panel_settings</span>
           </Link>
 
           <Link
@@ -151,9 +132,15 @@ export default function Header() {
             title={t("header.leaders")}
             className="p-2.5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full min-h-[50px] min-w-[50px] flex items-center justify-center transition-colors text-primary dark:text-primary-light shadow-sm bg-white/50 dark:bg-white/5 backdrop-blur-sm"
           >
-            <span className="material-symbols-outlined text-[22px]">
-              diversity_3
-            </span>
+            <span className="material-symbols-outlined text-[22px]">diversity_3</span>
+          </Link>
+
+          <Link
+            to="/about"
+            title="Manual do Usuário"
+            className="p-2.5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full min-h-[50px] min-w-[50px] flex items-center justify-center transition-colors text-primary dark:text-primary-light shadow-sm bg-white/50 dark:bg-white/5 backdrop-blur-sm"
+          >
+            <span className="material-symbols-outlined text-[22px]">help</span>
           </Link>
 
           <select
@@ -178,9 +165,7 @@ export default function Header() {
           >
             <option value="">{t("header.selectName")}</option>
             {persons.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
+              <option key={p.id} value={p.id}>{p.name}</option>
             ))}
           </select>
 
@@ -190,9 +175,7 @@ export default function Header() {
               title={t("header.notifications")}
               className="p-2.5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full min-h-[50px] min-w-[50px] flex items-center justify-center transition-colors text-primary dark:text-primary-light relative shadow-sm bg-white/50 dark:bg-white/5 backdrop-blur-sm"
             >
-              <span className="material-symbols-outlined text-[22px]">
-                notifications
-              </span>
+              <span className="material-symbols-outlined text-[22px]">notifications</span>
               {unreadCount > 0 && (
                 <span className="absolute top-1 right-1 min-w-[20px] h-[20px] bg-accent text-primary text-[11px] font-bold rounded-full flex items-center justify-center px-1">
                   {unreadCount > 9 ? "9+" : unreadCount}
@@ -211,82 +194,35 @@ export default function Header() {
                   className="absolute right-4 md:right-6 top-16 md:top-20 w-72 md:w-80 bg-white dark:bg-white/10 backdrop-blur-md border border-surface-variant dark:border-white/10 rounded-xl shadow-lg z-50 max-h-80 overflow-y-auto"
                 >
                   <div className="p-3 border-b border-surface-variant dark:border-white/10">
-                    <p className="font-roboto text-label-md text-primary dark:text-white font-semibold">
-                      {t("header.notifications")}
-                    </p>
+                    <p className="font-roboto text-label-md text-primary dark:text-white font-semibold">{t("header.notifications")}</p>
                   </div>
                   {notifications.length === 0 ? (
-                    <div className="p-4 text-center text-sm text-on-surface dark:text-gray-300">
-                      Nenhuma notificação.
-                    </div>
+                    <div className="p-4 text-center text-sm text-on-surface dark:text-gray-300">Nenhuma notificação.</div>
                   ) : (
                     <ul className="divide-y divide-surface-variant dark:divide-white/10">
                       {notifications.map((notif) => (
-                        <li
-                          key={notif.id}
-                          className="odd:bg-stone-50 dark:odd:bg-white/5 even:bg-white dark:even:bg-transparent p-3 hover:bg-gray-50 dark:hover:bg-white/10"
-                        >
+                        <li key={notif.id} className="odd:bg-stone-50 dark:odd:bg-white/5 even:bg-white dark:even:bg-transparent p-3 hover:bg-gray-50 dark:hover:bg-white/10">
                           {notif.activity ? (
-                            <Link
-                              to={`/activity/${notif.activity.id}`}
-                              onClick={toggleOpen}
-                              className="block"
-                            >
+                            <Link to={`/activity/${notif.activity.id}`} onClick={toggleOpen} className="block">
                               <div className="flex justify-between items-start">
                                 <span className="text-xs font-bold text-primary dark:text-white">
-                                  {notif.type === "comment"
-                                    ? "Comentário"
-                                    : notif.type === "involvement"
-                                      ? "Envolvimento"
-                                      : notif.type === "reminder"
-                                        ? "Lembrete"
-                                        : notif.type === "file"
-                                          ? "Arquivo"
-                                          : "Status"}
+                                  {notif.type === "comment" ? "Comentário" : notif.type === "involvement" ? "Envolvimento" : notif.type === "reminder" ? "Lembrete" : notif.type === "file" ? "Arquivo" : "Status"}
                                 </span>
-                                <span className="text-[10px] text-outline dark:text-gray-400">
-                                  {format(
-                                    new Date(notif.created_at),
-                                    "dd/MM HH:mm",
-                                  )}
-                                </span>
+                                <span className="text-[10px] text-outline dark:text-gray-400">{format(new Date(notif.created_at), "dd/MM HH:mm")}</span>
                               </div>
                               <p className="text-sm text-on-surface dark:text-gray-200 mt-1 truncate">
-                                <span className="font-medium">
-                                  {notif.person?.name}
-                                </span>{" "}
-                                em{" "}
-                                <span className="italic">
-                                  {notif.activity.title}
-                                </span>
+                                <span className="font-medium">{notif.person?.name}</span> em <span className="italic">{notif.activity.title}</span>
                               </p>
-                              <p className="text-xs text-outline dark:text-gray-400 mt-1 truncate">
-                                {notif.content}
-                              </p>
+                              <p className="text-xs text-outline dark:text-gray-400 mt-1 truncate">{notif.content}</p>
                             </Link>
                           ) : (
                             <div className="block">
                               <div className="flex justify-between items-start">
-                                <span className="text-xs font-bold text-primary dark:text-white">
-                                  {notif.type === "file"
-                                    ? "Arquivo"
-                                    : "Notificação"}
-                                </span>
-                                <span className="text-[10px] text-outline dark:text-gray-400">
-                                  {format(
-                                    new Date(notif.created_at),
-                                    "dd/MM HH:mm",
-                                  )}
-                                </span>
+                                <span className="text-xs font-bold text-primary dark:text-white">{notif.type === "file" ? "Arquivo" : "Notificação"}</span>
+                                <span className="text-[10px] text-outline dark:text-gray-400">{format(new Date(notif.created_at), "dd/MM HH:mm")}</span>
                               </div>
-                              <p className="text-sm text-on-surface dark:text-gray-200 mt-1 truncate">
-                                <span className="font-medium">
-                                  {notif.person?.name}
-                                </span>
-                              </p>
-                              <p className="text-xs text-outline dark:text-gray-400 mt-1 truncate">
-                                {notif.content}
-                              </p>
+                              <p className="text-sm text-on-surface dark:text-gray-200 mt-1 truncate"><span className="font-medium">{notif.person?.name}</span></p>
+                              <p className="text-xs text-outline dark:text-gray-400 mt-1 truncate">{notif.content}</p>
                             </div>
                           )}
                         </li>
@@ -301,22 +237,19 @@ export default function Header() {
 
         {/* Mobile: ícones essenciais + hambúrguer */}
         <div className="flex md:hidden items-center gap-2">
+          {/* Botão Nova Atividade estilo FAB com active scale */}
           <Link
             to="/new"
-            className="p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full min-h-[44px] min-w-[44px] flex items-center justify-center text-primary dark:text-white"
+            className="bg-gradient-to-br from-yellow-300 to-yellow-500 text-black w-10 h-10 rounded-full flex items-center justify-center shadow-md active:scale-95 transition-transform duration-200"
           >
-            <span className="material-symbols-outlined text-2xl">
-              add_circle
-            </span>
+            <span className="material-symbols-outlined text-2xl">add</span>
           </Link>
 
           <button
-            onClick={toggleOpen}
+            onClick={() => setShowMobileNotifications(true)}
             className="p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full min-h-[44px] min-w-[44px] flex items-center justify-center text-primary dark:text-primary-light relative"
           >
-            <span className="material-symbols-outlined text-2xl">
-              notifications
-            </span>
+            <span className="material-symbols-outlined text-2xl">notifications</span>
             {unreadCount > 0 && (
               <span className="absolute top-1 right-1 min-w-[18px] h-[18px] bg-accent text-primary text-[10px] font-bold rounded-full flex items-center justify-center px-1">
                 {unreadCount > 9 ? "9+" : unreadCount}
@@ -335,12 +268,10 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Barra inferior no mobile (sempre visível) com seletor de usuário e idioma */}
+      {/* Barra inferior mobile (seletores) - igual original */}
       <div className="md:hidden bg-white/80 dark:bg-dark-background/50 backdrop-blur-sm border-t border-surface-variant dark:border-white/10 px-4 py-2 flex items-center justify-between gap-3">
         <div className="flex-1 flex items-center gap-2">
-          <span className="material-symbols-outlined text-primary text-xl">
-            person
-          </span>
+          <span className="material-symbols-outlined text-primary text-xl">person</span>
           <select
             value={currentUser?.id || ""}
             onChange={(e) => {
@@ -351,16 +282,12 @@ export default function Header() {
           >
             <option value="">Selecione seu nome</option>
             {persons.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
+              <option key={p.id} value={p.id}>{p.name}</option>
             ))}
           </select>
         </div>
         <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-primary text-xl">
-            language
-          </span>
+          <span className="material-symbols-outlined text-primary text-xl">language</span>
           <select
             value={locale}
             onChange={(e) => changeLocale(e.target.value)}
@@ -373,115 +300,102 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Menu mobile (links adicionais) - com rolagem */}
+      {/* Menu mobile - igual original */}
       {mobileMenuOpen && (
         <div className="md:hidden bg-white dark:bg-dark-surface border-t border-surface-variant dark:border-white/10 px-4 py-4 space-y-3 max-h-[70vh] overflow-y-auto">
-          <Link
-            to="/history"
-            onClick={() => setMobileMenuOpen(false)}
-            className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-on-surface dark:text-gray-200"
-          >
-            <span className="material-symbols-outlined text-primary text-2xl">
-              history
-            </span>
-            <span className="font-roboto text-body-md">
-              Histórico e Relatórios
-            </span>
+          <Link to="/history" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-on-surface dark:text-gray-200">
+            <span className="material-symbols-outlined text-primary text-2xl">history</span>
+            <span className="font-roboto text-body-md">Histórico e Relatórios</span>
           </Link>
-          <Link
-            to="/calendar"
-            onClick={() => setMobileMenuOpen(false)}
-            className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-on-surface dark:text-gray-200"
-          >
-            <span className="material-symbols-outlined text-primary text-2xl">
-              calendar_month
-            </span>
+          <Link to="/calendar" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-on-surface dark:text-gray-200">
+            <span className="material-symbols-outlined text-primary text-2xl">calendar_month</span>
             <span className="font-roboto text-body-md">Calendário</span>
           </Link>
-          <Link
-            to="/stats"
-            onClick={() => setMobileMenuOpen(false)}
-            className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-on-surface dark:text-gray-200"
-          >
-            <span className="material-symbols-outlined text-primary text-2xl">
-              bar_chart
-            </span>
+          <Link to="/stats" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-on-surface dark:text-gray-200">
+            <span className="material-symbols-outlined text-primary text-2xl">bar_chart</span>
             <span className="font-roboto text-body-md">Estatísticas</span>
           </Link>
-          <Link
-            to="/announcements"
-            onClick={() => setMobileMenuOpen(false)}
-            className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-on-surface dark:text-gray-200"
-          >
-            <span
-              className={`material-symbols-outlined text-2xl ${hasNewAnnouncements ? "text-red-500 animate-pulse" : "text-primary"}`}
-            >
-              campaign
-            </span>
+          <Link to="/announcements" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-on-surface dark:text-gray-200">
+            <span className={`material-symbols-outlined text-2xl ${hasNewAnnouncements ? "text-red-500 animate-pulse" : "text-primary"}`}>campaign</span>
             <span className="font-roboto text-body-md">Mural de Avisos</span>
           </Link>
-          <Link
-            to="/files"
-            onClick={() => setMobileMenuOpen(false)}
-            className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-on-surface dark:text-gray-200"
-          >
-            <span
-              className={`material-symbols-outlined text-2xl ${hasNewFiles ? "text-blue-500 animate-pulse" : "text-primary"}`}
-            >
-              folder
-            </span>
+          <Link to="/files" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-on-surface dark:text-gray-200">
+            <span className={`material-symbols-outlined text-2xl ${hasNewFiles ? "text-blue-500 animate-pulse" : "text-primary"}`}>folder</span>
             <span className="font-roboto text-body-md">Arquivos</span>
           </Link>
-          <Link
-            to="/settings"
-            onClick={() => setMobileMenuOpen(false)}
-            className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-on-surface dark:text-gray-200"
-          >
-            <span className="material-symbols-outlined text-primary text-2xl">
-              settings
-            </span>
+          <Link to="/settings" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-on-surface dark:text-gray-200">
+            <span className="material-symbols-outlined text-primary text-2xl">settings</span>
             <span className="font-roboto text-body-md">Configurações</span>
           </Link>
-          <Link
-            to="/advanced-settings"
-            onClick={() => setMobileMenuOpen(false)}
-            className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-on-surface dark:text-gray-200"
-          >
-            <span className="material-symbols-outlined text-primary text-2xl">
-              tune
-            </span>
+          <Link to="/advanced-settings" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-on-surface dark:text-gray-200">
+            <span className="material-symbols-outlined text-primary text-2xl">tune</span>
             <span className="font-roboto text-body-md">Avançado</span>
           </Link>
-          <Link
-            to="/admin/programs"
-            onClick={() => setMobileMenuOpen(false)}
-            className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-on-surface dark:text-gray-200"
-          >
-            <span className="material-symbols-outlined text-primary text-2xl">
-              admin_panel_settings
-            </span>
+          <Link to="/admin/programs" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-on-surface dark:text-gray-200">
+            <span className="material-symbols-outlined text-primary text-2xl">admin_panel_settings</span>
             <span className="font-roboto text-body-md">Programas</span>
           </Link>
-          <Link
-            to="/admin/persons"
-            onClick={() => setMobileMenuOpen(false)}
-            className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-on-surface dark:text-gray-200"
-          >
-            <span className="material-symbols-outlined text-primary text-2xl">
-              group
-            </span>
+          <Link to="/admin/persons" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-on-surface dark:text-gray-200">
+            <span className="material-symbols-outlined text-primary text-2xl">group</span>
             <span className="font-roboto text-body-md">Pessoas</span>
           </Link>
-          <Link
-            to="/admin/leaders"
-            onClick={() => setMobileMenuOpen(false)}
-            className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-on-surface dark:text-gray-200"
-          >
-            <span className="material-symbols-outlined text-primary text-2xl">
-              diversity_3
-            </span>
+          <Link to="/admin/leaders" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-on-surface dark:text-gray-200">
+            <span className="material-symbols-outlined text-primary text-2xl">diversity_3</span>
             <span className="font-roboto text-body-md">Líderes</span>
           </Link>
+          <Link to="/about" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-on-surface dark:text-gray-200">
+            <span className="material-symbols-outlined text-primary text-2xl">help</span>
+            <span className="font-roboto text-body-md">Manual</span>
+          </Link>
+        </div>
+      )}
+
+      {/* Modal de notificações mobile */}
+      {showMobileNotifications && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowMobileNotifications(false)}>
+          <div className="bg-white dark:bg-gray-800 w-full max-w-md mx-4 rounded-xl shadow-xl max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+              <h3 className="font-roboto text-label-md text-primary dark:text-white font-semibold">Notificações</h3>
+              <button onClick={() => setShowMobileNotifications(false)} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            <div className="overflow-y-auto flex-1">
+              {notifications.length === 0 ? (
+                <div className="p-4 text-center text-sm text-on-surface dark:text-gray-300">Nenhuma notificação.</div>
+              ) : (
+                <ul className="divide-y divide-surface-variant dark:divide-gray-700">
+                  {notifications.map((notif) => (
+                    <li key={notif.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                      {notif.activity ? (
+                        <Link to={`/activity/${notif.activity.id}`} onClick={() => setShowMobileNotifications(false)} className="block">
+                          <div className="flex justify-between items-start">
+                            <span className="text-xs font-bold text-primary dark:text-white">
+                              {notif.type === "comment" ? "Comentário" : notif.type === "involvement" ? "Envolvimento" : notif.type === "reminder" ? "Lembrete" : notif.type === "file" ? "Arquivo" : "Status"}
+                            </span>
+                            <span className="text-[10px] text-outline dark:text-gray-400">{format(new Date(notif.created_at), "dd/MM HH:mm")}</span>
+                          </div>
+                          <p className="text-sm text-on-surface dark:text-gray-200 mt-1 truncate">
+                            <span className="font-medium">{notif.person?.name}</span> em <span className="italic">{notif.activity.title}</span>
+                          </p>
+                          <p className="text-xs text-outline dark:text-gray-400 mt-1 truncate">{notif.content}</p>
+                        </Link>
+                      ) : (
+                        <div>
+                          <div className="flex justify-between items-start">
+                            <span className="text-xs font-bold text-primary dark:text-white">{notif.type === "file" ? "Arquivo" : "Notificação"}</span>
+                            <span className="text-[10px] text-outline dark:text-gray-400">{format(new Date(notif.created_at), "dd/MM HH:mm")}</span>
+                          </div>
+                          <p className="text-sm text-on-surface dark:text-gray-200 mt-1 truncate"><span className="font-medium">{notif.person?.name}</span></p>
+                          <p className="text-xs text-outline dark:text-gray-400 mt-1 truncate">{notif.content}</p>
+                        </div>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </header>
