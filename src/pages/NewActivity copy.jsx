@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate, Link, useLocation } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 import { startOfWeek, addDays, format, parseISO, isValid } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -12,7 +12,6 @@ import FileUpload from "../components/activities/FileUpload";
 
 export default function NewActivity() {
   const navigate = useNavigate();
-  const location = useLocation();
   const { currentUser } = useCurrentUser();
   const { modes } = useAdvancedSettings();
   const [programs, setPrograms] = useState([]);
@@ -58,34 +57,6 @@ export default function NewActivity() {
   const [mentionList, setMentionList] = useState([]);
   const [showMentions, setShowMentions] = useState(false);
   const textareaRefs = useRef([]);
-
-  // Clonagem de atividade (pré‑preenchimento)
-  useEffect(() => {
-    const clone = location.state?.clone;
-    if (clone) {
-      setSelectedProgram(clone.program || "");
-      setSelectedPerson(clone.responsible || "");
-      setSelectedPriority(clone.priority || "Média");
-      if (clone.title) {
-        setQuickActivities([{
-          date: format(new Date(), "yyyy-MM-dd"),
-          title: clone.title,
-          description: clone.description || "",
-          involvedIds: clone.involvedIds || [],
-          priority: clone.priority || "Média",
-          repeat: false,
-          repeatEndDate: "",
-          repeatDays: [],
-          images: [],
-          files: [],
-          endDateTime: ""
-        }]);
-        setSelectedMode("quick");
-      }
-      // Limpa o state para não recarregar em futuros acessos
-      window.history.replaceState({}, document.title);
-    }
-  }, [location.state]);
 
   useEffect(() => {
     if (!modes.wpp && selectedMode === "wpp") setSelectedMode(modes.quick ? "quick" : null);

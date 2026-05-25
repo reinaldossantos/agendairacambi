@@ -393,19 +393,6 @@ export default function ActivityDetail() {
     shareViaWhatsApp(text);
   };
 
-  // Função para duplicar atividade
-  const handleDuplicate = () => {
-    const cloneData = {
-      title: activity.title,
-      description: activity.description,
-      program: activity.programs?.name,
-      responsible: activity.persons?.name,
-      priority: activity.priority,
-      involvedIds: activity.involved_ids,
-    };
-    navigate("/new", { state: { clone: cloneData } });
-  };
-
   if (loading) return <div className="text-center py-20 font-roboto">Carregando...</div>;
   if (!activity) return <div className="text-center py-20 font-roboto">Atividade não encontrada.</div>;
 
@@ -707,11 +694,6 @@ export default function ActivityDetail() {
                   Excluir
                 </button>
               )}
-              {/* Botão Duplicar */}
-              <button onClick={handleDuplicate} className="px-4 py-2 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 font-roboto text-label-sm flex items-center gap-2 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-all active:scale-95 min-h-[44px]">
-                <span className="material-symbols-outlined text-[18px]">content_copy</span>
-                Duplicar
-              </button>
             </>
           )}
           <button onClick={handleWhatsAppShare} className="px-4 py-2 rounded-full bg-[#25D366] text-white font-roboto text-label-sm flex items-center gap-2 hover:bg-[#128C7E] transition-all active:scale-95 min-h-[44px]">
