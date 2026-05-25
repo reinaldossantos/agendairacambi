@@ -3,13 +3,18 @@ import { format, parseISO, isValid } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "../../lib/supabaseClient";
 import { useState, useEffect } from "react";
-import { shareViaWhatsApp, formatSingleActivityForWhatsAppSimple } from "../../lib/whatsapp";
+import {
+  shareViaWhatsApp,
+  formatSingleActivityForWhatsAppSimple,
+} from "../../lib/whatsapp";
 import { getProgramColor } from "../../lib/colors";
 
 const statusColors = {
   Planejado: "bg-gray-100 text-gray-600 dark:bg-white/10 dark:text-gray-300",
-  "Em andamento": "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-  Realizado: "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+  "Em andamento":
+    "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+  Realizado:
+    "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400",
   Pendente: "bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400",
 };
 
@@ -28,7 +33,7 @@ const programShortNames = {
   "Educação Ambiental": "Educ. Ambiental",
   "Florestas para Água": "Florestas p/ Água",
   "Gestão Financeira": "Gestão Financeira",
-  "Voluntariado": "Voluntariado",
+  Voluntariado: "Voluntariado",
 };
 
 function shortenProgramName(name) {
@@ -52,7 +57,9 @@ export default function ActivityCard({ activity }) {
   const [involvedNames, setInvolvedNames] = useState([]);
   const dateToShow = activity.due_date || activity.week_start;
   const dateObj = parseISO(dateToShow);
-  const displayDate = isValid(dateObj) ? format(dateObj, "EEEE, dd MMM", { locale: ptBR }) : dateToShow;
+  const displayDate = isValid(dateObj)
+    ? format(dateObj, "EEEE, dd MMM", { locale: ptBR })
+    : dateToShow;
 
   useEffect(() => {
     if (activity.involved_ids?.length) {
@@ -123,21 +130,27 @@ export default function ActivityCard({ activity }) {
       className={`group bg-white dark:bg-white/5 backdrop-blur-sm border-l-4 ${programColor.border} border-t border-r border-b border-surface-variant dark:border-white/10 rounded-xl p-3 hover:shadow-md transition-all duration-300 flex flex-col relative`}
     >
       <div className="flex items-start justify-between mb-2">
-        <span className={`inline-block px-2 py-0.5 rounded-full ${programColor.bgLight} ${programColor.text} text-[10px] font-roboto font-medium border ${programColor.border}`}>
+        <span
+          className={`inline-block px-2 py-0.5 rounded-full ${programColor.bgLight} ${programColor.text} text-[10px] font-roboto font-medium border ${programColor.border}`}
+        >
           {shortProgramName}
         </span>
         <div className="flex gap-1">
           <span className="text-[9px] font-roboto font-semibold px-1.5 py-0.5 rounded-full border bg-white dark:bg-white/5">
             {emoji} {priority}
           </span>
-          <span className={`text-[9px] font-roboto font-semibold px-1.5 py-0.5 rounded-full border ${statusColors[activity.status] || statusColors.Planejado}`}>
+          <span
+            className={`text-[9px] font-roboto font-semibold px-1.5 py-0.5 rounded-full border ${statusColors[activity.status] || statusColors.Planejado}`}
+          >
             {activity.status}
           </span>
         </div>
       </div>
 
       <div className="flex items-center gap-1 text-gray-500 dark:text-gray-300 mb-1">
-        <span className="material-symbols-outlined text-[14px]">calendar_today</span>
+        <span className="material-symbols-outlined text-[14px]">
+          calendar_today
+        </span>
         <span className="font-roboto text-[10px]">{displayDate}</span>
       </div>
 
@@ -159,7 +172,9 @@ export default function ActivityCard({ activity }) {
 
       <div className="pt-2 border-t border-surface-variant dark:border-white/10 flex items-center justify-between">
         <div className="flex items-center gap-1.5">
-          <div className={`w-6 h-6 rounded-full ${programColor.bg} flex items-center justify-center text-[10px] font-bold ${programColor.text}`}>
+          <div
+            className={`w-6 h-6 rounded-full ${programColor.bg} flex items-center justify-center text-[10px] font-bold ${programColor.text}`}
+          >
             {activity.persons?.initials || "?"}
           </div>
           <span className="font-roboto text-[11px] text-primary dark:text-white truncate max-w-[80px]">
