@@ -10,9 +10,7 @@ export default function History() {
   const [loading, setLoading] = useState(true);
   const [filterProgram, setFilterProgram] = useState("");
   const [filterPerson, setFilterPerson] = useState("");
-  const [filterStatus, setFilterStatus] = useState(() => {
-    return searchParams.get("status") || "";
-  });
+  const [filterStatus, setFilterStatus] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [programs, setPrograms] = useState([]);
@@ -23,19 +21,27 @@ export default function History() {
   const [reportStart, setReportStart] = useState("");
   const [reportEnd, setReportEnd] = useState("");
 
-  useEffect(() => {
-    const statusParam = searchParams.get("status");
-    if (statusParam) {
-      setFilterStatus(statusParam);
-    }
-  }, [searchParams]);
-
+  // Carrega metadados uma vez
   useEffect(() => {
     fetchMeta();
   }, []);
 
+  // Lê os parâmetros da URL e atualiza os estados (sem disparar fetch ainda)
   useEffect(() => {
-    fetchHistory();
+    const statusParam = searchParams.get("status");
+    const startParam = searchParams.get("start");
+    const endParam = searchParams.get("end");
+    if (statusParam !== null) setFilterStatus(statusParam);
+    if (startParam !== null) setStartDate(startParam);
+    if (endParam !== null) setEndDate(endParam);
+  }, [searchParams]);
+
+  // Dispara a busca sempre que os filtros mudarem (incluindo após a atualização acima)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchHistory();
+    }, 100);
+    return () => clearTimeout(timer);
   }, [filterProgram, filterPerson, filterStatus, startDate, endDate]);
 
   async function fetchMeta() {
@@ -53,6 +59,8 @@ export default function History() {
 
   async function fetchHistory() {
     setLoading(true);
+    console.log("Filtrando com:", { filterStatus, startDate, endDate });
+
     let query = supabase
       .from("activities")
       .select("*, programs:program_id(name), persons:responsible_id(name)")
@@ -74,15 +82,19 @@ export default function History() {
       query = query.lte("due_date", endDate);
     }
 
-    const { data, error } = await query.limit(100);
+    const { data, error } = await query.limit(500);
     if (!error) setActivities(data || []);
+    else console.error("Erro ao buscar histórico:", error);
     setLoading(false);
   }
 
   function handleFilter(e) {
     e.preventDefault();
-    setSearchParams({ status: filterStatus });
-    fetchHistory();
+    const params = {};
+    if (filterStatus) params.status = filterStatus;
+    if (startDate) params.start = startDate;
+    if (endDate) params.end = endDate;
+    setSearchParams(params);
   }
 
   function clearFilters() {
@@ -118,8 +130,8 @@ export default function History() {
   };
 
   const openReportModal = () => {
-    setReportStart(format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd"));
-    setReportEnd(format(addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), 5), "yyyy-MM-dd"));
+    setReportStart(startDate || format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd"));
+    setReportEnd(endDate || format(addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), 5), "yyyy-MM-dd"));
     setShowReportModal(true);
   };
 
@@ -152,11 +164,7 @@ export default function History() {
     }
 
     if (formatType === "pdf") {
-      await generateWeeklyPDF({
-        weekStart: reportStart,
-        weekEnd: reportEnd,
-        activities: data,
-      });
+      await generateWeeklyPDF({ weekStart: reportStart, weekEnd: reportEnd, activities: data });
     } else {
       let csv = "Título,Programa,Responsável,Data,Status,Descrição\n";
       data.forEach((a) => {
@@ -276,23 +284,12 @@ export default function History() {
               </thead>
               <tbody className="divide-y divide-surface-variant dark:divide-gray-700">
                 {loading ? (
-                  <tr>
-                    <td colSpan={5} className="text-center py-10 text-on-surface-variant dark:text-gray-400">Carregando...</td>
-                  </tr>
+                  <tr><td colSpan={5} className="text-center py-10 text-on-surface-variant dark:text-gray-400">Carregando...</td></tr>
                 ) : activities.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="text-center py-10 text-on-surface-variant dark:text-gray-400">Nenhuma atividade encontrada.</td>
-                  </tr>
+                  <tr><td colSpan={5} className="text-center py-10 text-on-surface-variant dark:text-gray-400">Nenhuma atividade encontrada.</td></tr>
                 ) : (
                   activities.map((a, index) => (
-                    <tr
-                      key={a.id}
-                      className={`transition-colors ${
-                        index % 2 === 0
-                          ? "bg-white dark:bg-gray-900"
-                          : "bg-stone-50 dark:bg-gray-800/50"
-                      } hover:bg-surface dark:hover:bg-gray-800`}
-                    >
+                    <tr key={a.id} className={`transition-colors ${index % 2 === 0 ? "bg-white dark:bg-gray-900" : "bg-stone-50 dark:bg-gray-800/50"} hover:bg-surface dark:hover:bg-gray-800`}>
                       <td className="px-2 md:px-4 py-3">
                         <Link to={`/activity/${a.id}`} className="font-roboto font-semibold text-primary dark:text-white hover:underline block text-xs md:text-sm">
                           {a.title}
@@ -309,7 +306,7 @@ export default function History() {
                           a.status === "Cancelado" ? "bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-200" :
                           "bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 border-red-200"
                         }`}>{a.status}</span>
-                      </td>
+                       </td>
                       <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-on-surface dark:text-gray-300 whitespace-nowrap">{a.persons?.name}</td>
                     </tr>
                   ))

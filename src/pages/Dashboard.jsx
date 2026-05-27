@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 import { startOfWeek, addDays, subDays, subWeeks, addWeeks, format } from "date-fns";
@@ -56,7 +56,6 @@ export default function Dashboard() {
 
   const { t } = useLanguage();
 
-  // Persistir preferências
   useEffect(() => {
     localStorage.setItem("iracambi_dashboard_onlyMine", onlyMine);
   }, [onlyMine]);
@@ -67,17 +66,14 @@ export default function Dashboard() {
     localStorage.setItem("iracambi_dashboard_viewMode", viewMode);
   }, [viewMode]);
 
-  // Carregar programas
   useEffect(() => {
     fetchPrograms();
   }, []);
 
-  // Sincronizar programa da URL
   useEffect(() => {
     setSelectedProgram(programFromUrl);
   }, [programFromUrl]);
 
-  // Buscar atividades quando filtros mudarem
   useEffect(() => {
     setLoading(true);
     fetchActivities();
@@ -157,20 +153,26 @@ export default function Dashboard() {
     }
   };
 
-  // Cálculo da barra de progresso
   const totalActivities = activities.length;
   const completedActivities = activities.filter(a => a.status === "Realizado").length;
   const progressPercent = totalActivities > 0 ? Math.round((completedActivities / totalActivities) * 100) : 0;
 
+  const isCurrentWeek = () => {
+    const today = new Date();
+    const currentMonday = startOfWeek(today, { weekStartsOn: 1 });
+    return format(currentMonday, "yyyy-MM-dd") === format(weekStart, "yyyy-MM-dd");
+  };
+  const currentWeekFlag = isCurrentWeek();
+
   return (
     <section>
       {currentUser && (
-        <p className="text-body-md text-on-surface dark:text-gray-200 mb-4">
+        <p className="text-body-md text-on-surface dark:text-gray-200 mb-4 text-center md:text-left">
           {t("common.welcome")}, <span className="font-semibold text-primary dark:text-white">{currentUser.name}</span>.
         </p>
       )}
 
-      {/* Barra de progresso */}
+      {/* Barra de progresso global */}
       <div className="mb-6 bg-surface dark:bg-white/5 rounded-xl p-4 border border-surface-variant dark:border-white/10">
         <div className="flex justify-between text-sm font-roboto mb-2">
           <span className="text-on-surface dark:text-gray-200">Atividades realizadas esta semana</span>
@@ -181,14 +183,30 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Destaque da semana - centralizado no mobile */}
+      <div className="mb-6 flex justify-center md:justify-start">
+        <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full ${
+          currentWeekFlag 
+            ? 'bg-gradient-to-r from-green-100 to-green-200 dark:from-green-900/40 dark:to-green-800/40 border-2 border-green-500 dark:border-green-400 shadow-md' 
+            : 'bg-surface dark:bg-white/5 border border-surface-variant dark:border-white/10'
+        }`}>
+          <span className="material-symbols-outlined text-primary dark:text-white text-xl">calendar_today</span>
+          <span className={`font-roboto font-semibold ${currentWeekFlag ? 'text-green-800 dark:text-green-300' : 'text-on-surface dark:text-gray-300'}`}>
+            {format(weekStart, "dd 'de' MMM", { locale: ptBR })} – {format(weekEnd, "dd 'de' MMM", { locale: ptBR })}
+            {currentWeekFlag && (
+              <span className="ml-2 text-xs font-normal bg-green-600 text-white px-2 py-0.5 rounded-full">
+                SEMANA ATUAL
+              </span>
+            )}
+          </span>
+        </div>
+      </div>
+
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
         <div>
           <h2 className="font-roboto text-headline-lg text-primary dark:text-white mb-1">{t("dashboard.title")}</h2>
-          <p className="text-on-surface-variant dark:text-gray-300 text-sm md:text-base">
-            {format(weekStart, "dd 'de' MMM", { locale: ptBR })} – {format(weekEnd, "dd 'de' MMM", { locale: ptBR })}
-          </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center justify-center md:justify-end gap-2">
           <button onClick={goToPreviousWeek} className="p-2 rounded-full bg-green-100 hover:bg-green-200 dark:bg-green-800/30 dark:hover:bg-green-800/50 min-h-[44px] min-w-[44px] flex items-center justify-center">
             <span className="material-symbols-outlined text-green-700 dark:text-green-300">chevron_left</span>
           </button>
@@ -212,7 +230,7 @@ export default function Dashboard() {
       </div>
 
       {/* Campo de busca */}
-      <div className="mb-4 flex justify-end">
+      <div className="mb-4 flex justify-center md:justify-end">
         <div className="relative w-full max-w-xs">
           <span className="absolute inset-y-0 left-0 flex items-center pl-2">
             <span className="material-symbols-outlined text-gray-400 text-lg">search</span>
