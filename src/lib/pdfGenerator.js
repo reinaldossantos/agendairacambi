@@ -97,7 +97,7 @@ export async function generateWeeklyPDF({ weekStart, weekEnd, activities }) {
         4: { cellWidth: 20 },
         5: { cellWidth: 25 },
       },
-      didDrawPage: function (data) {
+      didDrawPage: function () {
         // Se for a última página, não faz nada (rodapé será colocado após a tabela)
       },
     });

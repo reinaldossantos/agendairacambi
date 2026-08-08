@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "../lib/supabaseClient";
 import {
   format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays,
@@ -8,36 +8,7 @@ import { ptBR } from "date-fns/locale";
 import { getProgramColor } from "../lib/colors";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-
-// Função de abreviação (idêntica à usada no ActivityCard)
-const programShortNames = {
-  "Relações Institucionais": "Rel. Institucionais",
-  "Assistente de Colegiado": "Assist. Colegiado",
-  "Pesquisas e Monitoramento": "Pesq. e Monitor.",
-  "Viveiro e Manutenção": "Viveiro e Manut.",
-  "Educação Ambiental": "Educ. Ambiental",
-  "Florestas para Água": "Florestas p/ Água",
-  "Gestão Financeira": "Gestão Financeira",
-  "Voluntariado": "Voluntariado",
-  "Colegiado": "Colegiado",
-};
-
-function shortenProgramName(name) {
-  if (!name) return "";
-  if (programShortNames[name]) return programShortNames[name];
-  const MAX_LEN = 14; // para legendas e botões
-  if (name.length <= MAX_LEN) return name;
-  const words = name.split(" ");
-  if (words.length > 1) {
-    const firstWord = words[0];
-    const lastWord = words[words.length - 1];
-    if ((firstWord + " " + lastWord).length <= MAX_LEN + 2) {
-      return `${firstWord} ${lastWord}`;
-    }
-    return firstWord;
-  }
-  return name.substring(0, MAX_LEN - 3) + "...";
-}
+import ProgramSwitcher from "../components/ui/ProgramSwitcher";
 
 export default function Calendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -48,15 +19,12 @@ export default function Calendar() {
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef(null);
 
-  useEffect(() => { fetchPrograms(); }, []);
-  useEffect(() => { fetchActivities(); }, [currentDate, selectedProgram]);
-
-  async function fetchPrograms() {
-    const { data } = await supabase.from("programs").select("name").order("name");
+  const fetchPrograms = useCallback(async () => {
+    const { data } = await supabase.from("programs").select("id,name").order("name");
     setPrograms(data || []);
-  }
+  }, []);
 
-  async function fetchActivities() {
+  const fetchActivities = useCallback(async () => {
     const monthStart = startOfMonth(currentDate);
     const monthEnd = endOfMonth(currentDate);
     const startDate = startOfWeek(monthStart, { weekStartsOn: 0 });
@@ -65,13 +33,20 @@ export default function Calendar() {
     const endStr = format(endDate, "yyyy-MM-dd");
     let query = supabase
       .from("activities")
-      .select("*, programs:program_id(name)")
+      .select("*, programs:program_id(id,name)")
       .gte("due_date", startStr)
       .lte("due_date", endStr);
-    if (selectedProgram !== "Todos") query = query.eq("programs.name", selectedProgram);
+    if (selectedProgram !== "Todos") {
+      const selectedProgramId = programs.find((program) => program.name === selectedProgram)?.id;
+      if (!selectedProgramId) { setActivities([]); return; }
+      query = query.eq("program_id", selectedProgramId);
+    }
     const { data } = await query.order("due_date");
     setActivities(data || []);
-  }
+  }, [currentDate, programs, selectedProgram]);
+
+  useEffect(() => { const timer = window.setTimeout(fetchPrograms, 0); return () => window.clearTimeout(timer); }, [fetchPrograms]);
+  useEffect(() => { const timer = window.setTimeout(fetchActivities, 0); return () => window.clearTimeout(timer); }, [fetchActivities]);
 
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
@@ -121,6 +96,7 @@ export default function Calendar() {
   };
 
   const selectedActivities = selectedDate ? activityMap[format(selectedDate, "yyyy-MM-dd")] || [] : [];
+  const mobileDays = days.filter((calendarDay) => isSameMonth(calendarDay, monthStart) && (activityMap[format(calendarDay, "yyyy-MM-dd")] || []).length > 0);
 
   return (
     <div className="max-w-6xl mx-auto px-2 sm:px-4">
@@ -128,18 +104,17 @@ export default function Calendar() {
         <h2 className="font-roboto text-headline-md sm:text-headline-lg text-primary dark:text-white">
           Calendário Mensal
         </h2>
-        <div className="flex items-center justify-between sm:justify-end gap-2">
-          <button onClick={prevMonth} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 min-w-[44px] min-h-[44px] flex items-center justify-center">
+        <div className="grid w-full grid-cols-[48px_minmax(0,1fr)_48px] items-center gap-2 sm:flex sm:w-auto sm:justify-end">
+          <button onClick={prevMonth} aria-label="Mês anterior" className="flex min-h-12 min-w-12 items-center justify-center rounded-xl bg-surface transition hover:bg-gray-100 dark:bg-white/5 dark:hover:bg-white/10">
             <span className="material-symbols-outlined text-outline dark:text-gray-300">chevron_left</span>
           </button>
-          <div className="relative" ref={menuRef}>
+          <div className="relative min-w-0" ref={menuRef}>
             <button
               onClick={() => setShowMenu(!showMenu)}
-              className="px-3 py-2 rounded-full bg-accent/20 text-primary dark:text-white font-roboto text-label-sm flex items-center gap-1 min-h-[44px] transition-all"
+              className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-amber-200 bg-accent/20 px-3 py-2 font-roboto text-base font-bold capitalize text-primary shadow-sm transition-all hover:bg-accent/30 dark:border-amber-800 dark:text-white sm:min-w-52"
             >
-              <span className="material-symbols-outlined text-[18px]">event</span>
-              <span className="hidden sm:inline">{format(currentDate, "MMMM yyyy", { locale: ptBR })}</span>
-              <span className="sm:hidden">{format(currentDate, "MMM/yy", { locale: ptBR })}</span>
+              <span className="material-symbols-outlined text-[20px]">calendar_month</span>
+              <span className="truncate">{format(currentDate, "MMMM 'de' yyyy", { locale: ptBR })}</span>
               <span className="material-symbols-outlined text-[18px]">expand_more</span>
             </button>
             <AnimatePresence>
@@ -163,45 +138,22 @@ export default function Calendar() {
               )}
             </AnimatePresence>
           </div>
-          <button onClick={nextMonth} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 min-w-[44px] min-h-[44px] flex items-center justify-center">
+          <button onClick={nextMonth} aria-label="Próximo mês" className="flex min-h-12 min-w-12 items-center justify-center rounded-xl bg-surface transition hover:bg-gray-100 dark:bg-white/5 dark:hover:bg-white/10">
             <span className="material-symbols-outlined text-outline dark:text-gray-300">chevron_right</span>
           </button>
         </div>
       </div>
 
-      {/* Filtros com nomes abreviados */}
-      <div className="flex flex-nowrap gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
-        <button
-          onClick={() => setSelectedProgram("Todos")}
-          className={`px-3 py-1.5 rounded-full font-roboto text-xs whitespace-nowrap transition-all ${
-            selectedProgram === "Todos"
-              ? "bg-accent text-primary shadow"
-              : "bg-surface dark:bg-white/5 text-on-surface dark:text-gray-300"
-          }`}
-        >
-          Todos
-        </button>
-        {programs.map(prog => {
-          const color = getProgramColor(prog.name);
-          const shortName = shortenProgramName(prog.name);
-          return (
-            <button
-              key={prog.name}
-              onClick={() => setSelectedProgram(prog.name)}
-              className={`px-3 py-1.5 rounded-full font-roboto text-xs whitespace-nowrap transition-all ${
-                selectedProgram === prog.name
-                  ? `${color.bg} ${color.text} ${color.border} border shadow`
-                  : "bg-surface dark:bg-white/5 text-on-surface dark:text-gray-300"
-              }`}
-            >
-              {shortName}
-            </button>
-          );
-        })}
-      </div>
+      <ProgramSwitcher programs={programs} value={selectedProgram} onChange={(program) => { setSelectedProgram(program); setSelectedDate(null); }} className="mb-6 max-w-xl" />
+
+      <section className="space-y-3 md:hidden" aria-label="Agenda do mês">
+        <div className="rounded-2xl border border-blue-100 bg-blue-50 p-3 text-xs text-blue-800 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-300"><span className="material-symbols-outlined mr-1 align-middle text-[18px]">view_agenda</span>Visualização em agenda otimizada para celular.</div>
+        {mobileDays.map((calendarDay) => { const dateKey = format(calendarDay, "yyyy-MM-dd"); return <article key={dateKey} className="overflow-hidden rounded-2xl border border-surface-variant bg-white shadow-sm dark:border-white/10 dark:bg-dark-surface"><button type="button" onClick={() => setSelectedDate(calendarDay)} className="flex min-h-12 w-full items-center gap-3 bg-surface/70 px-4 py-3 text-left dark:bg-white/5"><span className="flex h-10 w-10 flex-col items-center justify-center rounded-xl bg-primary text-white"><strong className="text-base leading-none">{format(calendarDay, "dd")}</strong><span className="text-[9px] uppercase">{format(calendarDay, "EEE", { locale: ptBR }).slice(0, 3)}</span></span><span className="flex-1 font-bold capitalize text-primary dark:text-white">{format(calendarDay, "EEEE", { locale: ptBR })}</span><span className="rounded-full bg-white px-2 py-1 text-xs font-bold text-outline dark:bg-gray-700">{activityMap[dateKey].length}</span></button><div className="divide-y divide-surface-variant dark:divide-white/10">{activityMap[dateKey].map((activity) => <Link key={activity.id} to={`/activity/${activity.id}`} className="flex min-h-14 items-center gap-3 px-4 py-3 hover:bg-green-50 dark:hover:bg-white/5"><span className={`h-3 w-3 shrink-0 rounded-full border ${getProgramColor(activity.programs?.name).bg} ${getProgramColor(activity.programs?.name).border}`} /><span className="min-w-0 flex-1"><strong className="block truncate text-sm text-primary dark:text-white">{activity.title}</strong><span className="block truncate text-xs text-outline">{activity.programs?.name || "Sem programa"}</span></span><span className="material-symbols-outlined text-outline">chevron_right</span></Link>)}</div></article>; })}
+        {!mobileDays.length && <div className="rounded-2xl border border-dashed border-surface-variant px-4 py-12 text-center"><span className="material-symbols-outlined text-4xl text-outline">event_busy</span><p className="mt-2 text-sm text-outline">Nenhuma atividade neste mês.</p></div>}
+      </section>
 
       {/* Grade do calendário */}
-      <div className="grid grid-cols-7 gap-px bg-surface-variant dark:bg-white/10 rounded-xl overflow-hidden shadow-md">
+      <div className="hidden grid-cols-7 gap-px bg-surface-variant dark:bg-white/10 rounded-xl overflow-hidden shadow-md md:grid">
         {["D", "S", "T", "Q", "Q", "S", "S"].map((d, i) => (
           <div key={i} className="py-2 text-center font-roboto text-xs font-semibold text-outline dark:text-gray-400 bg-white dark:bg-dark-surface border-b border-surface-variant dark:border-white/10">
             {d}
@@ -253,17 +205,16 @@ export default function Calendar() {
           <div className="flex flex-wrap gap-2">
             {Array.from(programsInMonth).map(progName => {
               const color = getProgramColor(progName);
-              const shortName = shortenProgramName(progName);
               return (
                 <button
                   key={progName}
-                  onClick={() => setSelectedProgram(progName)}
+                  onClick={() => { setSelectedProgram(progName); setSelectedDate(null); }}
                   className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs transition-all ${
                     selectedProgram === progName ? `${color.bg} ${color.text} border ${color.border} shadow-sm` : "hover:bg-gray-100 dark:hover:bg-white/10"
                   }`}
                 >
                   <span className={`w-2 h-2 rounded-full ${color.bg} border ${color.border}`}></span>
-                  <span className="truncate max-w-[90px] sm:max-w-none">{shortName}</span>
+                  <span>{progName}</span>
                 </button>
               );
             })}

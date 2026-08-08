@@ -53,7 +53,7 @@ function shortenProgramName(name) {
   return name.substring(0, MAX_LEN - 3) + "...";
 }
 
-export default function ActivityCard({ activity }) {
+export default function ActivityCard({ activity, attention = false }) {
   const [involvedNames, setInvolvedNames] = useState([]);
   const dateToShow = activity.due_date || activity.week_start;
   const dateObj = parseISO(dateToShow);
@@ -65,7 +65,7 @@ export default function ActivityCard({ activity }) {
     if (activity.involved_ids?.length) {
       supabase
         .from("persons")
-        .select("name, initials")
+        .select("name, initials, is_active")
         .in("id", activity.involved_ids)
         .then(({ data }) => setInvolvedNames(data || []));
     }
@@ -96,8 +96,8 @@ export default function ActivityCard({ activity }) {
   const emoji = priorityEmojis[priority] || "🟡";
 
   // Barra de progresso baseada no status
-  let progressPercent = 0;
-  let progressColor = "bg-gray-400";
+  let progressPercent;
+  let progressColor;
   switch (activity.status) {
     case "Planejado":
       progressPercent = 0;
@@ -121,6 +121,7 @@ export default function ActivityCard({ activity }) {
       break;
     default:
       progressPercent = 0;
+      progressColor = "bg-gray-400";
   }
 
   return (
@@ -136,6 +137,7 @@ export default function ActivityCard({ activity }) {
           {shortProgramName}
         </span>
         <div className="flex gap-1">
+          {activity.is_event && <span className="inline-flex items-center gap-0.5 rounded-full border border-emerald-300 bg-emerald-50 px-1.5 py-0.5 text-[9px] font-semibold text-emerald-800 dark:border-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300"><span className="material-symbols-outlined text-[12px]">festival</span>Evento</span>}
           <span className="text-[9px] font-roboto font-semibold px-1.5 py-0.5 rounded-full border bg-white dark:bg-white/5">
             {emoji} {priority}
           </span>
@@ -152,6 +154,7 @@ export default function ActivityCard({ activity }) {
           calendar_today
         </span>
         <span className="font-roboto text-[10px]">{displayDate}</span>
+        {attention && <span className="material-symbols-outlined icon-plain ml-1 text-[16px] text-red-500 dark:text-red-400" title="Atividade em atraso" aria-label="Atividade em atraso">schedule</span>}
       </div>
 
       <h3 className="font-roboto text-sm font-semibold text-primary dark:text-white mb-1 leading-tight line-clamp-2">
@@ -180,6 +183,7 @@ export default function ActivityCard({ activity }) {
           <span className="font-roboto text-[11px] text-primary dark:text-white truncate max-w-[80px]">
             {activity.persons?.name || "Responsável"}
           </span>
+          {activity.persons?.is_active === false && <span title="Usuário desativado" className="rounded-full bg-gray-200 px-1.5 py-0.5 text-[8px] font-bold uppercase text-gray-700 dark:bg-gray-700 dark:text-gray-200">Desativado</span>}
         </div>
         <div className="flex items-center gap-0.5">
           {involvedNames.length > 0 && (

@@ -5,10 +5,12 @@ import { useCurrentUser } from "../context/CurrentUserContext";
 import { format, parseISO, isValid as isDateValid } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import CommentSection from "../components/activities/CommentSection";
+import ActivityTimeline from "../components/activities/ActivityTimeline";
 import ConfirmDialog from "../components/ui/ConfirmDialog";
 import PhotoUpload from "../components/activities/PhotoUpload";
 import FileUpload from "../components/activities/FileUpload";
-import { getUserColor } from "../lib/colors";
+import EventFields from "../components/activities/EventFields";
+import { emptyEventData, normalizeEventData } from "../lib/events";
 import { shareViaWhatsApp, formatSingleActivityForWhatsAppSimple } from "../lib/whatsapp";
 
 const priorityColors = {
@@ -33,14 +35,18 @@ export default function ActivityDetail() {
     status: "",
     priority: "Média",
     due_date: "",
+    start_datetime: "",
     end_datetime: "",
     program_id: "",
     responsible_id: "",
     involved_ids: [],
     images: [],
     files: [],
+    is_event: false,
+    event_data: emptyEventData(),
   });
   const [logs, setLogs] = useState([]);
+  const [collaborationTab, setCollaborationTab] = useState("comments");
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -56,7 +62,7 @@ export default function ActivityDetail() {
   const fetchActivity = useCallback(async () => {
     const { data } = await supabase
       .from("activities")
-      .select("*, programs:program_id(name), persons:responsible_id(name, initials, color), creator:created_by(name, id)")
+      .select("*, programs:program_id(name), persons:responsible_id(name, initials, color, is_active), creator:created_by(name, id, is_active)")
       .eq("id", id)
       .single();
     if (data) {
@@ -67,17 +73,20 @@ export default function ActivityDetail() {
         status: data.status,
         priority: data.priority || "Média",
         due_date: data.due_date || data.week_start,
+        start_datetime: data.start_datetime || "",
         end_datetime: data.end_datetime || "",
         program_id: data.program_id || "",
         responsible_id: data.responsible_id || "",
         involved_ids: data.involved_ids || [],
         images: data.images || [],
         files: data.files || [],
+        is_event: data.is_event || false,
+        event_data: normalizeEventData(data.event_data),
       });
       if (data.involved_ids?.length) {
         const { data: personsData } = await supabase
           .from("persons")
-          .select("id, name, initials")
+          .select("id, name, initials, is_active")
           .in("id", data.involved_ids);
         setInvolvedPersons(personsData || []);
       }
@@ -88,7 +97,7 @@ export default function ActivityDetail() {
   const fetchLogs = useCallback(async () => {
     const { data } = await supabase
       .from("activity_logs")
-      .select("*, person:person_id(name, initials, color, id)")
+      .select("*, person:person_id(name, initials, color, avatar_url, id)")
       .eq("activity_id", id)
       .order("created_at", { ascending: true });
     setLogs(data || []);
@@ -97,17 +106,21 @@ export default function ActivityDetail() {
   const fetchMeta = useCallback(async () => {
     const [progRes, persRes] = await Promise.all([
       supabase.from("programs").select("id, name").order("name"),
-      supabase.from("persons").select("id, name, initials").order("name"),
+      supabase.from("persons").select("id, name, initials").eq("is_active", true).order("name"),
     ]);
     setPrograms(progRes.data || []);
     setAllPersons(persRes.data || []);
   }, []);
 
   useEffect(() => {
-    fetchActivity();
-    fetchLogs();
-    fetchMeta();
+    const timer = window.setTimeout(() => Promise.all([fetchActivity(), fetchLogs(), fetchMeta()]), 0);
+    return () => window.clearTimeout(timer);
   }, [fetchActivity, fetchLogs, fetchMeta]);
+
+  useEffect(() => {
+    const channel = supabase.channel(`activity-collaboration-${id}`).on("postgres_changes", { event: "*", schema: "public", table: "activity_logs", filter: `activity_id=eq.${id}` }, () => fetchLogs()).subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [id, fetchLogs]);
 
   const isAuthor = currentUser && activity && currentUser.id === activity.created_by;
   const isResponsible = currentUser && activity && currentUser.id === activity.responsible_id;
@@ -123,12 +136,15 @@ export default function ActivityDetail() {
         status: activity.status,
         priority: activity.priority || "Média",
         due_date: activity.due_date || activity.week_start,
+        start_datetime: activity.start_datetime || "",
         end_datetime: activity.end_datetime || "",
         program_id: activity.program_id || "",
         responsible_id: activity.responsible_id || "",
         involved_ids: activity.involved_ids || [],
         images: activity.images || [],
         files: activity.files || [],
+        is_event: activity.is_event || false,
+        event_data: normalizeEventData(activity.event_data),
       });
     }
   };
@@ -179,12 +195,15 @@ export default function ActivityDetail() {
         status: "Cancelado",
         priority: formData.priority,
         due_date: formData.due_date,
+        start_datetime: formData.start_datetime || null,
         end_datetime: formData.end_datetime || null,
         program_id: formData.program_id || null,
         responsible_id: formData.responsible_id || null,
         involved_ids: formData.involved_ids,
         images: formData.images,
         files: formData.files,
+        is_event: formData.is_event,
+        event_data: formData.is_event ? formData.event_data : {},
         updated_at: new Date().toISOString(),
       };
       const { error } = await supabase.from("activities").update(updates).eq("id", activity.id);
@@ -221,6 +240,22 @@ export default function ActivityDetail() {
 
   async function handleSave() {
     if (!canEdit || !activity) return;
+    if (!formData.description.trim() || !formData.start_datetime || !formData.end_datetime) {
+      alert("Preencha a descrição, o início e a finalização da atividade.");
+      return;
+    }
+    if (formData.end_datetime <= formData.start_datetime) {
+      alert("A finalização deve ser posterior ao início da atividade.");
+      return;
+    }
+    if (formData.is_event && (!formData.event_data?.theme?.trim() || !formData.event_data?.start_at || !formData.event_data?.end_at)) {
+      alert("Informe a temática, o início e o término do evento.");
+      return;
+    }
+    if (formData.is_event && formData.event_data.start_at > formData.event_data.end_at) {
+      alert("O término do evento deve ser posterior ao início.");
+      return;
+    }
     setSaving(true);
     const oldActivity = { ...activity };
 
@@ -230,12 +265,15 @@ export default function ActivityDetail() {
       status: formData.status,
       priority: formData.priority,
       due_date: formData.due_date,
+      start_datetime: formData.start_datetime || null,
       end_datetime: formData.end_datetime || null,
       program_id: formData.program_id || null,
       responsible_id: formData.responsible_id || null,
       involved_ids: formData.involved_ids,
       images: formData.images,
       files: formData.files,
+      is_event: formData.is_event,
+      event_data: formData.is_event ? formData.event_data : {},
       updated_at: new Date().toISOString(),
     };
     const { error } = await supabase.from("activities").update(updates).eq("id", activity.id);
@@ -358,7 +396,7 @@ export default function ActivityDetail() {
 
     // Remove fotos do storage
     if (activity.images && activity.images.length > 0) {
-      const paths = activity.images.map(url => url.split("/").pop()).filter(Boolean);
+      const paths = activity.images.map((url) => decodeURIComponent(url.split("/object/public/activity-attachments/")[1] || url.split("/").pop() || "")).filter(Boolean);
       if (paths.length > 0) {
         await supabase.storage.from("activity-attachments").remove(paths);
       }
@@ -366,7 +404,7 @@ export default function ActivityDetail() {
 
     // Remove arquivos do storage
     if (activity.files && activity.files.length > 0) {
-      const paths = activity.files.map(f => f.url?.split("/").pop()).filter(Boolean);
+      const paths = activity.files.map((file) => decodeURIComponent(file.url?.split("/object/public/activity-files/")[1] || file.url?.split("/").pop() || "")).filter(Boolean);
       if (paths.length > 0) {
         await supabase.storage.from("activity-files").remove(paths);
       }
@@ -402,6 +440,8 @@ export default function ActivityDetail() {
       responsible: activity.persons?.name,
       priority: activity.priority,
       involvedIds: activity.involved_ids,
+      is_event: activity.is_event,
+      event_data: activity.event_data,
     };
     navigate("/new", { state: { clone: cloneData } });
   };
@@ -505,6 +545,7 @@ export default function ActivityDetail() {
               <p className="text-label-sm font-roboto text-outline dark:text-gray-400">Responsável</p>
               <p className="font-roboto font-semibold text-on-surface dark:text-white">
                 {activity.persons?.name}
+                {activity.persons?.is_active === false && <span className="ml-2 rounded-full bg-gray-200 px-2 py-1 text-xs font-bold text-gray-700 dark:bg-gray-700 dark:text-gray-200">Usuário desativado</span>}
               </p>
             </div>
           </div>
@@ -586,7 +627,7 @@ export default function ActivityDetail() {
         )}
 
         {canEdit && editMode && (
-          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="font-roboto text-label-md text-outline dark:text-gray-400">Data da atividade</label>
               <input
@@ -598,8 +639,13 @@ export default function ActivityDetail() {
               />
             </div>
             <div>
+              <label className="font-roboto text-label-md text-outline dark:text-gray-400">Início (data/hora)</label>
+              <input required type="datetime-local" name="start_datetime" value={formData.start_datetime?.slice(0, 16) || ""} onChange={handleChange} className="w-full bg-surface dark:bg-dark-background border-b-2 border-primary/20 focus:border-accent outline-none py-2 px-3 rounded-t-lg text-on-surface dark:text-white" />
+            </div>
+            <div>
               <label className="font-roboto text-label-md text-outline dark:text-gray-400">Finalização prevista (data/hora)</label>
               <input
+                required
                 type="datetime-local"
                 name="end_datetime"
                 value={formData.end_datetime?.slice(0, 16) || ""}
@@ -657,6 +703,18 @@ export default function ActivityDetail() {
             </button>
           </div>
         )}
+
+        {canEdit && editMode && (
+          <div className="mt-4 space-y-3">
+            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-900 dark:bg-emerald-900/20">
+              <input type="checkbox" checked={formData.is_event} onChange={(event) => setFormData((current) => ({ ...current, is_event: event.target.checked, event_data: event.target.checked ? normalizeEventData(current.event_data) : current.event_data }))} className="mt-1 rounded text-primary" />
+              <span><strong className="block text-primary dark:text-white">Esta atividade é um evento</strong><span className="text-xs text-outline">Inclui o registro na programação institucional de eventos.</span></span>
+            </label>
+            {formData.is_event && <EventFields value={formData.event_data} onChange={(event_data) => setFormData((current) => ({ ...current, event_data }))} />}
+          </div>
+        )}
+
+        {!editMode && activity.is_event && <EventSummary data={activity.event_data} />}
 
         {canEdit && editMode && (
           <div className="mt-4 p-4 bg-surface dark:bg-white/5 rounded-xl">
@@ -750,6 +808,7 @@ export default function ActivityDetail() {
           <div>
             <label className="font-roboto text-label-md text-outline dark:text-gray-400 block mb-2">Desdobramentos / Ocorrências</label>
             <textarea
+              required
               name="description"
               value={formData.description}
               onChange={handleChange}
@@ -772,32 +831,24 @@ export default function ActivityDetail() {
         </section>
       )}
 
-      <CommentSection activityId={activity.id} logs={logs.filter((l) => l.type === "comment")} onNewComment={fetchLogs} />
-
-      <section className="mt-12">
-        <h3 className="font-roboto text-label-md text-outline dark:text-gray-400 uppercase tracking-widest mb-6">Histórico de Atualizações</h3>
-        <div className="space-y-4">
-          {logs.filter((l) => l.type !== "comment").length === 0 ? (
-            <p className="text-on-surface-variant dark:text-gray-400 text-body-md">Nenhum histórico registrado.</p>
-          ) : (
-            logs.filter((l) => l.type !== "comment").map((log) => {
-              const color = getUserColor(log.person?.id);
-              return (
-                <div key={log.id} className={`flex gap-4 p-4 rounded-2xl ${color.bg} bg-opacity-10 dark:bg-opacity-20 border border-surface-variant dark:border-white/10`}>
-                  <div className={`w-8 h-8 rounded-full ${color.bg} flex items-center justify-center ${color.ring} ring-1 text-xs font-bold ${color.text}`}>
-                    {log.person?.initials || "?"}
-                  </div>
-                  <div>
-                    <span className={`font-roboto font-bold ${color.text}`}>{log.person?.name}</span>
-                    <span className="text-[10px] text-outline ml-2">{format(new Date(log.created_at), "dd/MM 'às' HH:mm")}</span>
-                    <p className="text-body-md text-on-surface dark:text-gray-200 mt-1">{log.content}</p>
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
+      <section className="mt-12 rounded-3xl border border-surface-variant bg-gradient-to-br from-white via-slate-50/40 to-emerald-50/20 p-4 shadow-sm dark:border-white/10 dark:from-dark-surface dark:via-slate-950/30 dark:to-emerald-950/10 sm:p-6">
+        <div className="mb-6 grid grid-cols-2 rounded-2xl border border-surface-variant bg-surface p-1.5 dark:border-white/10 dark:bg-white/5" role="tablist" aria-label="Colaboração e histórico"><button type="button" role="tab" aria-selected={collaborationTab === "comments"} onClick={() => setCollaborationTab("comments")} className={`flex min-h-12 items-center justify-center gap-2 rounded-xl text-sm font-bold transition ${collaborationTab === "comments" ? "bg-white text-blue-700 shadow-sm dark:bg-blue-950/50 dark:text-blue-300" : "text-outline hover:text-primary"}`}><span className="material-symbols-outlined icon-plain text-[19px]">forum</span>Conversa <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">{logs.filter((log) => log.type === "comment" && !log.metadata?.deleted).length}</span></button><button type="button" role="tab" aria-selected={collaborationTab === "timeline"} onClick={() => setCollaborationTab("timeline")} className={`flex min-h-12 items-center justify-center gap-2 rounded-xl text-sm font-bold transition ${collaborationTab === "timeline" ? "bg-white text-primary shadow-sm dark:bg-emerald-950/50 dark:text-green-300" : "text-outline hover:text-primary"}`}><span className="material-symbols-outlined icon-plain text-[19px]">timeline</span>Histórico <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">{logs.filter((log) => log.type !== "comment").length}</span></button></div>
+        <div role="tabpanel">{collaborationTab === "comments" ? <CommentSection activityId={activity.id} logs={logs.filter((log) => log.type === "comment")} onNewComment={fetchLogs} /> : <ActivityTimeline logs={logs} />}</div>
       </section>
     </div>
   );
+}
+
+function EventSummary({ data: rawData }) {
+  const data = normalizeEventData(rawData);
+  const date = (value) => value ? format(parseISO(value), "dd/MM/yyyy 'às' HH:mm") : "—";
+  const rows = [
+    ["Tipo", data.type || "Evento"], ["Situação", data.status], ["Temática", data.theme],
+    ["Período", `${date(data.start_at)} — ${date(data.end_at)}`], ["Local e formato", `${data.location || "A definir"} · ${data.format}`],
+    ["Público previsto", data.audience_expected], ["Público alcançado", data.audience_reached],
+    ["Parceiros", data.partners], ["Contrapartidas necessárias", data.counterparts],
+    ["Contrapartidas cumpridas", data.counterparts_completed], ["Resultados esperados", data.expected_results],
+    ["Resultados obtidos", data.results], ["Observações", data.notes],
+  ].filter(([, value]) => value);
+  return <section className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50/60 p-5 dark:border-emerald-900 dark:bg-emerald-900/10"><div className="mb-4 flex items-center gap-3"><span className="material-symbols-outlined rounded-xl bg-primary p-2 text-white">festival</span><div><h3 className="font-bold text-primary dark:text-white">Evento institucional</h3><p className="text-xs text-outline">Informações complementares do evento</p></div></div><dl className="grid gap-3 md:grid-cols-2">{rows.map(([label, value]) => <div key={label} className="rounded-xl bg-white/70 p-3 dark:bg-white/5"><dt className="text-xs font-bold uppercase text-outline">{label}</dt><dd className="mt-1 whitespace-pre-wrap text-sm text-on-surface dark:text-gray-200">{value}</dd></div>)}</dl></section>;
 }

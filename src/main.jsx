@@ -5,7 +5,9 @@ import App from "./App";
 import { CurrentUserProvider } from "./context/CurrentUserContext";
 import { ThemeProvider } from "./context/ThemeContext";
 import { LanguageProvider } from "./i18n/context";
+import AutomaticTranslationLayer from "./i18n/AutomaticTranslationLayer";
 import { AdvancedSettingsProvider } from "./context/AdvancedSettingsContext";
+import { TranslationSettingsProvider } from "./context/TranslationSettingsContext";
 import "./index.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
@@ -14,9 +16,12 @@ ReactDOM.createRoot(document.getElementById("root")).render(
       <CurrentUserProvider>
         <ThemeProvider>
           <AdvancedSettingsProvider>
-            <BrowserRouter>
-              <App />
-            </BrowserRouter>
+            <TranslationSettingsProvider>
+              <BrowserRouter>
+                <AutomaticTranslationLayer />
+                <App />
+              </BrowserRouter>
+            </TranslationSettingsProvider>
           </AdvancedSettingsProvider>
         </ThemeProvider>
       </CurrentUserProvider>

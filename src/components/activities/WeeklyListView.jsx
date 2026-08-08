@@ -4,11 +4,7 @@ import { ptBR } from "date-fns/locale";
 import { Link } from "react-router-dom";
 import { getProgramColor } from "../../lib/colors";
 
-export default function WeeklyListView({ activities, loading }) {
-  if (loading) {
-    return <div className="space-y-4">{/* skeletons opcionais */}</div>;
-  }
-
+export default function WeeklyListView({ activities, loading, periodMode = "week", attentionBefore = null }) {
   // Agrupar por data
   const grouped = {};
   activities.forEach(act => {
@@ -24,12 +20,16 @@ export default function WeeklyListView({ activities, loading }) {
     return init;
   });
 
+  if (loading) {
+    return <div className="space-y-4">{/* skeletons opcionais */}</div>;
+  }
+
   const toggleDay = (date) => {
     setExpandedDays(prev => ({ ...prev, [date]: !prev[date] }));
   };
 
   if (sortedDates.length === 0) {
-    return <div className="text-center py-10 text-on-surface-variant">Nenhuma atividade na semana.</div>;
+    return <div className="text-center py-10 text-on-surface-variant">Nenhuma atividade {periodMode === "month" ? "neste mês" : "nesta semana"}.</div>;
   }
 
   return (
@@ -49,15 +49,17 @@ export default function WeeklyListView({ activities, loading }) {
               <div className="divide-y divide-surface-variant dark:divide-white/10">
                 {dayActivities.map(act => {
                   const color = getProgramColor(act.programs?.name);
+                  const attention = attentionBefore && act.due_date < attentionBefore && !["Realizado", "Cancelado"].includes(act.status);
                   return (
                     <Link key={act.id} to={`/activity/${act.id}`} className="block p-4 hover:bg-gray-50 dark:hover:bg-white/5 transition">
                       <div className="flex justify-between items-start gap-2">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 flex-wrap mb-1">
                             <span className={`text-xs px-2 py-0.5 rounded-full ${color.bg} ${color.text}`}>{act.programs?.name}</span>
+                            {act.is_event && <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300"><span className="material-symbols-outlined text-[14px]">festival</span>Evento</span>}
                             <span className="text-xs text-gray-500 dark:text-gray-400">{act.persons?.name}</span>
                           </div>
-                          <h4 className="font-roboto font-semibold text-primary dark:text-white">{act.title}</h4>
+                          <h4 className="flex items-center gap-1 font-roboto font-semibold text-primary dark:text-white">{act.title}{attention && <span className="material-symbols-outlined icon-plain text-[17px] text-red-500 dark:text-red-400" title="Atividade em atraso" aria-label="Atividade em atraso">schedule</span>}</h4>
                           <p className="text-sm text-on-surface dark:text-gray-300 line-clamp-2 mt-1">{act.description}</p>
                         </div>
                         <span className="material-symbols-outlined text-gray-400">chevron_right</span>

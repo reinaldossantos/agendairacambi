@@ -19,7 +19,8 @@ export default function FileUpload({
   };
 
   const handleFileSelect = async (e) => {
-    const fileList = Array.from(e.target.files);
+    const fileList = Array.from(e.target.files || []);
+    e.target.value = "";
     if (!fileList.length) return;
     setUploading(true);
     setUploadStatus({
@@ -28,15 +29,21 @@ export default function FileUpload({
     });
 
     const uploadedFiles = [];
+    const failures = [];
 
     for (const file of fileList) {
-      // Gera nome único mantendo a extensão
-      const ext = file.name.split(".").pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}-${file.name}`;
+      if (file.size > 20 * 1024 * 1024) {
+        failures.push(`${file.name} ultrapassa o limite de 20 MB.`);
+        continue;
+      }
+      const safeName = file.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9._-]/g, "_");
+      const { data: authData } = await supabase.auth.getUser();
+      const owner = authData.user?.id || "authenticated";
+      const fileName = `${owner}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${safeName}`;
 
       console.log("Enviando arquivo:", fileName);
 
-      const { error, data } = await supabase.storage
+      const { error } = await supabase.storage
         .from("activity-files")
         .upload(fileName, file, {
           cacheControl: "3600",
@@ -45,10 +52,7 @@ export default function FileUpload({
 
       if (error) {
         console.error("Erro no upload:", error);
-        setUploadStatus({
-          type: "error",
-          message: `Erro ao enviar ${file.name}: ${error.message}`,
-        });
+        failures.push(`${file.name}: ${error.message}`);
         continue;
       }
 
@@ -66,15 +70,12 @@ export default function FileUpload({
       const updatedFiles = [...files, ...uploadedFiles];
       setFiles(updatedFiles);
       if (onUploadComplete) onUploadComplete(updatedFiles);
-      setUploadStatus({
-        type: "success",
-        message: `${uploadedFiles.length} arquivo(s) enviado(s) com sucesso!`,
-      });
+      setUploadStatus(failures.length ? { type: "error", message: `${uploadedFiles.length} enviado(s). ${failures.join(" ")}` } : { type: "success", message: `${uploadedFiles.length} arquivo(s) enviado(s) com sucesso!` });
     } else {
       setUploadStatus({
         type: "error",
         message:
-          "Falha ao enviar arquivos. Verifique o console e as permissões do bucket.",
+          failures.join(" ") || "Falha ao enviar arquivos. Verifique as permissões do bucket.",
       });
     }
 
@@ -85,7 +86,7 @@ export default function FileUpload({
   const removeFile = async (index) => {
     const fileToRemove = files[index];
     if (fileToRemove?.url) {
-      const path = fileToRemove.url.split("/").pop();
+      const path = decodeURIComponent(fileToRemove.url.split("/object/public/activity-files/")[1] || fileToRemove.url.split("/").pop() || "");
       if (path) {
         const { error } = await supabase.storage
           .from("activity-files")
@@ -116,7 +117,7 @@ export default function FileUpload({
 
   return (
     <div className="space-y-3">
-      <label className="font-roboto text-label-sm text-outline dark:text-gray-400 flex items-center gap-2 cursor-pointer">
+      <label className={`flex min-h-12 w-full cursor-pointer items-center gap-3 rounded-xl border px-3 py-2 font-roboto text-label-sm transition focus-within:ring-2 focus-within:ring-blue-500 ${uploading ? "cursor-wait border-surface-variant bg-surface text-outline" : "border-blue-200 bg-white text-blue-700 hover:border-blue-400 hover:bg-blue-50 dark:border-blue-900 dark:bg-white/5 dark:text-blue-300"}`}>
         <span className="material-symbols-outlined text-[20px]">
           attach_file
         </span>
@@ -169,6 +170,7 @@ export default function FileUpload({
                 </div>
               </div>
               <button
+                type="button"
                 onClick={() => removeFile(idx)}
                 className="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-full min-w-[32px] min-h-[32px] flex items-center justify-center"
                 title="Remover arquivo"

@@ -81,6 +81,14 @@ export default function Header() {
           </Link>
 
           <Link
+            to="/vehicles"
+            title="Veículos"
+            className="p-2.5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full min-h-[50px] min-w-[50px] flex items-center justify-center transition-colors text-primary dark:text-primary-light shadow-sm bg-white/50 dark:bg-white/5 backdrop-blur-sm"
+          >
+            <span className="material-symbols-outlined text-[22px]">directions_car</span>
+          </Link>
+
+          <Link
             to="/stats"
             title={t("header.statistics")}
             className="p-2.5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full min-h-[50px] min-w-[50px] flex items-center justify-center transition-colors text-primary dark:text-primary-light shadow-sm bg-white/50 dark:bg-white/5 backdrop-blur-sm"
@@ -331,6 +339,10 @@ export default function Header() {
           <Link to="/calendar" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-on-surface dark:text-gray-200">
             <span className="material-symbols-outlined text-primary text-2xl">calendar_month</span>
             <span className="font-roboto text-body-md">Calendário</span>
+          </Link>
+          <Link to="/vehicles" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-on-surface dark:text-gray-200">
+            <span className="material-symbols-outlined text-primary text-2xl">directions_car</span>
+            <span className="font-roboto text-body-md">Veículos</span>
           </Link>
           <Link to="/stats" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-on-surface dark:text-gray-200">
             <span className="material-symbols-outlined text-primary text-2xl">bar_chart</span>

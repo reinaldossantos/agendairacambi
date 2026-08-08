@@ -1,10 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useLocation } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 import { useCurrentUser } from "../context/CurrentUserContext";
 import { format, parseISO, startOfWeek, addDays, subWeeks, addWeeks, isWithinInterval } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 export default function Announcements() {
+  const location = useLocation();
+  const titleRef = useRef(null);
   const { currentUser } = useCurrentUser();
   const [announcements, setAnnouncements] = useState([]);
   const [programs, setPrograms] = useState([]);
@@ -26,6 +29,13 @@ export default function Announcements() {
     fetchAnnouncements();
     fetchPrograms();
   }, []);
+
+  useEffect(() => {
+    if (location.state?.quickAction === "notice") {
+      window.setTimeout(() => titleRef.current?.focus(), 120);
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   async function fetchAnnouncements() {
     const { data } = await supabase
@@ -60,7 +70,7 @@ export default function Announcements() {
       author_id: currentUser?.id || null, // se não houver usuário, fica null
     };
 
-    let error = null;
+    let error;
     if (editingId) {
       const res = await supabase.from("announcements").update(payload).eq("id", editingId);
       error = res.error;
@@ -148,6 +158,7 @@ export default function Announcements() {
         </h3>
         <form onSubmit={handleSubmit} className="space-y-4">
           <input
+            ref={titleRef}
             type="text"
             placeholder="Título do aviso"
             value={title}

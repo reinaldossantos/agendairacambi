@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate, Link, useLocation } from "react-router-dom";
+/* eslint-disable react-hooks/set-state-in-effect */
+import { Link, useLocation } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 import { startOfWeek, addDays, format, parseISO, isValid } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -9,17 +10,23 @@ import { useAdvancedSettings } from "../context/AdvancedSettingsContext";
 import { getUserColor } from "../lib/colors";
 import PhotoUpload from "../components/activities/PhotoUpload";
 import FileUpload from "../components/activities/FileUpload";
+import EventFields from "../components/activities/EventFields";
+import TeamMemberSelector from "../components/activities/TeamMemberSelector";
+import { emptyEventData } from "../lib/events";
 
 export default function NewActivity() {
-  const navigate = useNavigate();
   const location = useLocation();
   const { currentUser } = useCurrentUser();
   const { modes } = useAdvancedSettings();
   const [programs, setPrograms] = useState([]);
+  const [managementProjects, setManagementProjects] = useState([]);
   const [persons, setPersons] = useState([]);
   const [selectedProgram, setSelectedProgram] = useState("");
+  const [selectedManagementProject, setSelectedManagementProject] = useState("");
   const [selectedPerson, setSelectedPerson] = useState("");
   const [selectedPriority, setSelectedPriority] = useState("Média");
+  const [whatsAppStartTime, setWhatsAppStartTime] = useState("08:00");
+  const [whatsAppEndTime, setWhatsAppEndTime] = useState("17:00");
 
   const getInitialMode = () => {
     if (modes.wpp) return "wpp";
@@ -42,7 +49,10 @@ export default function NewActivity() {
       repeatDays: [], 
       images: [],
       files: [],
-      endDateTime: "" 
+      startDateTime: "",
+      endDateTime: "",
+      isEvent: false,
+      eventData: emptyEventData(),
     },
   ]);
   const [involvedIdsGlobal, setInvolvedIdsGlobal] = useState([]);
@@ -54,7 +64,6 @@ export default function NewActivity() {
 
   // ---- Menções ----
   const [mentionIndex, setMentionIndex] = useState(null);
-  const [mentionQuery, setMentionQuery] = useState("");
   const [mentionList, setMentionList] = useState([]);
   const [showMentions, setShowMentions] = useState(false);
   const textareaRefs = useRef([]);
@@ -78,11 +87,25 @@ export default function NewActivity() {
           repeatDays: [],
           images: [],
           files: [],
-          endDateTime: ""
+          startDateTime: "",
+          endDateTime: "",
+          isEvent: clone.is_event || false,
+          eventData: { ...emptyEventData(), ...(clone.event_data || {}) },
         }]);
         setSelectedMode("quick");
       }
       // Limpa o state para não recarregar em futuros acessos
+      window.history.replaceState({}, document.title);
+    }
+    if (location.state?.createEvent) {
+      const date = format(new Date(), "yyyy-MM-dd");
+      setQuickActivities([{ date, title: "", description: "", involvedIds: [], priority: "Média", repeat: false, repeatEndDate: "", repeatDays: [], images: [], files: [], startDateTime: `${date}T09:00`, endDateTime: `${date}T17:00`, isEvent: true, eventData: { ...emptyEventData(), start_at: `${date}T09:00`, end_at: `${date}T17:00` } }]);
+      setSelectedMode("quick");
+      window.history.replaceState({}, document.title);
+    }
+    if (location.state?.managementProjectId) {
+      setSelectedManagementProject(location.state.managementProjectId);
+      setSelectedMode("quick");
       window.history.replaceState({}, document.title);
     }
   }, [location.state]);
@@ -93,9 +116,23 @@ export default function NewActivity() {
   }, [modes, selectedMode]);
 
   useEffect(() => {
-    supabase.from("programs").select("id, name").order("name").then(({ data }) => setPrograms(data || []));
-    supabase.from("persons").select("id, name, initials").order("name").then(({ data }) => setPersons(data || []));
+    supabase.from("programs").select("id, name, leader_id").order("name").then(({ data }) => setPrograms(data || []));
+    supabase.from("persons").select("id, name, initials").eq("is_active", true).order("name").then(({ data }) => setPersons(data || []));
+    supabase.from("management_projects").select("id,title,program_id,status").not("status", "in", "(completed,cancelled)").order("title").then(({ data }) => setManagementProjects(data || []));
   }, []);
+
+  useEffect(() => {
+    const project = managementProjects.find((item) => item.id === selectedManagementProject);
+    const program = programs.find((item) => item.id === project?.program_id);
+    if (program) setSelectedProgram(program.name);
+  }, [managementProjects, programs, selectedManagementProject]);
+
+  useEffect(() => {
+    if (!selectedProgram) return;
+    const program = programs.find((item) => item.name === selectedProgram);
+    const leader = persons.find((person) => person.id === program?.leader_id);
+    setSelectedPerson(leader?.name || "");
+  }, [persons, programs, selectedProgram]);
 
   const weekStartDate = format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd");
   const weekEndDate = format(addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), 5), "yyyy-MM-dd");
@@ -114,8 +151,8 @@ export default function NewActivity() {
     const activities = [];
     const lines = text.split('\n');
     let currentDay = null, currentLines = [], explicitDate = null;
-    const dayPattern = /^(segunda|terça|terca|quarta|quinta|sexta|sábado|sabado)(\s*(-feira| feira))?\s*[:.\-]?\s*/i;
-    const datePattern = /^(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)\s*[:.\-]?\s*/;
+    const dayPattern = /^(segunda|terça|terca|quarta|quinta|sexta|sábado|sabado)(\s*(-feira| feira))?\s*[:.-]?\s*/i;
+    const datePattern = /^(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)\s*[:.-]?\s*/;
 
     for (let line of lines) {
       const trimmed = line.trim();
@@ -170,14 +207,31 @@ export default function NewActivity() {
     return { title: cleaned[0], description: cleaned.join('; ') };
   }
 
-  const addQuickActivity = () => setQuickActivities([...quickActivities, { date: format(new Date(), "yyyy-MM-dd"), title: "", description: "", involvedIds: [], priority: "Média", repeat: false, repeatEndDate: "", repeatDays: [], images: [], files: [], endDateTime: "" }]);
+  const addQuickActivity = () => setQuickActivities([...quickActivities, { date: format(new Date(), "yyyy-MM-dd"), title: "", description: "", involvedIds: [], priority: "Média", repeat: false, repeatEndDate: "", repeatDays: [], images: [], files: [], startDateTime: "", endDateTime: "", isEvent: false, eventData: emptyEventData() }]);
   const removeQuickActivity = (i) => { if (quickActivities.length > 1) setQuickActivities(quickActivities.filter((_, idx) => idx !== i)); };
   const updateQuickActivity = (i, f, v) => { const u = [...quickActivities]; u[i][f] = v; setQuickActivities(u); };
-  const toggleInvolved = (i, id) => { const u = [...quickActivities]; u[i].involvedIds = u[i].involvedIds.includes(id) ? u[i].involvedIds.filter(x => x !== id) : [...u[i].involvedIds, id]; setQuickActivities(u); };
-  const toggleInvolvedGlobal = (id) => setInvolvedIdsGlobal(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  const addInvolved = (index, id) => {
+    const updated = [...quickActivities];
+    if (!updated[index].involvedIds.includes(id)) updated[index].involvedIds = [...updated[index].involvedIds, id];
+    setQuickActivities(updated);
+  };
+
+  const mentionedPersonIds = (description = "") => {
+    const normalized = description.toLocaleLowerCase("pt-BR");
+    return persons.filter((person) => {
+      const mention = `@${person.name.toLocaleLowerCase("pt-BR")}`;
+      let position = normalized.indexOf(mention);
+      while (position >= 0) {
+        const nextCharacter = normalized[position + mention.length];
+        if (!nextCharacter || /[\s.,;:!?()[\]{}\n]/.test(nextCharacter)) return true;
+        position = normalized.indexOf(mention, position + mention.length);
+      }
+      return false;
+    }).map((person) => person.id);
+  };
   const toggleRepeatDay = (i, day) => { const u = [...quickActivities]; const days = u[i].repeatDays || []; if (days.includes(day)) u[i].repeatDays = days.filter(d => d !== day); else u[i].repeatDays = [...days, day]; setQuickActivities(u); };
   const switchToQuickWithText = () => {
-    setQuickActivities([{ date: rawWeekDate, title: weekText.split('\n')[0] || "Atividade", description: weekText, involvedIds: involvedIdsGlobal, priority: selectedPriority, repeat: false, repeatEndDate: "", repeatDays: [], images: [], files: [], endDateTime: "" }]);
+    setQuickActivities([{ date: rawWeekDate, title: weekText.split('\n')[0] || "Atividade", description: weekText, involvedIds: involvedIdsGlobal, priority: selectedPriority, repeat: false, repeatEndDate: "", repeatDays: [], images: [], files: [], startDateTime: "", endDateTime: "", isEvent: false, eventData: emptyEventData() }]);
     setSelectedMode("quick");
     setMessage({ type: "", text: "" });
   };
@@ -204,12 +258,19 @@ export default function NewActivity() {
     if (!textarea) return;
     const cursorPos = textarea.selectionStart;
     const textBeforeCursor = value.substring(0, cursorPos);
-    const match = textBeforeCursor.match(/@(\w*)$/);
+    const match = textBeforeCursor.match(/@([\p{L}\p{M}.'-]*)$/u);
     if (match) {
-      const query = match[1].toLowerCase();
-      setMentionQuery(query);
-      const filtered = persons.filter(p => p.name.toLowerCase().includes(query) || p.initials?.toLowerCase().includes(query));
-      setMentionList(filtered.slice(0, 5));
+      const normalize = (text = "") => text.toLocaleLowerCase("pt-BR").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const query = normalize(match[1]);
+      const filtered = persons
+        .filter((person) => normalize(person.name).includes(query) || normalize(person.initials).includes(query))
+        .sort((first, second) => {
+          const firstName = normalize(first.name); const secondName = normalize(second.name);
+          const firstRank = firstName.startsWith(query) ? 0 : normalize(first.initials).startsWith(query) ? 1 : 2;
+          const secondRank = secondName.startsWith(query) ? 0 : normalize(second.initials).startsWith(query) ? 1 : 2;
+          return firstRank - secondRank || first.name.localeCompare(second.name, "pt-BR", { sensitivity: "base" });
+        });
+      setMentionList(filtered);
       setShowMentions(true);
       setMentionIndex(index);
     } else {
@@ -229,7 +290,7 @@ export default function NewActivity() {
     const lastAtIndex = textBefore.lastIndexOf("@");
     const newText = textBefore.substring(0, lastAtIndex) + `@${person.name} `;
     updateQuickActivity(mentionIndex, "description", newText + textAfter);
-    toggleInvolved(mentionIndex, person.id);
+    addInvolved(mentionIndex, person.id);
     setShowMentions(false);
     setMentionIndex(null);
     setTimeout(() => {
@@ -255,8 +316,11 @@ export default function NewActivity() {
     if (selectedMode === "wpp") {
       const parsed = parseWeekText(weekText, parseISO(weekStartDate));
       if (parsed.length === 0) { setMessage({ type: "error", text: "Não foram encontrados dias da semana no texto.", action: "switch" }); setLoading(false); return; }
+      if (!whatsAppStartTime || !whatsAppEndTime || whatsAppEndTime <= whatsAppStartTime) { setMessage({ type: "error", text: "Informe horários válidos de início e finalização; a finalização deve ser posterior ao início." }); setLoading(false); return; }
+      if (parsed.some((item) => !item.description?.trim())) { setMessage({ type: "error", text: "Todas as atividades precisam de descrição." }); setLoading(false); return; }
       list = parsed.map(item => ({ 
         program_id: programId, 
+        management_project_id: selectedManagementProject || null,
         responsible_id: personId, 
         created_by: personId, 
         title: item.title, 
@@ -268,16 +332,23 @@ export default function NewActivity() {
         involved_ids: involvedIdsGlobal,
         images: globalImages,
         files: globalFiles,
-        end_datetime: null
+        start_datetime: `${item.due_date}T${whatsAppStartTime}`,
+        end_datetime: `${item.due_date}T${whatsAppEndTime}`
       }));
     } else if (selectedMode === "quick") {
       for (let i = 0; i < quickActivities.length; i++) {
         const q = quickActivities[i];
-        if (!q.title.trim() || !q.date) { setMessage({ type: "error", text: "Preencha título e data." }); setLoading(false); return; }
+        const activityStart = q.isEvent ? q.eventData?.start_at : q.startDateTime;
+        const activityEnd = q.isEvent ? q.eventData?.end_at : q.endDateTime;
+        if (!q.title.trim() || !q.date || !q.description.trim()) { setMessage({ type: "error", text: "Preencha título, data e descrição de todas as atividades." }); setLoading(false); return; }
+        if (!activityStart || !activityEnd || activityEnd <= activityStart) { setMessage({ type: "error", text: `Informe início e finalização válidos para “${q.title}”.` }); setLoading(false); return; }
+        if (q.isEvent && (!q.eventData?.theme?.trim() || !q.eventData?.start_at || !q.eventData?.end_at)) { setMessage({ type: "error", text: `Informe temática, início e término do evento “${q.title}”.` }); setLoading(false); return; }
+        if (q.isEvent && q.eventData.start_at > q.eventData.end_at) { setMessage({ type: "error", text: `O término do evento “${q.title}” deve ser posterior ao início.` }); setLoading(false); return; }
         if (q.repeat && q.repeatEndDate && q.repeatDays.length > 0) {
           const dates = generateRepeatDates(q.date, q.repeatEndDate, q.repeatDays);
           dates.forEach(date => list.push({ 
             program_id: programId, 
+            management_project_id: selectedManagementProject || null,
             responsible_id: personId, 
             created_by: personId, 
             title: q.title, 
@@ -289,27 +360,40 @@ export default function NewActivity() {
             involved_ids: q.involvedIds || [], 
             images: q.images || [],
             files: q.files || [],
-            end_datetime: q.endDateTime || null
+            start_datetime: `${date}T${activityStart.slice(11, 16)}`,
+            end_datetime: `${date}T${activityEnd.slice(11, 16)}`,
+            is_event: q.isEvent || false,
+            event_data: q.isEvent ? q.eventData : {}
           }));
         } else {
+          const activityDate = q.isEvent ? q.eventData.start_at.slice(0, 10) : q.date;
           list.push({ 
             program_id: programId, 
+            management_project_id: selectedManagementProject || null,
             responsible_id: personId, 
             created_by: personId, 
             title: q.title, 
             description: q.description, 
-            week_start: format(startOfWeek(parseISO(q.date), { weekStartsOn: 1 }), "yyyy-MM-dd"), 
-            due_date: q.date, 
+            week_start: format(startOfWeek(parseISO(activityDate), { weekStartsOn: 1 }), "yyyy-MM-dd"),
+            due_date: activityDate,
             status: "Planejado", 
             priority: q.priority || "Média", 
             involved_ids: q.involvedIds || [], 
             images: q.images || [],
             files: q.files || [],
-            end_datetime: q.endDateTime || null
+            start_datetime: activityStart,
+            end_datetime: activityEnd,
+            is_event: q.isEvent || false,
+            event_data: q.isEvent ? q.eventData : {}
           });
         }
       }
     } else { setMessage({ type: "error", text: "Nenhum modo disponível." }); setLoading(false); return; }
+
+    list = list.map((activity) => ({
+      ...activity,
+      involved_ids: [...new Set([...(activity.involved_ids || []), ...mentionedPersonIds(activity.description)])],
+    }));
 
     const { data: inserted, error } = await supabase.from("activities").insert(list).select();
     if (error) { setMessage({ type: "error", text: "Erro: " + error.message }); setLoading(false); return; }
@@ -318,6 +402,7 @@ export default function NewActivity() {
     if (inserted && inserted.length > 0) {
       const allLogs = [];
       for (const activity of inserted) {
+        const mentionedIds = mentionedPersonIds(activity.description).filter((id) => id !== currentUser?.id);
         if (personId) {
           allLogs.push({
             activity_id: activity.id,
@@ -327,8 +412,17 @@ export default function NewActivity() {
             metadata: { program_id: activity.program_id, due_date: activity.due_date }
           });
         }
+        for (const pid of mentionedIds) {
+          allLogs.push({
+            activity_id: activity.id,
+            person_id: pid,
+            type: "mention",
+            content: `${currentUser?.name || "Alguém"} mencionou você na descrição de “${activity.title}”.`,
+            metadata: { mentioned_by: currentUser?.id, source: "description" }
+          });
+        }
         if (activity.involved_ids && Array.isArray(activity.involved_ids) && activity.involved_ids.length > 0) {
-          for (const pid of activity.involved_ids) {
+          for (const pid of activity.involved_ids.filter((id) => !mentionedIds.includes(id) && id !== currentUser?.id)) {
             const person = persons.find(p => p.id === pid);
             if (person) {
               allLogs.push({
@@ -352,7 +446,7 @@ export default function NewActivity() {
     setMessage({ type: "success", text: `${list.length} atividade(s) lançada(s)!` });
     setLastInserted({ program: selectedProgram, responsible: selectedPerson, weekStart: list[0].week_start, activities: list });
     setWeekText("");
-    setQuickActivities([{ date: format(new Date(), "yyyy-MM-dd"), title: "", description: "", involvedIds: [], priority: "Média", repeat: false, repeatEndDate: "", repeatDays: [], images: [], files: [], endDateTime: "" }]);
+    setQuickActivities([{ date: format(new Date(), "yyyy-MM-dd"), title: "", description: "", involvedIds: [], priority: "Média", repeat: false, repeatEndDate: "", repeatDays: [], images: [], files: [], startDateTime: "", endDateTime: "", isEvent: false, eventData: emptyEventData() }]);
     setInvolvedIdsGlobal([]);
     setGlobalImages([]);
     setGlobalFiles([]);
@@ -390,13 +484,20 @@ export default function NewActivity() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="bg-white dark:bg-dark-surface border border-surface-variant dark:border-dark-surface-variant rounded-xl p-6 shadow-sm space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <form onSubmit={handleSubmit} className="space-y-6 rounded-xl border border-surface-variant bg-white p-4 shadow-sm dark:border-dark-surface-variant dark:bg-dark-surface sm:p-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
           <div>
             <label className="font-roboto text-label-md uppercase text-outline dark:text-gray-400">Programa</label>
             <select value={selectedProgram} onChange={e => setSelectedProgram(e.target.value)} className="w-full bg-surface dark:bg-dark-background border-b-2 border-primary/20 focus:border-accent outline-none py-2 px-3 rounded-t-lg text-on-surface dark:text-white font-roboto">
               <option value="">Selecione o Programa</option>
               {programs.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="font-roboto text-label-md uppercase text-outline dark:text-gray-400">Projeto de gestão</label>
+            <select value={selectedManagementProject} onChange={e => setSelectedManagementProject(e.target.value)} className="w-full bg-surface dark:bg-dark-background border-b-2 border-primary/20 focus:border-accent outline-none py-2 px-3 rounded-t-lg text-on-surface dark:text-white font-roboto">
+              <option value="">Sem vínculo com projeto</option>
+              {managementProjects.map(project => <option key={project.id} value={project.id}>{project.title}</option>)}
             </select>
           </div>
           <div>
@@ -425,17 +526,14 @@ export default function NewActivity() {
             </div>
             <div>
               <label className="font-roboto text-label-md uppercase text-outline dark:text-gray-400">Descritivo da Semana</label>
-              <textarea value={weekText} onChange={e => setWeekText(e.target.value)} className="w-full min-h-[300px] bg-surface dark:bg-dark-background border-b-2 border-primary/20 focus:border-accent outline-none p-4 rounded-t-xl resize-none text-on-surface dark:text-white font-roboto" placeholder="Segunda: Coleta de sementes..." />
+              <textarea required value={weekText} onChange={e => setWeekText(e.target.value)} className="w-full min-h-[300px] bg-surface dark:bg-dark-background border-b-2 border-primary/20 focus:border-accent outline-none p-4 rounded-t-xl resize-none text-on-surface dark:text-white font-roboto" placeholder="Segunda: Coleta de sementes..." />
               <p className="text-label-sm text-outline mt-2">Dica: cole o texto do chat. Use cabeçalhos como "Segunda:" ou "Terça-feira:".</p>
             </div>
-            <div>
-              <label className="font-roboto text-[10px] uppercase text-outline">Envolver outras pessoas (opcional)</label>
-              <div className="flex flex-wrap gap-2 mt-1">
-                {persons.filter(p => p.name !== selectedPerson).map(p => (
-                  <button type="button" key={p.id} onClick={() => toggleInvolvedGlobal(p.id)} className={`text-xs font-roboto px-4 py-1.5 rounded-full border transition-colors ${involvedIdsGlobal.includes(p.id) ? "bg-accent/20 border-accent text-primary dark:text-white" : "bg-white dark:bg-dark-background border-outline text-on-surface dark:text-gray-300"}`}>{p.name}</button>
-                ))}
-              </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="text-sm font-semibold text-on-surface dark:text-gray-200">Horário de início para as atividades<input required type="time" value={whatsAppStartTime} onChange={(event) => setWhatsAppStartTime(event.target.value)} className="mt-1 w-full rounded-xl border border-surface-variant bg-surface px-3 py-2.5 dark:bg-dark-background" /></label>
+              <label className="text-sm font-semibold text-on-surface dark:text-gray-200">Horário de finalização para as atividades<input required type="time" value={whatsAppEndTime} onChange={(event) => setWhatsAppEndTime(event.target.value)} className="mt-1 w-full rounded-xl border border-surface-variant bg-surface px-3 py-2.5 dark:bg-dark-background" /></label>
             </div>
+            <TeamMemberSelector people={persons.filter((person) => person.name !== selectedPerson)} selectedIds={involvedIdsGlobal} onChange={setInvolvedIdsGlobal} label="Envolver outras pessoas" />
 
             {/* Destaque para Fotos (WhatsApp) */}
             <div className="mt-4 p-3 border-2 border-dashed border-primary/30 dark:border-primary/40 rounded-xl bg-primary/5 dark:bg-primary/10">
@@ -469,16 +567,20 @@ export default function NewActivity() {
             <h3 className="font-roboto text-label-md text-outline dark:text-gray-400 uppercase">Atividades Rápidas</h3>
             {quickActivities.map((qa, idx) => (
               <div key={idx} className="p-4 bg-surface dark:bg-dark-background rounded-xl border border-surface-variant dark:border-dark-surface-variant space-y-3">
-                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
                   <div>
                     <label className="font-roboto text-[10px] uppercase text-outline">Data</label>
-                    <input type="date" value={qa.date} onChange={e => updateQuickActivity(idx, "date", e.target.value)} className="w-full bg-transparent border-b border-primary/20 focus:border-accent outline-none py-1 text-sm text-on-surface dark:text-white font-roboto" />
+                    <input required type="date" value={qa.date} onChange={e => updateQuickActivity(idx, "date", e.target.value)} className="w-full bg-transparent border-b border-primary/20 focus:border-accent outline-none py-1 text-sm text-on-surface dark:text-white font-roboto" />
+                  </div>
+                  <div>
+                    <label className="font-roboto text-[10px] uppercase text-outline">Início</label>
+                    <input required type="datetime-local" value={(qa.isEvent ? qa.eventData?.start_at : qa.startDateTime) || ""} onChange={e => { updateQuickActivity(idx, "startDateTime", e.target.value); if (qa.isEvent) updateQuickActivity(idx, "eventData", { ...qa.eventData, start_at: e.target.value }); }} className="w-full bg-transparent border-b border-primary/20 focus:border-accent outline-none py-1 text-sm text-on-surface dark:text-white font-roboto" />
                   </div>
                   <div>
                     <label className="font-roboto text-[10px] uppercase text-outline">Finalização</label>
-                    <input type="datetime-local" value={qa.endDateTime || ""} onChange={e => updateQuickActivity(idx, "endDateTime", e.target.value)} className="w-full bg-transparent border-b border-primary/20 focus:border-accent outline-none py-1 text-sm text-on-surface dark:text-white font-roboto" />
+                    <input required type="datetime-local" value={(qa.isEvent ? qa.eventData?.end_at : qa.endDateTime) || ""} onChange={e => { updateQuickActivity(idx, "endDateTime", e.target.value); if (qa.isEvent) updateQuickActivity(idx, "eventData", { ...qa.eventData, end_at: e.target.value }); }} className="w-full bg-transparent border-b border-primary/20 focus:border-accent outline-none py-1 text-sm text-on-surface dark:text-white font-roboto" />
                   </div>
-                  <div className="sm:col-span-2">
+                  <div className="lg:col-span-2">
                     <label className="font-roboto text-[10px] uppercase text-outline">Título</label>
                     <input type="text" placeholder="Título" value={qa.title} onChange={e => updateQuickActivity(idx, "title", e.target.value)} className="w-full bg-transparent border-b border-primary/20 focus:border-accent outline-none py-1 text-sm text-on-surface dark:text-white font-roboto" />
                   </div>
@@ -492,8 +594,16 @@ export default function NewActivity() {
                     </select>
                   </div>
                 </div>
+                <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 dark:border-emerald-900 dark:bg-emerald-900/20">
+                  <input type="checkbox" checked={qa.isEvent || false} onChange={(e) => {
+                    updateQuickActivity(idx, "isEvent", e.target.checked);
+                    if (e.target.checked && !qa.eventData?.start_at) updateQuickActivity(idx, "eventData", { ...emptyEventData(), ...(qa.eventData || {}), start_at: `${qa.date}T09:00`, end_at: `${qa.date}T17:00` });
+                  }} className="mt-1 rounded border-outline text-primary focus:ring-accent" />
+                  <span><strong className="block text-sm text-primary dark:text-white">Esta atividade é um evento</strong><span className="text-xs text-outline">Marque para incluir na programação institucional e informar os dados complementares.</span></span>
+                </label>
+                {qa.isEvent && <EventFields value={qa.eventData} onChange={(value) => updateQuickActivity(idx, "eventData", value)} compact />}
                 <div className="flex items-center gap-2">
-                  <input type="checkbox" checked={qa.repeat || false} onChange={(e) => updateQuickActivity(idx, "repeat", e.target.checked)} className="rounded border-outline dark:border-gray-600 text-primary focus:ring-accent" id={`repeat-${idx}`} />
+                  <input type="checkbox" disabled={qa.isEvent} checked={qa.repeat || false} onChange={(e) => updateQuickActivity(idx, "repeat", e.target.checked)} className="rounded border-outline dark:border-gray-600 text-primary focus:ring-accent disabled:opacity-50" id={`repeat-${idx}`} />
                   <label htmlFor={`repeat-${idx}`} className="font-roboto text-sm text-on-surface dark:text-gray-200 cursor-pointer">Repetir em várias datas</label>
                 </div>
                 {qa.repeat && (
@@ -510,6 +620,7 @@ export default function NewActivity() {
                       ref={(el) => (textareaRefs.current[idx] = el)}
                       rows={3}
                       placeholder="Descreva a atividade. Caso queira mencionar alguém, use @nome (ex: @Gabriela)."
+                      required
                       value={qa.description}
                       onChange={(e) => handleDescriptionChange(idx, e.target.value)}
                       onKeyDown={(e) => {
@@ -521,7 +632,9 @@ export default function NewActivity() {
                       className="w-full bg-transparent border-b border-primary/20 focus:border-accent outline-none py-1 text-sm resize-none text-on-surface dark:text-white font-roboto"
                     />
                     {showMentions && mentionIndex === idx && mentionList.length > 0 && (
-                      <div className="absolute bottom-full left-0 mb-1 w-56 bg-white dark:bg-gray-800 border border-surface-variant dark:border-gray-700 rounded-xl shadow-lg z-10 py-1">
+                      <div className="absolute bottom-full left-0 z-20 mb-2 w-72 max-w-full overflow-hidden rounded-2xl border border-surface-variant bg-white shadow-xl dark:border-gray-700 dark:bg-gray-800 sm:w-80">
+                        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-surface-variant bg-emerald-50 px-3 py-2 text-xs dark:border-gray-700 dark:bg-emerald-950/40"><span className="font-bold text-primary dark:text-emerald-200">Escolha uma pessoa</span><span className="rounded-full bg-white px-2 py-0.5 font-bold text-outline shadow-sm dark:bg-gray-700">{mentionList.length}</span></div>
+                        <div className="max-h-72 overflow-y-auto py-1">
                         {mentionList.map((person) => {
                           const color = getUserColor(person.id);
                           return (
@@ -538,18 +651,12 @@ export default function NewActivity() {
                             </button>
                           );
                         })}
+                        </div>
                       </div>
                     )}
                   </div>
                 </div>
-                <div>
-                  <label className="font-roboto text-[10px] uppercase text-outline">Envolver nesta atividade</label>
-                  <div className="flex flex-wrap gap-2 mt-1">
-                    {persons.filter(p => p.name !== selectedPerson).map(p => (
-                      <button type="button" key={p.id} onClick={() => toggleInvolved(idx, p.id)} className={`text-xs font-roboto px-4 py-1.5 rounded-full border transition-colors ${(qa.involvedIds || []).includes(p.id) ? "bg-accent/20 border-accent text-primary dark:text-white" : "bg-white dark:bg-dark-background border-outline text-on-surface dark:text-gray-300"}`}>{p.name}</button>
-                    ))}
-                  </div>
-                </div>
+                <TeamMemberSelector people={persons.filter((person) => person.name !== selectedPerson)} selectedIds={qa.involvedIds || []} onChange={(ids) => updateQuickActivity(idx, "involvedIds", ids)} />
 
                 {/* Destaque para Registro Fotográfico (modo rápido) */}
                 <div className="mt-3 p-2 border-2 border-dashed border-primary/30 rounded-lg bg-primary/5">

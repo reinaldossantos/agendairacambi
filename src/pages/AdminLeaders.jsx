@@ -23,6 +23,7 @@ export default function AdminLeaders() {
     const { data } = await supabase
       .from("persons")
       .select("id, name, initials")
+      .eq("is_active", true)
       .order("name");
     setPersons(data || []);
   }

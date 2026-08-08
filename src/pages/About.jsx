@@ -3,455 +3,299 @@ import { Link } from "react-router-dom";
 
 const sections = [
   {
-    id: "welcome",
-    title: "🌿 Bem-vindo(a) ao AGENDA IRACAMBI",
-    content: (
-      <>
-        <p className="mb-4">
-          O <strong>AGENDA IRACAMBI</strong> é a ferramenta digital oficial do{" "}
-          <strong>Colegiado IRACAMBI®</strong>, desenvolvida para substituir as
-          listas de WhatsApp e organizar as atividades semanais de cada programa
-          da Associação Amigos de Iracambi.
-        </p>
-        <p>
-          Com esta plataforma você pode lançar tarefas, acompanhar status, envolver
-          pessoas, exportar relatórios, anexar fotos e arquivos, publicar avisos,
-          gerenciar documentos e muito mais — tudo de forma simples, intuitiva e responsiva.
-        </p>
-      </>
-    ),
+    id: "latest-news",
+    icon: "new_releases",
+    title: "Últimas novidades",
+    purpose: "Apresentar as melhorias mais recentes e explicar como elas tornam o planejamento, o acompanhamento e a prestação de contas mais rápidos e confiáveis.",
+    usage: "Explore os recursos abaixo no Dashboard e nos menus. As funções respeitam o perfil do usuário e funcionam em computadores, tablets e celulares.",
+    items: [
+      "Eventos integrados: marque uma atividade como evento para registrar temática, período, público, parceiros, contrapartidas, resultados e evidências; consulte a programação na página Eventos e gere o PDF do período.",
+      "Carga horária: descrição, início e finalização são obrigatórios nas novas atividades. Os relatórios mensais calculam as horas por atividade e o total individual ou do programa.",
+      "Painel de progresso: o Dashboard apresenta percentual, realizadas, restantes e distribuição por status. Clique em um status para abrir o Histórico já filtrado.",
+      "Navegador de período: alterne entre Semana e Mês, use as setas, escolha uma data, pressione H para Hoje ou deslize horizontalmente no celular.",
+      "Central inteligente: use o botão amarelo para criar atividade, evento, reserva de veículo, relatório de despesas ou aviso. Abra também com Alt + N e feche com Esc.",
+      "Tradução híbrida: selecione Brasil, Estados Unidos ou Espanha. Além dos menus, o sistema traduz automaticamente atividades, comentários, eventos, avisos e relatórios cadastrados, preservando nomes, códigos, datas e valores.",
+      "Ao usar inglês ou espanhol, escolha Ver texto original na parte inferior da tela para comparar com o conteúdo armazenado em português; nenhuma tradução substitui o cadastro original.",
+      "A tradução automática começa desabilitada. Administradores podem ativá-la nas Configurações Gerais somente após configurar o serviço; desligada, permanecem apenas as traduções convencionais e nenhuma chamada externa é realizada.",
+      "Footer institucional: consulte Manual, Configurações, site, redes sociais, situação da conexão e o botão Voltar ao topo.",
+    ],
   },
   {
-    id: "start",
-    title: "🚀 Primeiros passos",
-    content: (
-      <ol className="list-decimal ml-5 space-y-2">
-        <li>
-          <strong>Selecione seu nome</strong> no seletor do canto superior direito (desktop)
-          ou na barra inferior (mobile). Isso identificará você nos comentários, edições e notificações.
-        </li>
-        <li>
-          No computador, clique em{" "}
-          <span className="bg-accent/20 text-primary dark:text-white px-2 py-0.5 rounded-full text-sm font-roboto">
-            + Nova
-          </span>{" "}
-          no cabeçalho. No celular, use o botão flutuante{" "}
-          <span className="material-symbols-outlined align-middle">add</span>{" "}
-          no canto inferior direito.
-        </li>
-        <li>
-          No <strong>Dashboard</strong>, você verá a semana atual (de segunda a
-          sábado). Aos domingos, o painel avança automaticamente para a semana
-          seguinte.
-        </li>
-        <li>
-          Acesse <strong>Programas</strong> para visualizar cards coloridos com a
-          contagem de atividades de cada setor.
-        </li>
-        <li>
-          Use o <strong>Calendário Mensal</strong> para navegar por todas as
-          atividades do mês.
-        </li>
-      </ol>
-    ),
+    id: "access",
+    icon: "login",
+    title: "Acesso, senha e segurança",
+    items: [
+      "Entre com o e-mail cadastrado e sua senha. No primeiro acesso, substitua obrigatoriamente a senha temporária por uma senha pessoal de pelo menos oito caracteres.",
+      "Em caso de esquecimento, use “Esqueceu a senha?” para receber as instruções de recuperação no e-mail cadastrado.",
+      "Após três tentativas incorretas, o acesso é bloqueado e o administrador recebe uma notificação de segurança.",
+      "Nunca compartilhe sua senha. O administrador pode redefini-la, desativar ou reativar o acesso, mas não consegue visualizar sua senha.",
+    ],
   },
   {
-    id: "new-activity",
-    title: "📋 Lançar Atividades",
-    content: (
-      <>
-        <p className="mb-4">Existem dois modos de lançamento (configuráveis nas Configurações Avançadas):</p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <div className="bg-surface dark:bg-white/5 p-4 rounded-xl">
-            <h4 className="font-roboto text-label-md mb-2 flex items-center gap-2">
-              <span className="material-symbols-outlined text-[#075E54]">chat</span>
-              Modo WhatsApp
-            </h4>
-            <p className="text-sm">
-              Cole o texto que você já envia no grupo da equipe. O sistema
-              reconhece automaticamente cabeçalhos como "Segunda:", "Terça-feira:"
-              e transforma cada dia em uma atividade com a data correta.
-            </p>
-            <p className="text-sm mt-2">
-              Se o texto não tiver cabeçalhos, um botão{" "}
-              <strong>"Usar modo Rápido"</strong> transfere automaticamente o
-              conteúdo para o modo manual.
-            </p>
-            <p className="text-sm mt-2">
-              Você pode anexar <strong>fotos e arquivos</strong> – eles serão aplicados a todas
-              as atividades geradas.
-            </p>
-          </div>
-          <div className="bg-surface dark:bg-white/5 p-4 rounded-xl">
-            <h4 className="font-roboto text-label-md mb-2 flex items-center gap-2">
-              <span className="material-symbols-outlined text-[#F59E0B]">bolt</span>
-              Modo Rápido
-            </h4>
-            <p className="text-sm">
-              Preencha manualmente data, título, descrição (use <code className="bg-gray-200 dark:bg-gray-700 px-1 rounded">@nome</code>{" "}
-              para mencionar e envolver automaticamente), prioridade e <strong>finalização prevista</strong>.
-            </p>
-            <p className="text-sm mt-2">
-              Adicione quantas atividades desejar, marque <strong>repetição</strong> (várias datas)
-              e anexe <strong>fotos e arquivos</strong> (PDF, DOC, XLS, ZIP, etc.) por atividade.
-            </p>
-          </div>
-        </div>
-        <p className="text-sm">
-          Em ambos os modos, você pode <strong>envolver outras pessoas</strong> —
-          elas receberão uma notificação no sino.
-        </p>
-        <p className="text-sm mt-2">
-          Após publicar, o botão{" "}
-          <span className="bg-[#25D366] text-white px-2 py-0.5 rounded-full text-xs font-roboto">
-            Enviar via WhatsApp
-          </span>{" "}
-          gera um relatório formatado sem emojis (compatível com WhatsApp Desktop).
-        </p>
-      </>
-    ),
+    id: "navigation",
+    icon: "dashboard",
+    title: "Dashboard e navegação",
+    items: [
+      "O Dashboard reúne as atividades do período. Alterne entre Semana e Mês, navegue pelas setas e use Hoje para retornar ao período atual.",
+      "Selecione Todos os programas ou pesquise um programa específico. A busca por título ou descrição funciona em conjunto com o programa e o período escolhidos.",
+      "Alterne entre Cards e Lista. A visualização se adapta automaticamente a computador, tablet e celular.",
+      "Cada atividade mostra programa, prioridade, status, data, responsável e envolvidos. Abra o card para consultar todos os detalhes.",
+      "O pequeno relógio vermelho identifica uma atividade ainda não finalizada cuja data é anterior à semana atual. Passe o cursor ou mantenha o toque para ler a explicação.",
+      "No celular, use a barra inferior, o menu e o botão flutuante para acessar rapidamente os principais módulos.",
+      "O painel de progresso exclui atividades canceladas do cálculo de conclusão, mas mantém sua quantidade visível na distribuição por status.",
+      "Clique nos indicadores Planejadas, Em andamento, Realizadas, Pendentes ou Canceladas para abrir o Histórico com período e contexto preservados.",
+      "No navegador de período, clique na data para escolher outro dia; use as setas, o botão Hoje, as teclas direcionais ou o gesto horizontal no celular.",
+    ],
   },
   {
-    id: "dashboard",
-    title: "📊 Dashboard e Filtros",
-    content: (
-      <>
-        <p className="mb-4">
-          O painel principal exibe as atividades de <strong>segunda a sábado</strong>.
-          No domingo, o sistema já mostra a semana seguinte. Os cards são compactos
-          (até 5 por linha em desktop).
-        </p>
-        <ul className="list-disc ml-5 space-y-2">
-          <li>
-            Use as <strong>setas verdes</strong> ou o botão{" "}
-            <strong>"Hoje"</strong> para navegar entre as semanas.
-          </li>
-          <li>
-            Os <strong>botões dos programas</strong> têm cores próprias — cada setor
-            possui uma tonalidade suave que aparece também nos cards.
-          </li>
-          <li>
-            No computador, você pode <strong>clicar e arrastar</strong> a linha de
-            filtros para os lados.
-          </li>
-          <li>
-            Cada card exibe o programa (abreviado), prioridade (com emoji), status,
-            data, título, descrição resumida, responsável (com iniciais) e um contador
-            <strong> +n</strong> de envolvidos.
-          </li>
-          <li>
-            Ícones: <strong>compartilhar WhatsApp</strong> (texto sem emojis) e <strong>seta</strong> para detalhes.
-          </li>
-        </ul>
-        <p className="mt-2">
-          Botão <strong>PDF</strong> no canto superior direito gera um relatório semanal profissional.
-        </p>
-      </>
-    ),
+    id: "activities",
+    icon: "add_task",
+    title: "Criação de atividades",
+    items: [
+      "No modo WhatsApp, cole uma programação com cabeçalhos como “Segunda:” e “Terça-feira:”; o sistema separa o texto e atribui as datas correspondentes.",
+      "Se o texto não tiver cabeçalhos reconhecidos, use a opção de transferi-lo para o modo Rápido.",
+      "No modo Rápido, informe programa, data, título, descrição, prioridade, início, finalização, responsável e pessoas envolvidas. Descrição e horários são obrigatórios.",
+      "Você pode adicionar várias atividades, repetir uma atividade em diversas datas e usar @nome na descrição para mencionar e envolver uma pessoa.",
+      "Fotos e documentos podem ser anexados como evidência. No modo WhatsApp, os anexos informados são aplicados às atividades geradas.",
+      "Depois de publicar, compartilhe uma atividade ou a programação pelo WhatsApp usando o texto formatado pelo sistema.",
+      "No modo WhatsApp, defina os horários de início e finalização que serão aplicados às atividades importadas.",
+      "A finalização deve ser posterior ao início. Essas informações alimentam automaticamente a carga horária dos relatórios.",
+    ],
   },
   {
-    id: "interaction",
-    title: "💬 Interações, Edição e Prorrogação",
-    content: (
-      <>
-        <p className="mb-4">Dentro de cada atividade você pode:</p>
-        <ul className="list-disc ml-5 space-y-2">
-          <li><strong>Comentar</strong> — qualquer pessoa pode deixar mensagens (use <code className="bg-gray-200 dark:bg-gray-700 px-1 rounded">@nome</code> para mencionar).</li>
-          <li><strong>Alterar status</strong> — Planejado, Em andamento, Realizado, Pendente ou Cancelado.</li>
-          <li><strong>Cancelar atividade</strong> — exige uma justificativa que fica registrada no histórico.</li>
-          <li><strong>Editar</strong> — modificar título, descrição, data, prioridade, programa e pessoas envolvidas.</li>
-          <li><strong>Prorrogar a finalização prevista</strong> — durante a edição, use os botões +1/-1 dia, +1/-1 semana ou +1/-1 mês.</li>
-          <li><strong>Anexar fotos e arquivos</strong> — suporte para imagens, PDFs, documentos Office, ZIP, TXT.</li>
-          <li><strong>Excluir</strong> — remove a atividade permanentemente (e também os anexos do storage).</li>
-        </ul>
-        <p className="mt-4">
-          Toda mudança fica registrada no <strong>Histórico de Atualizações</strong>,
-          onde cada pessoa aparece com uma cor diferente e as alterações são descritas em detalhes.
-        </p>
-      </>
-    ),
+    id: "activity-management",
+    icon: "edit_calendar",
+    title: "Acompanhamento, edição e comentários",
+    items: [
+      "Nos detalhes, consulte descrição, responsável, envolvidos, anexos e todo o Histórico de Atualizações.",
+      "Altere o status entre Planejado, Em andamento, Realizado, Pendente e Cancelado, conforme as permissões do seu perfil.",
+      "O cancelamento exige uma justificativa, que permanece registrada. Ao concluir, registre o progresso real e inclua evidências quando necessário.",
+      "Edite título, descrição, datas, prioridade, programa e envolvidos. A finalização prevista pode ser prorrogada por dia, semana ou mês.",
+      "Use comentários para registrar conversas e @nome para mencionar alguém. A pessoa mencionada será envolvida e notificada.",
+      "Na aba Conversa, responda mensagens, edite ou remova seus próprios comentários e use Ctrl + Enter para enviar. Comentários removidos permanecem rastreáveis na auditoria.",
+      "Na aba Histórico, filtre por status, alterações ou pessoas, pesquise movimentos e expanda registros antigos na linha do tempo.",
+      "Comentários e histórico são atualizados em tempo real quando outra pessoa movimenta a atividade.",
+      "Ao editar uma atividade antiga, complete descrição, início e finalização antes de salvar novas alterações.",
+      "A exclusão é permanente e também remove os anexos armazenados; confira o item e confirme com cuidado.",
+    ],
   },
   {
-    id: "notifications",
-    title: "🔔 Notificações em Tempo Real",
-    content: (
-      <>
-        <p className="mb-4">
-          O ícone de sino no cabeçalho exibe um número sempre que há novidades
-          para você. As notificações são <strong>instantâneas</strong> (via Supabase Realtime),
-          sem necessidade de recarregar a página. Você será notificado quando:
-        </p>
-        <ul className="list-disc ml-5 space-y-2">
-          <li>Você <strong>publicar uma atividade</strong> (responsável).</li>
-          <li>Alguém <strong>comentar</strong> em uma atividade sua.</li>
-          <li>Você for <strong>envolvido(a)</strong> ou <strong>mencionado(a)</strong> em uma atividade.</li>
-          <li>O <strong>status</strong> de uma atividade sua for alterado (inclusive cancelamento).</li>
-          <li>Um <strong>arquivo</strong> for enviado para o seu programa ou para todos os programas.</li>
-        </ul>
-        <p className="mt-4">
-          Para fechar a lista de notificações, clique fora ou no próprio ícone.
-        </p>
-      </>
-    ),
+    id: "calendar-programs-stats",
+    icon: "calendar_month",
+    title: "Calendário, programas e estatísticas",
+    items: [
+      "No Calendário Mensal, navegue pelos meses, filtre por programa e clique em um dia para ver suas atividades. As cores identificam os programas.",
+      "A página Programas apresenta cada área em um card e permite abrir suas atividades.",
+      "Em Estatísticas, consulte as quantidades por status e a distribuição por programa, navegando entre períodos.",
+      "Clique em um indicador de status para abrir o Histórico já filtrado e investigar os registros correspondentes.",
+    ],
   },
   {
-    id: "export",
-    title: "📤 Exportar para WhatsApp e PDF",
-    content: (
-      <>
-        <p className="mb-4">Existem várias formas de compartilhar informações:</p>
-        <ul className="list-disc ml-5 space-y-2">
-          <li>
-            No <strong>card da atividade</strong>, o ícone verde de compartilhar
-            envia os dados daquela atividade para o WhatsApp (versão sem emojis,
-            compatível com desktop).
-          </li>
-          <li>
-            Após <strong>publicar uma agenda</strong>, o botão "Enviar via WhatsApp"
-            gera um relatório formatado com marcadores simples.
-          </li>
-          <li>
-            No <strong>Dashboard</strong> e no <strong>Histórico</strong>, o botão{" "}
-            <span className="text-red-500 font-bold">PDF</span> gera um relatório
-            profissional com logotipo, tabela colorida e rodapé institucional.
-          </li>
-        </ul>
-        <p className="text-sm mt-2">
-          O PDF pode ser salvo, impresso ou compartilhado oficialmente.
-        </p>
-      </>
-    ),
+    id: "events",
+    icon: "festival",
+    title: "Eventos institucionais",
+    items: [
+      "O evento é cadastrado como uma atividade: no modo Rápido, marque “Esta atividade é um evento” para abrir os campos complementares.",
+      "Informe tipo, situação, período, formato, temática, local, público previsto, parceiros, contrapartidas, resultados esperados e observações.",
+      "Responsável e pessoas envolvidas são os mesmos da atividade, evitando cadastros duplicados e mantendo notificações, comentários e histórico.",
+      "Após a realização, altere a situação para Realizado e registre público alcançado, contrapartidas cumpridas, resultados obtidos, fotos e documentos.",
+      "Na página Eventos, filtre por período, programa, situação ou texto e abra qualquer registro para consultar ou editar seus detalhes.",
+      "Use Gerar programação para emitir um PDF com os eventos do período e dos filtros selecionados.",
+    ],
   },
   {
-    id: "stats-history",
-    title: "📊 Estatísticas e Histórico",
-    content: (
-      <>
-        <p className="mb-4">
-          Acesse as estatísticas pelo ícone{" "}
-          <span className="material-symbols-outlined align-middle">bar_chart</span>{" "}
-          no cabeçalho. Você verá:
-        </p>
-        <ul className="list-disc ml-5 space-y-2">
-          <li>Cards com a contagem de atividades por status na semana atual.</li>
-          <li><strong>Clique em qualquer card de status</strong> para ir ao Histórico com aquele status pré‑filtrado.</li>
-          <li>Um gráfico de barras colorido mostrando a distribuição de atividades por programa.</li>
-          <li>Navegação entre semanas (setas + Hoje) para comparar períodos.</li>
-        </ul>
-        <p className="mt-4">
-          No <strong>Histórico</strong> (acessível pelo menu), você pode:
-        </p>
-        <ul className="list-disc ml-5 space-y-2">
-          <li>Filtrar por período, programa, responsável ou status (incluindo Cancelado).</li>
-          <li>Visualizar uma tabela completa com todas as atividades.</li>
-          <li><strong>Exportar CSV</strong> para análise externa.</li>
-          <li><strong>Exportar PDF</strong> com o mesmo formato profissional.</li>
-        </ul>
-      </>
-    ),
+    id: "history",
+    icon: "history",
+    title: "Histórico e exportações",
+    items: [
+      "No Histórico, filtre as atividades por período, programa, responsável e status, inclusive Cancelado.",
+      "A tabela completa permite conferir os dados e abrir uma atividade específica.",
+      "Exporte os resultados em CSV para análise em planilhas ou em PDF para salvar, imprimir e compartilhar.",
+      "No Dashboard também é possível gerar o relatório em PDF do período exibido.",
+    ],
   },
   {
-    id: "calendar",
-    title: "📅 Calendário Mensal",
-    content: (
-      <>
-        <p className="mb-4">
-          Acesse o calendário pelo ícone{" "}
-          <span className="material-symbols-outlined align-middle">calendar_month</span>{" "}
-          no cabeçalho. Você pode:
-        </p>
-        <ul className="list-disc ml-5 space-y-2">
-          <li>Navegar entre os meses com as setas ou voltar para o mês atual com o botão <strong>Hoje</strong>.</li>
-          <li>Filtrar por programa usando os botões coloridos (arrastáveis).</li>
-          <li>Clicar em um dia para ver a lista de atividades daquela data.</li>
-          <li>Os dias que possuem atividades mostram bolinhas coloridas e uma legenda abaixo da grade.</li>
-        </ul>
-      </>
-    ),
+    id: "monthly-reports",
+    icon: "picture_as_pdf",
+    title: "Relatórios mensais de atividades",
+    items: [
+      "Escolha mês, programa e responsável e gere um rascunho com as atividades encontradas na agenda. Se não houver atividades, o conteúdo pode ser preenchido manualmente.",
+      "Revise o resumo executivo e a equipe; inclua ou retire atividades e complete categoria, objetivo, resultado e observações.",
+      "Selecione as fotos que entrarão no PDF, consulte os documentos anexos e preencha indicadores, destaques, dificuldades, pendências e planejamento do próximo mês.",
+      "A carga horária é calculada automaticamente entre o início e a finalização de cada atividade e totalizada no relatório mensal individual ou do programa.",
+      "Salve o rascunho durante a revisão e finalize somente quando o conteúdo estiver pronto. Relatórios finalizados ficam disponíveis para consulta e PDF.",
+      "Se já existir relatório para o mesmo mês, programa e responsável, o sistema solicitará confirmação antes de substituir o anterior. Regerar um rascunho apaga seus complementos manuais.",
+      "Durante a geração do PDF, aguarde o aviso de processamento. As Evidências das Atividades começam em nova página e exibem a data de cada atividade.",
+      "No PDF, “1 anexo” ou “N anexos” funciona como link para a evidência correspondente; as próprias fotos não possuem link.",
+    ],
   },
   {
-    id: "announcements",
-    title: "📢 Mural de Avisos",
-    content: (
-      <>
-        <p className="mb-4">
-          Acesse o mural pelo ícone{" "}
-          <span className="material-symbols-outlined align-middle">campaign</span>{" "}
-          no cabeçalho. Quando há novos avisos na semana, o ícone{" "}
-          <strong className="text-red-500">pulsa em vermelho</strong>. Você pode:
-        </p>
-        <ul className="list-disc ml-5 space-y-2">
-          <li><strong>Publicar</strong> um novo aviso com título, conteúdo e programa (opcional).</li>
-          <li><strong>Editar</strong> ou <strong>excluir</strong> seus próprios avisos (e avisos anônimos).</li>
-          <li>Navegar entre as semanas para ver os avisos por período.</li>
-        </ul>
-      </>
-    ),
+    id: "project-management",
+    icon: "view_kanban",
+    title: "Gestão de projetos",
+    items: [
+      "Cadastre projetos estratégicos, operacionais, emergenciais ou compulsórios e classifique-os por categoria, programa, prioridade, responsável e equipe.",
+      "Registre a necessidade, objetivos, resultados esperados, cronograma, parceiros, financiadores, orçamento previsto, comprometido e realizado.",
+      "Use o Kanban para arrastar os cartões entre Ideias, Análise, Planejamento, Aprovação, Execução, Pausado, Concluído ou Cancelado; toda movimentação entra no histórico.",
+      "Acompanhe tarefas, entregas, horas, progresso automático ou ponderado, riscos, planos de resposta, atividades vinculadas, comentários, documentos e evidências.",
+      "Alterne entre Kanban, Painel e Lista. Use filtros por programa, tipo, prioridade e prazo e exporte o portfólio em CSV ou o relatório individual em PDF.",
+    ],
+  },
+  {
+    id: "expenses",
+    icon: "receipt_long",
+    title: "Relatórios de despesas",
+    items: [
+      "Crie e acompanhe prestações de contas conforme as permissões do seu perfil, informando adiantamento e lançamentos de despesa.",
+      "Registre descrição, valor e comprovantes de cada lançamento; revise os totais e o saldo antes de encaminhar ou finalizar o relatório.",
+      "Relatórios de Reinaldo são analisados por Thaís; relatórios de Thaís são analisados por Reinaldo. Para os demais usuários, a aprovação exige a decisão dos dois responsáveis.",
+      "Acompanhe o painel Fluxo de aprovação: ele informa aprovações concluídas, análise pendente, data, observação e o progresso geral. Solicitações de ajuste e reprovações exigem justificativa e permanecem no histórico.",
+      "Após uma solicitação de ajustes, o autor pode corrigir e reenviar o relatório. O reenvio inicia uma nova rodada de análise.",
+      "Gere o PDF da prestação de contas e aguarde o indicador de processamento antes de repetir o comando.",
+      "No Resumo dos relatórios, filtre por programa e situação e consulte totalizações por programa, por descrição, fluxo financeiro e rastreabilidade.",
+    ],
+  },
+  {
+    id: "vehicles",
+    icon: "directions_car",
+    title: "Veículos",
+    items: [
+      "Consulte a disponibilidade e os agendamentos e reserve um veículo informando solicitante, programa, data e hora, finalidade e destino.",
+      "Edite ou cancele uma reserva quando necessário. Ao finalizar o uso, informe os dados solicitados e registre ocorrências, avarias ou observações.",
+      "Usuários autorizados podem cadastrar e editar veículos, placa e situação: disponível, em manutenção ou inativo.",
+    ],
+  },
+  {
+    id: "communication",
+    icon: "notifications",
+    title: "Notificações e mural de avisos",
+    items: [
+      "O sino reúne notificações em tempo real sobre atividades, menções, comentários, arquivos, despesas e eventos de segurança destinados ao seu perfil.",
+      "Abra uma notificação para acessar o item relacionado ou marque-a como lida. Se houver falha de carregamento, o sistema apresenta o erro em vez de ocultá-lo.",
+      "No Mural, publique avisos para todos ou para um programa, navegue pelas semanas e edite ou exclua seus próprios avisos quando permitido.",
+      "Os indicadores visuais do cabeçalho avisam quando existem novidades no Mural ou no Repositório.",
+    ],
   },
   {
     id: "files",
-    title: "📁 Repositório de Arquivos",
-    content: (
-      <>
-        <p className="mb-4">
-          Acesse o repositório pelo ícone{" "}
-          <span className="material-symbols-outlined align-middle">folder</span>{" "}
-          no cabeçalho. Quando há novos arquivos na semana, o ícone{" "}
-          <strong className="text-blue-500">pulsa em azul</strong>. Você pode:
-        </p>
-        <ul className="list-disc ml-5 space-y-2">
-          <li><strong>Enviar</strong> arquivos (PDF, DOC, XLS, ZIP, etc.) para um programa específico ou para <strong>todos os programas</strong>.</li>
-          <li>Adicionar uma <strong>descrição</strong> ao arquivo antes do upload.</li>
-          <li>Visualizar os arquivos por semana (com navegação igual ao Dashboard).</li>
-          <li><strong>Excluir</strong> arquivos manualmente (ou aguardar a exclusão automática após 30 dias).</li>
-          <li>Quando um arquivo é enviado, o(s) líder(es) do programa recebem uma <strong>notificação</strong>.</li>
-        </ul>
-      </>
-    ),
+    icon: "folder",
+    title: "Repositório de arquivos",
+    items: [
+      "Envie documentos com descrição para um programa específico ou para todos os programas.",
+      "Navegue entre as semanas para consultar e baixar os arquivos compartilhados.",
+      "Os líderes dos programas destinatários recebem notificação de novos documentos.",
+      "Exclua manualmente um arquivo quando necessário e observe o prazo de retenção exibido pelo sistema.",
+    ],
   },
   {
-    id: "pwa",
-    title: "📱 Instalar como Aplicativo (PWA)",
-    content: (
-      <>
-        <p className="mb-4">
-          O AGENDA IRACAMBI pode ser instalado no seu celular ou computador como
-          um aplicativo nativo, sem precisar da loja de apps.
-        </p>
-        <ul className="list-disc ml-5 space-y-2">
-          <li>No <strong>Chrome/Edge</strong> (Android ou desktop): clique no ícone de "Instalar" na barra de endereço.</li>
-          <li>No <strong>Safari</strong> (iOS): toque no botão "Compartilhar" e depois em "Adicionar à Tela de Início".</li>
-        </ul>
-        <p className="mt-4">
-          O app funcionará offline para consultas rápidas e enviará notificações
-          (quando suportado pelo navegador).
-        </p>
-      </>
-    ),
+    id: "profile",
+    icon: "account_circle",
+    title: "Perfil, aparência e idioma",
+    items: [
+      "Em Configurações, atualize as informações permitidas do seu perfil e escolha o modo claro ou escuro.",
+      "Para a foto de perfil, são aceitas imagens JPG, JPEG, JFIF, PNG e WebP de até 5 MB. Prefira uma imagem quadrada e nítida.",
+      "Use o seletor de idioma para alternar a interface entre português, inglês e espanhol.",
+      "O seletor personalizado mostra uma única bandeira por idioma: Brasil, Estados Unidos ou Espanha.",
+      "O rodapé oferece Manual, Configurações, site, redes sociais, estado da conexão e Voltar ao topo.",
+    ],
   },
   {
-    id: "admin",
-    title: "⚙️ Administração",
-    content: (
-      <>
-        <p className="mb-4">
-          No cabeçalho você encontrará ícones para gerenciar:
-        </p>
-        <ul className="list-disc ml-5 space-y-2">
-          <li>
-            <span className="material-symbols-outlined align-middle">admin_panel_settings</span>{" "}
-            <strong>Programas</strong> — criar, editar e definir um líder.
-          </li>
-          <li>
-            <span className="material-symbols-outlined align-middle">group</span>{" "}
-            <strong>Pessoas</strong> — cadastrar membros com nome e iniciais.
-          </li>
-          <li>
-            <span className="material-symbols-outlined align-middle">diversity_3</span>{" "}
-            <strong>Líderes</strong> — visualizar e trocar rapidamente o líder de cada programa.
-          </li>
-          <li>
-            <span className="material-symbols-outlined align-middle">settings</span>{" "}
-            <strong>Configurações</strong> — ativar modo escuro e selecionar idioma.
-          </li>
-          <li>
-            <span className="material-symbols-outlined align-middle">tune</span>{" "}
-            <strong>Configurações Avançadas</strong> — habilitar/desabilitar os modos WhatsApp e Rápido
-            (protegido por senha – usuário <strong>Reinaldo</strong>).
-          </li>
-        </ul>
-        <p className="mt-4">
-          Todos os botões possuem dicas (passe o mouse para ver a descrição).
-          No celular, esses ícones estão disponíveis no menu hambúrguer.
-        </p>
-      </>
-    ),
+    id: "administration",
+    icon: "admin_panel_settings",
+    title: "Administração",
+    items: [
+      "Somente administradores acessam os cadastros administrativos e as Configurações Avançadas.",
+      "Em Programas, crie, edite ou exclua áreas e associe seus líderes. Em Líderes, visualize e altere rapidamente cada vínculo.",
+      "Em Pessoas, cadastre nome, e-mail e iniciais, altere os dados, redefina senhas e desative, reative ou exclua usuários conforme a necessidade.",
+      "Consulte o Histórico de acessos para verificar data, usuário, e-mail e tipo de evento.",
+      "Em Configurações Avançadas, habilite ou desabilite os modos de lançamento e a Auditoria e rastreabilidade.",
+      "Conceda apenas as permissões necessárias à responsabilidade real de cada pessoa e programa.",
+    ],
   },
   {
-    id: "tips",
-    title: "💡 Dicas e Suporte",
-    content: (
-      <>
-        <p className="mb-4">
-          - Os botões têm no mínimo <strong>44px</strong> de altura, pensados para
-          o toque em telas mobile.
-        </p>
-        <p className="mb-4">
-          - As <strong>redes sociais</strong> e o site oficial estão disponíveis
-          no rodapé de todas as páginas.
-        </p>
-        <p className="mb-4">
-          - O <strong>modo escuro</strong> pode ser ativado em Configurações, com
-          visual translúcido e mais suave.
-        </p>
-        <p>
-          🌳 Em caso de dúvidas, procure a equipe de desenvolvimento ou acesse a
-          seção de administração do sistema.
-        </p>
-      </>
-    ),
+    id: "audit",
+    icon: "policy",
+    title: "Auditoria e rastreabilidade",
+    items: [
+      "A área de Auditoria registra inclusões, edições e exclusões para segurança e prestação de contas e possui acesso restrito.",
+      "Filtre por texto, módulo e tipo de movimento e abra Detalhes para comparar os dados anteriores e posteriores.",
+      "A auditoria só pode ser ligada ou desligada nas Configurações Avançadas. Seus registros são imutáveis e não devem ser alterados manualmente.",
+    ],
+  },
+  {
+    id: "installation-support",
+    icon: "install_mobile",
+    title: "Instalação, conexão e suporte",
+    items: [
+      "A aplicação é responsiva e pode ser usada no navegador de computadores, tablets e celulares.",
+      "Quando o navegador oferecer a instalação, no Chrome ou Edge use Instalar; no Safari do iPhone ou iPad, use Compartilhar e Adicionar à Tela de Início.",
+      "Se aparecer o aviso “Sem conexão”, aguarde a internet retornar antes de salvar, enviar arquivos ou repetir uma operação.",
+      "Em caso de dúvida, consulte novamente esta seção ou procure a administração do sistema.",
+    ],
   },
 ];
 
 export default function About() {
-  const [openSection, setOpenSection] = useState(null);
+  const [openSections, setOpenSections] = useState(() => new Set(["latest-news"]));
 
   const toggleSection = (id) => {
-    setOpenSection(openSection === id ? null : id);
+    setOpenSections((current) => {
+      const next = new Set(current);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
   };
 
+  const allOpen = openSections.size === sections.length;
+  const toggleAll = () => setOpenSections(allOpen ? new Set() : new Set(sections.map(({ id }) => id)));
+
   return (
-    <div className="max-w-4xl mx-auto px-4 md:px-0">
-      <div className="mb-8">
-        <h2 className="font-roboto text-headline-lg text-primary dark:text-white mb-2">
-          Manual do AGENDA IRACAMBI
-        </h2>
-        <p className="font-roboto text-on-surface-variant dark:text-gray-400">
-          Um guia completo para todas as funcionalidades.
+    <main className="mx-auto w-full max-w-5xl px-4 pb-24 pt-6 sm:px-6 lg:px-8">
+      <header className="mb-6 rounded-3xl border border-primary/10 bg-gradient-to-br from-primary/10 via-white to-accent/10 p-6 shadow-sm dark:from-primary/20 dark:via-slate-900 dark:to-accent/10 sm:p-8">
+        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-white">
+          <span className="material-symbols-outlined" aria-hidden="true">menu_book</span>
+        </div>
+        <p className="mb-2 text-sm font-semibold uppercase tracking-[0.16em] text-primary dark:text-accent">Guia completo de utilização</p>
+        <h1 className="text-3xl font-bold text-slate-900 dark:text-white sm:text-4xl">Manual do Agenda Iracambi</h1>
+        <p className="mt-3 max-w-3xl text-base leading-relaxed text-slate-600 dark:text-slate-300">
+          Consulte todas as funcionalidades da aplicação, do primeiro acesso à gestão de atividades, relatórios, despesas, veículos e administração.
         </p>
+      </header>
+
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <p className="text-sm text-slate-600 dark:text-slate-300">Selecione um assunto para exibir as instruções.</p>
+        <button type="button" onClick={toggleAll} className="shrink-0 rounded-full border border-primary px-4 py-2 text-sm font-bold text-primary transition-colors hover:bg-primary/10 dark:text-accent">
+          {allOpen ? "Recolher tudo" : "Expandir tudo"}
+        </button>
       </div>
 
-      <div className="space-y-4">
-        {sections.map((section) => (
-          <div
-            key={section.id}
-            className="bg-white dark:bg-white/5 border border-surface-variant dark:border-white/10 rounded-xl overflow-hidden"
-          >
-            <button
-              onClick={() => toggleSection(section.id)}
-              className="w-full px-6 py-4 flex justify-between items-center text-left hover:bg-surface dark:hover:bg-white/5 transition-colors"
-            >
-              <span className="font-roboto text-headline-md text-primary dark:text-white">
-                {section.title}
-              </span>
-              <span
-                className={`material-symbols-outlined text-outline dark:text-gray-400 transition-transform duration-300 ${
-                  openSection === section.id ? "rotate-180" : ""
-                }`}
-              >
-                expand_more
-              </span>
-            </button>
-            {openSection === section.id && (
-              <div className="px-6 pb-6 font-roboto text-body-md text-on-surface dark:text-gray-200 leading-relaxed">
-                {section.content}
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
+      <section className="space-y-3" aria-label="Seções do manual">
+        {sections.map((section) => {
+          const isOpen = openSections.has(section.id);
+          return (
+            <article key={section.id} className={`overflow-hidden rounded-2xl border bg-white shadow-sm dark:bg-white/5 ${section.id === "latest-news" ? "border-amber-300 ring-1 ring-amber-200/60 dark:border-amber-800 dark:ring-amber-900/40" : "border-slate-200 dark:border-white/10"}`}>
+              <button type="button" onClick={() => toggleSection(section.id)} aria-expanded={isOpen} aria-controls={`manual-${section.id}`} className="flex min-h-16 w-full items-center gap-3 px-5 py-4 text-left transition-colors hover:bg-primary/5 sm:px-6">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary dark:bg-accent/10 dark:text-accent"><span className="material-symbols-outlined" aria-hidden="true">{section.icon}</span></span>
+                <h2 className="flex-1 text-base font-bold text-slate-900 dark:text-white sm:text-lg">{section.title}</h2>
+                <span className={`material-symbols-outlined text-slate-500 transition-transform ${isOpen ? "rotate-180" : ""}`} aria-hidden="true">expand_more</span>
+              </button>
+              {isOpen && (
+                <div id={`manual-${section.id}`} className="border-t border-slate-100 px-5 pb-5 pt-4 dark:border-white/10 sm:px-6 sm:pb-6">
+                  {(section.purpose || section.usage) && <div className="mb-5 grid gap-3 md:grid-cols-2">{section.purpose && <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4 dark:border-emerald-900 dark:bg-emerald-950/20"><h3 className="flex items-center gap-2 text-sm font-bold text-primary dark:text-green-300"><span className="material-symbols-outlined text-[19px]" aria-hidden="true">target</span>Finalidade</h3><p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300">{section.purpose}</p></div>}{section.usage && <div className="rounded-2xl border border-blue-200 bg-blue-50/70 p-4 dark:border-blue-900 dark:bg-blue-950/20"><h3 className="flex items-center gap-2 text-sm font-bold text-blue-800 dark:text-blue-300"><span className="material-symbols-outlined text-[19px]" aria-hidden="true">touch_app</span>Forma de uso</h3><p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300">{section.usage}</p></div>}</div>}
+                  <ul className="space-y-3 text-sm leading-relaxed text-slate-600 dark:text-slate-300 sm:text-base">
+                    {section.items.map((item) => <li key={item} className="flex gap-2.5"><span className="material-symbols-outlined mt-0.5 text-base text-primary dark:text-accent" aria-hidden="true">check_circle</span><span>{item}</span></li>)}
+                  </ul>
+                </div>
+              )}
+            </article>
+          );
+        })}
+      </section>
 
-      <div className="mt-12 text-center">
-        <p className="text-label-sm text-outline dark:text-gray-500">
-          🌱 Colegiado IRACAMBI®
-        </p>
-        <Link
-          to="/"
-          className="inline-block mt-4 px-6 py-2 rounded-full bg-accent text-primary font-roboto text-label-md hover:bg-yellow-400 transition-all active:scale-95"
-        >
-          Ir para o Dashboard
-        </Link>
-      </div>
-    </div>
+      <aside className="mt-6 flex flex-col gap-4 rounded-2xl bg-primary p-5 text-white sm:flex-row sm:items-center sm:justify-between sm:p-6">
+        <div><h2 className="text-lg font-bold">Pronto para continuar?</h2><p className="mt-1 text-sm text-white/80">Volte ao painel e consulte suas atividades do período.</p></div>
+        <Link to="/" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-white px-5 py-2.5 font-semibold text-primary transition-colors hover:bg-white/90 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-primary"><span className="material-symbols-outlined" aria-hidden="true">dashboard</span>Ir para o painel</Link>
+      </aside>
+    </main>
   );
 }

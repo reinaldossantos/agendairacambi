@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 
 export default function ConfirmDialog({
   isOpen,
@@ -10,27 +11,25 @@ export default function ConfirmDialog({
   cancelText = "Cancelar",
   variant = "danger", // "danger" | "success"
 }) {
-  const [show, setShow] = useState(false);
+  const confirmButtonRef = useRef(null);
 
   useEffect(() => {
-    if (isOpen) {
-      setShow(true);
-    } else {
-      setShow(false);
-    }
-  }, [isOpen]);
+    if (!isOpen) return undefined;
+    const focusTimer = window.setTimeout(() => confirmButtonRef.current?.focus(), 50);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") onCancel();
+    };
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      window.clearTimeout(focusTimer);
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [isOpen, onCancel]);
 
-  if (!isOpen && !show) return null;
-
-  const handleCancel = () => {
-    setShow(false);
-    setTimeout(onCancel, 200);
-  };
-
-  const handleConfirm = () => {
-    setShow(false);
-    setTimeout(onConfirm, 200);
-  };
+  if (!isOpen) return null;
 
   const confirmColors =
     variant === "danger"
@@ -49,30 +48,31 @@ export default function ConfirmDialog({
   const iconName =
     variant === "danger" ? "warning" : variant === "success" ? "check_circle" : "help";
 
-  return (
+  return createPortal(
     <div
-      className={`fixed inset-0 z-50 flex items-start pt-[20vh] justify-center transition-all duration-200 ${
-        show ? "opacity-100" : "opacity-0 pointer-events-none"
-      }`}
+      className="fixed inset-0 z-[1000] flex items-center justify-center overflow-y-auto p-4"
+      role="presentation"
     >
       <div
         className="absolute inset-0 bg-stone-900/30 backdrop-blur-sm"
-        onClick={handleCancel}
+        onClick={onCancel}
       ></div>
       <div
-        className={`relative bg-white dark:bg-dark-surface rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl transition-all duration-200 ${
-          show ? "scale-100 opacity-100" : "scale-95 opacity-0"
-        }`}
+        className="relative my-auto max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl dark:bg-dark-surface sm:p-8"
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="confirm-dialog-title"
+        aria-describedby="confirm-dialog-message"
       >
         <div className="flex items-start gap-4 mb-6">
           <div className={`p-3 rounded-full ${iconBg}`}>
             <span className="material-symbols-outlined text-2xl">{iconName}</span>
           </div>
           <div className="flex-1">
-            <h3 className="font-epilogue text-lg font-semibold text-primary dark:text-white mb-2">
+            <h3 id="confirm-dialog-title" className="font-epilogue text-lg font-semibold text-primary dark:text-white mb-2">
               {title}
             </h3>
-            <p className="text-on-surface-variant dark:text-gray-300 font-worksans text-body-md">
+            <p id="confirm-dialog-message" className="text-on-surface-variant dark:text-gray-300 font-worksans text-body-md">
               {message}
             </p>
           </div>
@@ -80,14 +80,15 @@ export default function ConfirmDialog({
         <div className="flex justify-end gap-3">
           {variant !== "success" && (
             <button
-              onClick={handleCancel}
+              onClick={onCancel}
               className="px-5 py-2.5 rounded-full border border-outline-variant text-on-surface-variant dark:text-gray-300 font-space text-label-md hover:bg-stone-100 dark:hover:bg-white/10 transition-colors"
             >
               {cancelText}
             </button>
           )}
           <button
-            onClick={handleConfirm}
+            ref={confirmButtonRef}
+            onClick={onConfirm}
             className={`px-5 py-2.5 rounded-full font-space text-label-md transition-colors flex items-center gap-2 ${confirmColors}`}
           >
             <span className="material-symbols-outlined text-[18px]">
@@ -97,6 +98,7 @@ export default function ConfirmDialog({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

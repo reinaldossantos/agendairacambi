@@ -7,33 +7,44 @@ export default function PhotoUpload({ onUploadComplete, existingPhotos = [] }) {
   const [uploadStatus, setUploadStatus] = useState({ type: "", message: "" });
 
   const handleFileSelect = async (e) => {
-    const files = Array.from(e.target.files);
+    const files = Array.from(e.target.files || []);
+    e.target.value = "";
     if (!files.length) return;
     setUploading(true);
     setUploadStatus({ type: "info", message: "Enviando fotos..." });
 
     const uploadedUrls = [];
+    const failures = [];
 
     for (const file of files) {
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}-${file.name}`;
-      const { error } = await supabase.storage
-        .from("activity-attachments")
-        .upload(fileName, file);
+      if (!file.type.startsWith("image/")) {
+        failures.push(`${file.name} não é uma imagem válida.`);
+        continue;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        failures.push(`${file.name} ultrapassa o limite de 10 MB.`);
+        continue;
+      }
+      const safeName = file.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9._-]/g, "_");
+      const { data: authData } = await supabase.auth.getUser();
+      const owner = authData.user?.id || "authenticated";
+      const filePath = `${owner}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${safeName}`;
+      const { error } = await supabase.storage.from("activity-attachments").upload(filePath, file, { cacheControl: "3600", contentType: file.type, upsert: false });
 
       if (error) {
         console.error("Erro no upload:", error);
-        setUploadStatus({ type: "error", message: `Erro ao enviar ${file.name}` });
+        failures.push(`${file.name}: ${error.message}`);
         continue;
       }
 
-      const url = supabase.storage.from("activity-attachments").getPublicUrl(fileName).data.publicUrl;
+      const url = supabase.storage.from("activity-attachments").getPublicUrl(filePath).data.publicUrl;
       uploadedUrls.push(url);
     }
 
     const updatedPhotos = [...photos, ...uploadedUrls];
     setPhotos(updatedPhotos);
     if (onUploadComplete) onUploadComplete(updatedPhotos);
-    setUploadStatus({ type: "success", message: `${uploadedUrls.length} foto(s) enviada(s)` });
+    setUploadStatus(failures.length ? { type: "error", message: `${uploadedUrls.length} enviada(s). ${failures.join(" ")}` } : { type: "success", message: `${uploadedUrls.length} foto(s) enviada(s) com sucesso.` });
     setTimeout(() => setUploadStatus({ type: "", message: "" }), 3000);
     setUploading(false);
   };
@@ -41,7 +52,7 @@ export default function PhotoUpload({ onUploadComplete, existingPhotos = [] }) {
   const removePhoto = async (index) => {
     const urlToRemove = photos[index];
     if (urlToRemove) {
-      const path = urlToRemove.split("/").pop();
+      const path = decodeURIComponent(urlToRemove.split("/object/public/activity-attachments/")[1] || urlToRemove.split("/").pop() || "");
       if (path) {
         const { error } = await supabase.storage
           .from("activity-attachments")
@@ -65,7 +76,7 @@ export default function PhotoUpload({ onUploadComplete, existingPhotos = [] }) {
 
   return (
     <div className="space-y-3">
-      <label className="font-roboto text-label-sm text-outline dark:text-gray-400 flex items-center gap-2 cursor-pointer">
+      <label className={`flex min-h-12 w-full cursor-pointer items-center gap-3 rounded-xl border px-3 py-2 font-roboto text-label-sm transition focus-within:ring-2 focus-within:ring-primary ${uploading ? "cursor-wait border-surface-variant bg-surface text-outline" : "border-emerald-200 bg-white text-primary hover:border-emerald-400 hover:bg-emerald-50 dark:border-emerald-900 dark:bg-white/5 dark:text-emerald-300"}`}>
         <span className="material-symbols-outlined text-[20px]">add_a_photo</span>
         {uploading ? "Enviando..." : "Adicionar fotos"}
         <input
@@ -92,10 +103,13 @@ export default function PhotoUpload({ onUploadComplete, existingPhotos = [] }) {
                 className="w-full h-24 object-cover rounded-lg border border-surface-variant dark:border-white/10"
               />
               <button
+                type="button"
                 onClick={() => removePhoto(idx)}
-                className="absolute top-1 right-1 p-1 bg-black/60 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                aria-label={`Remover ${getFileName(url)}`}
+                title="Remover foto"
+                className="absolute right-1 top-1 flex min-h-9 min-w-9 items-center justify-center rounded-full bg-white/95 text-red-600 shadow-md transition hover:scale-105 hover:bg-red-50 focus-visible:ring-2 focus-visible:ring-red-500 dark:bg-gray-900/95 dark:text-red-400"
               >
-                <span className="material-symbols-outlined text-sm">close</span>
+                <span className="material-symbols-outlined text-[19px]">delete</span>
               </button>
               <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[10px] p-1 truncate rounded-b-lg">
                 {getFileName(url)}

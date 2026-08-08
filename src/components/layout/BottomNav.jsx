@@ -2,9 +2,9 @@ import { NavLink } from "react-router-dom";
 
 export default function BottomNav() {
   const linkClasses = ({ isActive }) =>
-    `flex flex-col items-center justify-center ${
+    `flex min-h-14 flex-1 flex-col items-center justify-center ${
       isActive ? "text-primary dark:text-white font-bold" : "text-stone-400 dark:text-gray-500"
-    } hover:text-primary dark:hover:text-white transition-colors group py-1`;
+    } hover:text-primary dark:hover:text-white transition-colors group px-1 py-1`;
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 w-full bg-white dark:bg-dark-background border-t border-surface-variant dark:border-white/10 z-50 px-2 pb-safe flex justify-around items-center">
@@ -20,9 +20,13 @@ export default function BottomNav() {
         <span className="material-symbols-outlined text-xl">history</span>
         <span className="font-roboto text-[10px] mt-0.5">Histórico</span>
       </NavLink>
-      <NavLink to="/programs" className={linkClasses}>
-        <span className="material-symbols-outlined text-xl">account_tree</span>
-        <span className="font-roboto text-[10px] mt-0.5">Programas</span>
+      <NavLink to="/projects" className={linkClasses}>
+        <span className="material-symbols-outlined text-xl">view_kanban</span>
+        <span className="font-roboto text-[10px] mt-0.5">Projetos</span>
+      </NavLink>
+      <NavLink to="/vehicles" className={linkClasses}>
+        <span className="material-symbols-outlined text-xl">directions_car</span>
+        <span className="font-roboto text-[10px] mt-0.5">Veículos</span>
       </NavLink>
     </nav>
   );

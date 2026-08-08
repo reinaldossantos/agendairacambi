@@ -1,10 +1,13 @@
+/* eslint-disable react-hooks/immutability, react-hooks/set-state-in-effect, react-hooks/exhaustive-deps */
 import { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 import { format, parseISO, startOfWeek, addDays } from "date-fns";
 import { generateWeeklyPDF } from "../lib/pdfGenerator";
+import { useCurrentUser } from "../context/CurrentUserContext";
 
 export default function History() {
+  const { currentUser } = useCurrentUser();
   const [searchParams, setSearchParams] = useSearchParams();
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -31,9 +34,13 @@ export default function History() {
     const statusParam = searchParams.get("status");
     const startParam = searchParams.get("start");
     const endParam = searchParams.get("end");
+    const programParam = searchParams.get("program");
+    const personParam = searchParams.get("person");
     if (statusParam !== null) setFilterStatus(statusParam);
     if (startParam !== null) setStartDate(startParam);
     if (endParam !== null) setEndDate(endParam);
+    if (programParam !== null) setFilterProgram(programParam);
+    if (personParam !== null) setFilterPerson(personParam);
   }, [searchParams]);
 
   // Dispara a busca sempre que os filtros mudarem (incluindo após a atualização acima)
@@ -46,8 +53,8 @@ export default function History() {
 
   async function fetchMeta() {
     const [progRes, persRes] = await Promise.all([
-      supabase.from("programs").select("id, name").order("name"),
-      supabase.from("persons").select("id, name").order("name"),
+      supabase.from("programs").select("id, name, leader_id").order("name"),
+      supabase.from("persons").select("id, name, is_active").order("name"),
     ]);
     const progList = progRes.data || [];
     setPrograms(progList);
@@ -55,6 +62,15 @@ export default function History() {
     progList.forEach(p => { mapping[p.name] = p.id; });
     setProgramNameToId(mapping);
     setPersons(persRes.data || []);
+
+    if (!searchParams.has("program") && currentUser?.id) {
+      let defaultProgram = progList.find((program) => program.leader_id === currentUser.id);
+      if (!defaultProgram) {
+        const { data: recentActivity } = await supabase.from("activities").select("program_id").eq("responsible_id", currentUser.id).not("program_id", "is", null).order("due_date", { ascending: false }).limit(1).maybeSingle();
+        defaultProgram = progList.find((program) => program.id === recentActivity?.program_id);
+      }
+      if (defaultProgram) setFilterProgram(defaultProgram.name);
+    }
   }
 
   async function fetchHistory() {
@@ -63,7 +79,7 @@ export default function History() {
 
     let query = supabase
       .from("activities")
-      .select("*, programs:program_id(name), persons:responsible_id(name)")
+      .select("*, programs:program_id(name), persons:responsible_id(name, is_active)")
       .order("due_date", { ascending: false });
 
     if (filterProgram && programNameToId[filterProgram]) {
@@ -94,6 +110,8 @@ export default function History() {
     if (filterStatus) params.status = filterStatus;
     if (startDate) params.start = startDate;
     if (endDate) params.end = endDate;
+    if (filterProgram) params.program = filterProgram;
+    if (filterPerson) params.person = filterPerson;
     setSearchParams(params);
   }
 
@@ -142,7 +160,7 @@ export default function History() {
     }
     let query = supabase
       .from("activities")
-      .select("*, programs:program_id(name), persons:responsible_id(name)")
+      .select("*, programs:program_id(name), persons:responsible_id(name, is_active)")
       .gte("due_date", reportStart)
       .lte("due_date", reportEnd)
       .order("due_date", { ascending: true });
@@ -307,7 +325,7 @@ export default function History() {
                           "bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 border-red-200"
                         }`}>{a.status}</span>
                        </td>
-                      <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-on-surface dark:text-gray-300 whitespace-nowrap">{a.persons?.name}</td>
+                      <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-on-surface dark:text-gray-300 whitespace-nowrap">{a.persons?.name}{a.persons?.is_active === false && <span className="ml-2 rounded-full bg-gray-200 px-2 py-1 text-[10px] font-bold text-gray-700 dark:bg-gray-700 dark:text-gray-200">Desativado</span>}</td>
                     </tr>
                   ))
                 )}

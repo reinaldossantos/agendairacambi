@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef } from "react";
+/* eslint-disable react-hooks/immutability, react-hooks/set-state-in-effect, react-hooks/exhaustive-deps */
+import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
-import { startOfWeek, addDays, subDays, subWeeks, addWeeks, format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { startOfWeek, startOfMonth, endOfMonth, addDays, subDays, subWeeks, addWeeks, subMonths, addMonths, format, parseISO } from "date-fns";
 import ActivityCard from "../components/activities/ActivityCard";
 import SkeletonCard from "../components/ui/SkeletonCard";
 import WeeklyListView from "../components/activities/WeeklyListView";
@@ -10,6 +10,9 @@ import { useCurrentUser } from "../context/CurrentUserContext";
 import { getProgramColor } from "../lib/colors";
 import { generateWeeklyPDF } from "../lib/pdfGenerator";
 import { useLanguage } from "../i18n/context";
+import ProgramSwitcher from "../components/ui/ProgramSwitcher";
+import ProgressOverview from "../components/dashboard/ProgressOverview";
+import PeriodNavigator from "../components/dashboard/PeriodNavigator";
 
 function getCurrentMonday() {
   const today = new Date();
@@ -37,6 +40,8 @@ export default function Dashboard() {
   const [programs, setPrograms] = useState([]);
   const [programIds, setProgramIds] = useState({});
   const [currentMonday, setCurrentMonday] = useState(getCurrentMonday());
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [periodMode, setPeriodMode] = useState(() => localStorage.getItem("iracambi_dashboard_periodMode") || "week");
   const [onlyMine, setOnlyMine] = useState(() => {
     const saved = localStorage.getItem("iracambi_dashboard_onlyMine");
     return saved === "true";
@@ -46,13 +51,9 @@ export default function Dashboard() {
     return localStorage.getItem("iracambi_dashboard_viewMode") || "cards";
   });
 
-  const weekStart = currentMonday;
-  const weekEnd = addDays(weekStart, 5);
-
-  const filterContainerRef = useRef(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [startX, setStartX] = useState(0);
-  const [scrollLeft, setScrollLeft] = useState(0);
+  const weekStart = periodMode === "month" ? startOfMonth(currentMonth) : currentMonday;
+  const weekEnd = periodMode === "month" ? endOfMonth(currentMonth) : addDays(weekStart, 5);
+  const overdueThreshold = format(getCurrentMonday(), "yyyy-MM-dd");
 
   const { t } = useLanguage();
 
@@ -65,6 +66,9 @@ export default function Dashboard() {
   useEffect(() => {
     localStorage.setItem("iracambi_dashboard_viewMode", viewMode);
   }, [viewMode]);
+  useEffect(() => {
+    localStorage.setItem("iracambi_dashboard_periodMode", periodMode);
+  }, [periodMode]);
 
   useEffect(() => {
     fetchPrograms();
@@ -77,7 +81,7 @@ export default function Dashboard() {
   useEffect(() => {
     setLoading(true);
     fetchActivities();
-  }, [selectedProgram, onlyMine, currentMonday, searchTerm]);
+  }, [selectedProgram, onlyMine, currentMonday, currentMonth, periodMode, searchTerm]);
 
   async function fetchPrograms() {
     const { data } = await supabase.from("programs").select("id, name").order("name");
@@ -97,7 +101,7 @@ export default function Dashboard() {
     const endStr = format(weekEnd, "yyyy-MM-dd");
     let query = supabase
       .from("activities")
-      .select("*, programs:program_id(name), persons:responsible_id(name, initials)")
+      .select("*, programs:program_id(name), persons:responsible_id(name, initials, is_active)")
       .gte("due_date", startStr)
       .lte("due_date", endStr);
 
@@ -121,48 +125,29 @@ export default function Dashboard() {
     setLoading(false);
   }
 
-  const goToPreviousWeek = () => setCurrentMonday(subWeeks(currentMonday, 1));
-  const goToNextWeek = () => setCurrentMonday(addWeeks(currentMonday, 1));
-  const goToCurrentWeek = () => setCurrentMonday(getCurrentMonday());
+  const goToPreviousPeriod = () => periodMode === "month" ? setCurrentMonth((value) => subMonths(value, 1)) : setCurrentMonday((value) => subWeeks(value, 1));
+  const goToNextPeriod = () => periodMode === "month" ? setCurrentMonth((value) => addMonths(value, 1)) : setCurrentMonday((value) => addWeeks(value, 1));
+  const goToCurrentPeriod = () => periodMode === "month" ? setCurrentMonth(new Date()) : setCurrentMonday(getCurrentMonday());
+  const selectPeriodDate = (value) => {
+    if (!value) return;
+    const selectedDate = parseISO(value);
+    if (periodMode === "month") setCurrentMonth(selectedDate);
+    else setCurrentMonday(startOfWeek(selectedDate, { weekStartsOn: 1 }));
+  };
 
   const handleExportPDF = async () => {
     await generateWeeklyPDF({ weekStart: format(weekStart, "yyyy-MM-dd"), weekEnd: format(weekEnd, "yyyy-MM-dd"), activities });
   };
 
-  const handleMouseDown = (e) => {
-    setIsDragging(true);
-    setStartX(e.pageX - filterContainerRef.current.offsetLeft);
-    setScrollLeft(filterContainerRef.current.scrollLeft);
-    filterContainerRef.current.style.cursor = "grabbing";
-  };
-  const handleMouseUp = () => {
-    setIsDragging(false);
-    if (filterContainerRef.current) filterContainerRef.current.style.cursor = "grab";
-  };
-  const handleMouseMove = (e) => {
-    if (!isDragging) return;
-    e.preventDefault();
-    const x = e.pageX - filterContainerRef.current.offsetLeft;
-    const walk = (x - startX) * 2;
-    filterContainerRef.current.scrollLeft = scrollLeft - walk;
-  };
-  const handleMouseLeave = () => {
-    if (isDragging) {
-      setIsDragging(false);
-      if (filterContainerRef.current) filterContainerRef.current.style.cursor = "grab";
-    }
-  };
+  const activitiesInPeriod = activities.filter((activity) => activity.due_date >= format(weekStart, "yyyy-MM-dd") && activity.due_date <= format(weekEnd, "yyyy-MM-dd"));
 
-  const totalActivities = activities.length;
-  const completedActivities = activities.filter(a => a.status === "Realizado").length;
-  const progressPercent = totalActivities > 0 ? Math.round((completedActivities / totalActivities) * 100) : 0;
-
-  const isCurrentWeek = () => {
+  const isCurrentPeriod = () => {
     const today = new Date();
+    if (periodMode === "month") return format(today, "yyyy-MM") === format(currentMonth, "yyyy-MM");
     const currentMonday = startOfWeek(today, { weekStartsOn: 1 });
     return format(currentMonday, "yyyy-MM-dd") === format(weekStart, "yyyy-MM-dd");
   };
-  const currentWeekFlag = isCurrentWeek();
+  const currentWeekFlag = isCurrentPeriod();
 
   return (
     <section>
@@ -172,50 +157,36 @@ export default function Dashboard() {
         </p>
       )}
 
-      {/* Barra de progresso global */}
-      <div className="mb-6 bg-surface dark:bg-white/5 rounded-xl p-4 border border-surface-variant dark:border-white/10">
-        <div className="flex justify-between text-sm font-roboto mb-2">
-          <span className="text-on-surface dark:text-gray-200">Atividades realizadas esta semana</span>
-          <span className="text-primary dark:text-white font-bold">{completedActivities} / {totalActivities} ({progressPercent}%)</span>
-        </div>
-        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
-          <div className="bg-green-600 h-2.5 rounded-full transition-all duration-500" style={{ width: `${progressPercent}%` }}></div>
-        </div>
-      </div>
+      <ProgressOverview
+        activities={activitiesInPeriod}
+        loading={loading}
+        periodMode={periodMode}
+        startDate={format(weekStart, "yyyy-MM-dd")}
+        endDate={format(weekEnd, "yyyy-MM-dd")}
+        selectedProgram={selectedProgram}
+        onlyMine={onlyMine}
+        currentUser={currentUser}
+        searchTerm={searchTerm}
+      />
 
-      {/* Destaque da semana - centralizado no mobile */}
-      <div className="mb-6 flex justify-center md:justify-start">
-        <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full ${
-          currentWeekFlag 
-            ? 'bg-gradient-to-r from-green-100 to-green-200 dark:from-green-900/40 dark:to-green-800/40 border-2 border-green-500 dark:border-green-400 shadow-md' 
-            : 'bg-surface dark:bg-white/5 border border-surface-variant dark:border-white/10'
-        }`}>
-          <span className="material-symbols-outlined text-primary dark:text-white text-xl">calendar_today</span>
-          <span className={`font-roboto font-semibold ${currentWeekFlag ? 'text-green-800 dark:text-green-300' : 'text-on-surface dark:text-gray-300'}`}>
-            {format(weekStart, "dd 'de' MMM", { locale: ptBR })} – {format(weekEnd, "dd 'de' MMM", { locale: ptBR })}
-            {currentWeekFlag && (
-              <span className="ml-2 text-xs font-normal bg-green-600 text-white px-2 py-0.5 rounded-full">
-                SEMANA ATUAL
-              </span>
-            )}
-          </span>
-        </div>
-      </div>
+      <PeriodNavigator
+        periodMode={periodMode}
+        startDate={weekStart}
+        endDate={weekEnd}
+        isCurrent={currentWeekFlag}
+        activities={activitiesInPeriod}
+        onModeChange={setPeriodMode}
+        onPrevious={goToPreviousPeriod}
+        onNext={goToNextPeriod}
+        onToday={goToCurrentPeriod}
+        onSelectDate={selectPeriodDate}
+      />
 
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
         <div>
           <h2 className="font-roboto text-headline-lg text-primary dark:text-white mb-1">{t("dashboard.title")}</h2>
         </div>
         <div className="flex flex-wrap items-center justify-center md:justify-end gap-2">
-          <button onClick={goToPreviousWeek} className="p-2 rounded-full bg-green-100 hover:bg-green-200 dark:bg-green-800/30 dark:hover:bg-green-800/50 min-h-[44px] min-w-[44px] flex items-center justify-center">
-            <span className="material-symbols-outlined text-green-700 dark:text-green-300">chevron_left</span>
-          </button>
-          <button onClick={goToCurrentWeek} className="px-4 py-2 rounded-full bg-green-200 text-green-800 hover:bg-green-300 dark:bg-green-700/40 dark:text-green-200 dark:hover:bg-green-700/60 font-roboto text-label-sm min-h-[44px] flex items-center">
-            {t("common.today")}
-          </button>
-          <button onClick={goToNextWeek} className="p-2 rounded-full bg-green-100 hover:bg-green-200 dark:bg-green-800/30 dark:hover:bg-green-800/50 min-h-[44px] min-w-[44px] flex items-center justify-center">
-            <span className="material-symbols-outlined text-green-700 dark:text-green-300">chevron_right</span>
-          </button>
           <button onClick={handleExportPDF} className="px-4 py-2 rounded-full bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50 font-roboto text-label-sm min-h-[44px] flex items-center gap-2">
             <span className="material-symbols-outlined text-[18px]">picture_as_pdf</span> PDF
           </button>
@@ -229,29 +200,15 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Campo de busca */}
-      <div className="mb-4 flex justify-center md:justify-end">
-        <div className="relative w-full max-w-xs">
+      {/* Navegação por programa e busca */}
+      <div className="mb-8 flex flex-col gap-3 lg:flex-row lg:items-stretch lg:justify-between">
+        <ProgramSwitcher programs={programs} value={selectedProgram} onChange={setSelectedProgram} className="w-full lg:max-w-xl lg:flex-1" />
+        <div className="relative w-full lg:max-w-md">
           <span className="absolute inset-y-0 left-0 flex items-center pl-2">
             <span className="material-symbols-outlined text-gray-400 text-lg">search</span>
           </span>
-          <input type="text" placeholder="Buscar por título ou descrição..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-8 pr-3 py-2 rounded-full bg-surface dark:bg-dark-background border border-surface-variant dark:border-white/10 focus:border-accent outline-none text-sm" />
+          <input type="text" placeholder="Buscar por título ou descrição..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="min-h-[56px] w-full rounded-2xl border border-surface-variant bg-white pl-9 pr-4 text-sm shadow-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-white/10 dark:bg-dark-surface dark:text-white" />
         </div>
-      </div>
-
-      {/* Filtros de programa */}
-      <div ref={filterContainerRef} className="flex flex-nowrap gap-2 mb-8 overflow-x-auto pb-4 scrollbar-hide cursor-grab select-none" onMouseDown={handleMouseDown} onMouseUp={handleMouseUp} onMouseMove={handleMouseMove} onMouseLeave={handleMouseLeave}>
-        <button onClick={() => setSelectedProgram("Todos")} className={`px-4 py-2 rounded-full font-roboto text-label-sm transition-all active:scale-95 min-h-[44px] flex items-center justify-center border whitespace-nowrap ${selectedProgram === "Todos" ? "bg-accent text-primary border-accent shadow-sm" : "bg-surface dark:bg-white/5 text-on-surface dark:text-gray-300 border-surface-variant dark:border-white/10 hover:bg-accent/10"}`}>
-          {t("common.all")}
-        </button>
-        {programs.map((prog) => {
-          const color = getProgramColor(prog.name);
-          return (
-            <button key={prog.id} onClick={() => setSelectedProgram(prog.name)} className={`px-4 py-2 rounded-full font-roboto text-label-sm transition-all active:scale-95 min-h-[44px] flex items-center justify-center border whitespace-nowrap ${selectedProgram === prog.name ? `${color.bg} ${color.text} ${color.border} shadow-sm` : `bg-surface dark:bg-white/5 text-on-surface dark:text-gray-300 border-surface-variant dark:border-white/10 ${color.hover}`}`}>
-              {prog.name}
-            </button>
-          );
-        })}
       </div>
 
       {selectedProgram !== "Todos" && (
@@ -268,11 +225,11 @@ export default function Dashboard() {
               {selectedProgram === "Todos" ? t("dashboard.noActivities") : t("dashboard.noActivitiesForProgram", { program: selectedProgram })}
             </div>
           ) : (
-            activities.map((activity) => <ActivityCard key={activity.id} activity={activity} />)
+            activities.map((activity) => <ActivityCard key={activity.id} activity={activity} attention={activity.due_date < overdueThreshold && !["Realizado", "Cancelado"].includes(activity.status)} />)
           )}
         </div>
       ) : (
-        <WeeklyListView activities={activities} loading={loading} />
+        <WeeklyListView activities={activities} loading={loading} periodMode={periodMode} attentionBefore={overdueThreshold} />
       )}
     </section>
   );
