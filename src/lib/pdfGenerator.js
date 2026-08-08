@@ -2,9 +2,15 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { signFiles, signImages } from "./privateStorage";
 
 export async function generateWeeklyPDF({ weekStart, weekEnd, activities }) {
   try {
+    activities = await Promise.all((activities || []).map(async (activity) => ({
+      ...activity,
+      images: await signImages(activity.images || []),
+      files: await signFiles(activity.files || []),
+    })));
     const doc = new jsPDF({
       orientation: "landscape",
       unit: "mm",

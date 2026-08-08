@@ -2,6 +2,7 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { signFiles, signImages } from "./privateStorage";
 
 const dateLabel = (value) => value ? format(parseISO(value), "dd/MM/yyyy") : "—";
 
@@ -37,6 +38,13 @@ function loadEvidenceImage(url) {
 }
 
 export async function generateMonthlyReportPDF(report) {
+  report = structuredClone(report);
+  report.activity_snapshot = await Promise.all((report.activity_snapshot || []).map(async (activity) => ({
+    ...activity,
+    images: await signImages(activity.images || []),
+    selected_images: await signImages(activity.selected_images || activity.images || []),
+    files: await signFiles(activity.files || []),
+  })));
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const pageWidth = doc.internal.pageSize.getWidth();
   const primary = [26, 59, 46];
