@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
+import { signedUrl, storagePath } from "../../lib/privateStorage";
 
 export default function PhotoUpload({ onUploadComplete, existingPhotos = [] }) {
   const [photos, setPhotos] = useState(existingPhotos);
@@ -37,7 +38,7 @@ export default function PhotoUpload({ onUploadComplete, existingPhotos = [] }) {
         continue;
       }
 
-      const url = supabase.storage.from("activity-attachments").getPublicUrl(filePath).data.publicUrl;
+      const url = await signedUrl("activity-attachments", filePath);
       uploadedUrls.push(url);
     }
 
@@ -52,7 +53,7 @@ export default function PhotoUpload({ onUploadComplete, existingPhotos = [] }) {
   const removePhoto = async (index) => {
     const urlToRemove = photos[index];
     if (urlToRemove) {
-      const path = decodeURIComponent(urlToRemove.split("/object/public/activity-attachments/")[1] || urlToRemove.split("/").pop() || "");
+      const path = storagePath(urlToRemove, "activity-attachments");
       if (path) {
         const { error } = await supabase.storage
           .from("activity-attachments")

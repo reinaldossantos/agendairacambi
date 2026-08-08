@@ -4,6 +4,7 @@ import { supabase } from "../lib/supabaseClient";
 import { useCurrentUser } from "../context/CurrentUserContext";
 import { format, parseISO, startOfWeek, addDays, subWeeks, addWeeks, isWithinInterval } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { signedUrl, storagePath as getStoragePath } from "../lib/privateStorage";
 
 export default function ProgramFiles() {
   const { currentUser } = useCurrentUser();
@@ -54,7 +55,7 @@ export default function ProgramFiles() {
       const created = parseISO(f.created_at);
       return isWithinInterval(created, { start: weekStart, end: weekEnd });
     });
-    setFiles(filtered);
+    setFiles(await Promise.all(filtered.map(async (file) => ({ ...file, signed_url: await signedUrl("program-files", file.file_url) }))));
   }
 
   async function deleteOldFiles() {
@@ -67,7 +68,7 @@ export default function ProgramFiles() {
 
     if (oldFiles?.length) {
       for (const file of oldFiles) {
-        const path = file.file_url.split("/").pop();
+        const path = getStoragePath(file.file_url, "program-files");
         await supabase.storage.from("program-files").remove([path]);
       }
       const ids = oldFiles.map(f => f.id);
@@ -172,7 +173,7 @@ export default function ProgramFiles() {
       return;
     }
 
-    const url = supabase.storage.from("program-files").getPublicUrl(storagePath).data.publicUrl;
+    const url = storagePath;
 
     // Insere referência no banco (com nome original)
     const { error: dbError } = await supabase.from("program_files").insert({
@@ -209,7 +210,7 @@ export default function ProgramFiles() {
 
   async function handleDeleteConfirm() {
     if (!deleteTarget) return;
-    const path = deleteTarget.file_url.split("/").pop();
+    const path = getStoragePath(deleteTarget.file_url, "program-files");
     await supabase.storage.from("program-files").remove([path]);
     await supabase.from("program_files").delete().eq("id", deleteTarget.id);
     setShowDeleteConfirm(false);
@@ -288,7 +289,7 @@ export default function ProgramFiles() {
           files.map((f) => (
             <div key={f.id} className="bg-white dark:bg-dark-surface border border-surface-variant dark:border-white/10 rounded-xl p-4 flex justify-between items-center">
               <div className="flex-1 min-w-0">
-                <a href={f.file_url} target="_blank" rel="noreferrer" className="font-roboto font-semibold text-primary dark:text-white hover:underline truncate block">
+                <a href={f.signed_url} target="_blank" rel="noreferrer" className="font-roboto font-semibold text-primary dark:text-white hover:underline truncate block">
                   {f.name}
                 </a>
                 <p className="text-sm text-on-surface-variant dark:text-gray-400 truncate">{f.description}</p>

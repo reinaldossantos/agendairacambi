@@ -19,10 +19,14 @@ export function CurrentUserProvider({ children }) {
       return;
     }
     const [{ data: profiles }, { data: activePersons }] = await Promise.all([
-      supabase.from("persons").select("*").eq("auth_user_id", activeSession.user.id).order("access_role", { ascending: false }),
+      supabase.from("persons").select("*").eq("auth_user_id", activeSession.user.id).eq("is_active", true).is("locked_at", null).order("access_role", { ascending: false }),
       supabase.from("persons").select("id,name,initials,is_active").eq("is_active", true).order("name"),
     ]);
     const profile = (profiles || []).find((person) => person.access_role === "admin") || profiles?.[0] || null;
+    if (!profile) {
+      await supabase.auth.signOut();
+      setSession(null);
+    }
     setCurrentUser(profile);
     setPersons(activePersons || []);
     if (profile) localStorage.setItem("iracambi_current_user", JSON.stringify(profile));

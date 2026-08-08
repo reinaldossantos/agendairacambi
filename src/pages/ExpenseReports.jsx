@@ -4,6 +4,8 @@ import { supabase } from "../lib/supabaseClient";
 import { useCurrentUser } from "../context/CurrentUserContext";
 import { generateExpenseReportPDF } from "../lib/expenseReportPdf";
 import { useLocation } from "react-router-dom";
+import { escapeHtml } from "../lib/security";
+import { signFiles, signedUrl } from "../lib/privateStorage";
 
 const categories = [
   "Passagens rodoviárias", "Transporte urbano", "Táxi", "Despesas com veículos",
@@ -86,7 +88,12 @@ export default function ExpenseReports() {
       grouped[approval.report_id] = [...(grouped[approval.report_id] || []), approval];
       return grouped;
     }, {});
-    setReports((reportResult.data || []).map((report) => ({ ...report, approvals: approvalsByReport[report.id] || [] })));
+    const signedReports = await Promise.all((reportResult.data || []).map(async (report) => ({
+      ...report,
+      expense_items: await Promise.all((report.expense_items || []).map(async (item) => ({ ...item, attachments: await signFiles(item.attachments || []) }))),
+      approvals: approvalsByReport[report.id] || [],
+    })));
+    setReports(signedReports);
     setPrograms(programResult.data || []);
     setMileageRates(ratesResult.data || []);
     setConfiguredApproverIds((approverResult.data || []).map((item) => item.person_id));
@@ -245,7 +252,7 @@ export default function ExpenseReports() {
       }
       const { data: emailSetting } = await supabase.from("app_settings").select("value").eq("key", "expense_report_settings").maybeSingle();
       if (emailSetting?.value?.send_email === true) {
-        const { error: emailError } = await supabase.functions.invoke("send-expense-report-email", { body: { report: result.data } });
+        const { error: emailError } = await supabase.functions.invoke("send-expense-report-email", { body: { reportId: result.data.id } });
         if (emailError) console.error("Relatório salvo, mas o e-mail não foi enviado:", emailError);
       }
     }
@@ -322,6 +329,11 @@ export default function ExpenseReports() {
   function printReport(report) {
     const printWindow = window.open("", "_blank", "width=900,height=700");
     if (!printWindow) return setMessage({ type: "error", text: "Permita pop-ups para imprimir o relatório." });
+    report = structuredClone(report);
+    for (const key of Object.keys(report)) if (typeof report[key] === "string") report[key] = escapeHtml(report[key]);
+    report.expense_items = (report.expense_items || []).map((item) => Object.fromEntries(
+      Object.entries(item).map(([key, value]) => [key, typeof value === "string" ? escapeHtml(value) : value]),
+    ));
     const items = (report.expense_items || []).filter((item) => item.description || Number(item.amount));
     const spent = items.reduce((sum, item) => sum + Number(item.amount || 0), 0);
     const reportBalance = Number(report.advance_amount || 0) - spent;
@@ -621,7 +633,7 @@ function ExpenseReceiptUpload({ files, onChange }) {
         setUploadError(`Erro ao enviar ${file.name}: ${error.message}`);
         continue;
       }
-      const url = supabase.storage.from("activity-files").getPublicUrl(path).data.publicUrl;
+      const url = await signedUrl("activity-files", path);
       uploaded.push({ name: file.name, url, path, size: file.size, type: file.type });
     }
     if (uploaded.length) onChange([...files, ...uploaded]);

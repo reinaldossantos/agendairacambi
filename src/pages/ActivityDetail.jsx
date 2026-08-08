@@ -12,6 +12,7 @@ import FileUpload from "../components/activities/FileUpload";
 import EventFields from "../components/activities/EventFields";
 import { emptyEventData, normalizeEventData } from "../lib/events";
 import { shareViaWhatsApp, formatSingleActivityForWhatsAppSimple } from "../lib/whatsapp";
+import { signFiles, signImages, storagePath } from "../lib/privateStorage";
 
 const priorityColors = {
   Baixa: "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400",
@@ -66,6 +67,8 @@ export default function ActivityDetail() {
       .eq("id", id)
       .single();
     if (data) {
+      data.images = await signImages(data.images || []);
+      data.files = await signFiles(data.files || []);
       setActivity(data);
       setFormData({
         title: data.title,
@@ -396,7 +399,7 @@ export default function ActivityDetail() {
 
     // Remove fotos do storage
     if (activity.images && activity.images.length > 0) {
-      const paths = activity.images.map((url) => decodeURIComponent(url.split("/object/public/activity-attachments/")[1] || url.split("/").pop() || "")).filter(Boolean);
+      const paths = activity.images.map((url) => storagePath(url, "activity-attachments")).filter(Boolean);
       if (paths.length > 0) {
         await supabase.storage.from("activity-attachments").remove(paths);
       }
@@ -404,7 +407,7 @@ export default function ActivityDetail() {
 
     // Remove arquivos do storage
     if (activity.files && activity.files.length > 0) {
-      const paths = activity.files.map((file) => decodeURIComponent(file.url?.split("/object/public/activity-files/")[1] || file.url?.split("/").pop() || "")).filter(Boolean);
+      const paths = activity.files.map((file) => storagePath(file, "activity-files")).filter(Boolean);
       if (paths.length > 0) {
         await supabase.storage.from("activity-files").remove(paths);
       }

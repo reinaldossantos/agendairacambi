@@ -12,11 +12,12 @@ serve(async (request) => {
   const results = [];
   for (const person of persons || []) {
     const existing = existingUsers?.users?.find((user) => user.email?.toLowerCase() === person.email.toLowerCase());
+    const temporaryPassword = `Ira!${crypto.randomUUID().replaceAll("-", "").slice(0, 16)}Aa1`;
     const result = existing
-      ? await admin.auth.admin.updateUserById(existing.id, { password: "iracambi2026", email_confirm: true, user_metadata: { name: person.name } })
-      : await admin.auth.admin.createUser({ email: person.email, password: "iracambi2026", email_confirm: true, user_metadata: { name: person.name } });
+      ? await admin.auth.admin.updateUserById(existing.id, { password: temporaryPassword, email_confirm: true, user_metadata: { name: person.name }, ban_duration: "none" })
+      : await admin.auth.admin.createUser({ email: person.email, password: temporaryPassword, email_confirm: true, user_metadata: { name: person.name } });
     if (result.data.user) await admin.from("persons").update({ auth_user_id: result.data.user.id, must_change_password: true, failed_login_attempts: 0, locked_at: null }).eq("id", person.id);
-    results.push({ name: person.name, email: person.email, created: Boolean(result.data.user), action: existing ? "updated" : "created", error: result.error?.message });
+    results.push({ name: person.name, email: person.email, temporaryPassword, created: Boolean(result.data.user), action: existing ? "updated" : "created", error: result.error?.message });
   }
   return new Response(JSON.stringify({ results }), { headers: { ...cors, "Content-Type": "application/json" } });
 });

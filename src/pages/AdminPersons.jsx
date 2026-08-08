@@ -140,7 +140,7 @@ export default function AdminPersons() {
   async function resetPassword(person) {
     const { data, error } = await supabase.functions.invoke("admin-reset-password", { body: { personId: person.id } });
     if (error || data?.error) return setMessage({ type: "error", text: data?.error || error.message });
-    setMessage({ type: "success", text: `A senha de ${person.name} foi redefinida para a senha temporária. A troca será exigida no próximo acesso.` });
+    setMessage({ type: "success", text: `Senha temporária de ${person.name}: ${data.temporaryPassword} — copie agora; a troca será exigida no próximo acesso.` });
     fetchPersons();
   }
 

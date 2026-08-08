@@ -12,10 +12,11 @@ serve(async (request) => {
   const { personId } = await request.json();
   const { data: person } = await admin.from("persons").select("id,email,auth_user_id").eq("id", personId).single();
   if (!person?.auth_user_id) return new Response(JSON.stringify({ error: "Usuário sem conta de acesso." }), { status: 400, headers: cors });
-  const { error } = await admin.auth.admin.updateUserById(person.auth_user_id, { password: "iracambi2026" });
+  const temporaryPassword = `Ira!${crypto.randomUUID().replaceAll("-", "").slice(0, 16)}Aa1`;
+  const { error } = await admin.auth.admin.updateUserById(person.auth_user_id, { password: temporaryPassword, ban_duration: "none" });
   if (!error) {
     await admin.from("persons").update({ must_change_password: true, failed_login_attempts: 0, locked_at: null }).eq("id", person.id);
     await admin.from("user_access_logs").insert({ person_id: person.id, email: person.email, event_type: "password_reset" });
   }
-  return new Response(JSON.stringify(error ? { error: error.message } : { success: true }), { status: error ? 400 : 200, headers: { ...cors, "Content-Type": "application/json" } });
+  return new Response(JSON.stringify(error ? { error: error.message } : { success: true, temporaryPassword }), { status: error ? 400 : 200, headers: { ...cors, "Content-Type": "application/json" } });
 });

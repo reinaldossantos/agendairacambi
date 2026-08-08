@@ -43,6 +43,7 @@ function AuthenticatedLayout() {
   const { session, currentUser, authLoading } = useCurrentUser();
   if (authLoading) return <div className="flex min-h-screen items-center justify-center text-primary">Verificando acesso…</div>;
   if (!session) return <Navigate to="/login" replace />;
+  if (!currentUser) return <Navigate to="/login" replace />;
   if (currentUser?.must_change_password) return <Navigate to="/change-password" replace />;
   return <Layout />;
 }

@@ -13,7 +13,7 @@ export default function Settings() {
 
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [password, setPassword] = useState("");
-  const [authenticated, setAuthenticated] = useState(false);
+  const authenticated = currentUser?.access_role === "admin";
   const [error, setError] = useState("");
   // Configurações dos modos de lançamento
   const [whatsappEnabled, setWhatsappEnabled] = useState(() => {
@@ -23,18 +23,7 @@ export default function Settings() {
     return localStorage.getItem("iracambi_mode_quick") !== "false";
   });
 
-  const handleAuth = () => {
-    if (
-      currentUser?.name === "Reinaldo" &&
-      password === "Iracamb!2026"
-    ) {
-      setAuthenticated(true);
-      setError("");
-      setPassword("");
-    } else {
-      setError("Usuário ou senha inválidos.");
-    }
-  };
+  const handleAuth = () => setError("Esta seção exige uma conta com perfil administrador.");
 
   const toggleWhatsapp = () => {
     const newValue = !whatsappEnabled;

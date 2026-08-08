@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
+import { signedUrl, storagePath } from "../../lib/privateStorage";
 
 export default function FileUpload({
   onUploadComplete,
@@ -56,10 +57,10 @@ export default function FileUpload({
         continue;
       }
 
-      const url = supabase.storage.from("activity-files").getPublicUrl(fileName)
-        .data.publicUrl;
+      const url = await signedUrl("activity-files", fileName);
       uploadedFiles.push({
-        url: url,
+        url,
+        path: fileName,
         name: file.name,
         size: file.size,
         type: file.type,
@@ -85,8 +86,8 @@ export default function FileUpload({
 
   const removeFile = async (index) => {
     const fileToRemove = files[index];
-    if (fileToRemove?.url) {
-      const path = decodeURIComponent(fileToRemove.url.split("/object/public/activity-files/")[1] || fileToRemove.url.split("/").pop() || "");
+    if (fileToRemove?.url || fileToRemove?.path) {
+      const path = storagePath(fileToRemove, "activity-files");
       if (path) {
         const { error } = await supabase.storage
           .from("activity-files")
