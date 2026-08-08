@@ -44,6 +44,11 @@ $authenticated_cutover$;
 revoke all privileges on all tables in schema public from anon;
 revoke all privileges on all sequences in schema public from anon;
 
+-- A tela de login consulta configuracoes publicas antes de existir sessao.
+-- Nao libera escrita nem qualquer outra tabela para anon.
+grant usage on schema public to anon;
+grant select on table public.app_settings to anon;
+
 -- Mantem a aplicacao nova operando com uma sessao valida do Supabase Auth.
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
