@@ -70,6 +70,12 @@ export default function NewActivity() {
 
   // Clonagem de atividade (pré‑preenchimento)
   useEffect(() => {
+    const dueDate = location.state?.dueDate;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dueDate || "")) {
+      setQuickActivities((items) => items.map((item, index) => index === 0 ? { ...item, date: dueDate } : item));
+      setSelectedMode("quick");
+      window.history.replaceState({}, document.title);
+    }
     const clone = location.state?.clone;
     if (clone) {
       setSelectedProgram(clone.program || "");

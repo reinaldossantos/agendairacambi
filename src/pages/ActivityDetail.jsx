@@ -50,6 +50,7 @@ export default function ActivityDetail() {
   const [collaborationTab, setCollaborationTab] = useState("comments");
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [notice, setNotice] = useState(null);
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showDeleteSuccess, setShowDeleteSuccess] = useState(false);
@@ -185,7 +186,7 @@ export default function ActivityDetail() {
 
   const confirmCancel = async () => {
     if (!cancelReason.trim()) {
-      alert("Por favor, informe uma justificativa para o cancelamento.");
+      setNotice({ type: "warning", text: "Informe uma justificativa para o cancelamento." });
       return;
     }
     setShowCancelReason(false);
@@ -224,7 +225,7 @@ export default function ActivityDetail() {
         fetchActivity();
         fetchLogs();
       } else {
-        alert("Erro ao salvar: " + error.message);
+        setNotice({ type: "error", text: `Não foi possível salvar: ${error.message}` });
       }
       setSaving(false);
       setCancelReason("");
@@ -244,19 +245,19 @@ export default function ActivityDetail() {
   async function handleSave() {
     if (!canEdit || !activity) return;
     if (!formData.description.trim() || !formData.start_datetime || !formData.end_datetime) {
-      alert("Preencha a descrição, o início e a finalização da atividade.");
+      setNotice({ type: "warning", text: "Preencha a descrição, o início e a finalização da atividade." });
       return;
     }
     if (formData.end_datetime <= formData.start_datetime) {
-      alert("A finalização deve ser posterior ao início da atividade.");
+      setNotice({ type: "warning", text: "A finalização deve ser posterior ao início da atividade." });
       return;
     }
     if (formData.is_event && (!formData.event_data?.theme?.trim() || !formData.event_data?.start_at || !formData.event_data?.end_at)) {
-      alert("Informe a temática, o início e o término do evento.");
+      setNotice({ type: "warning", text: "Informe a temática, o início e o término do evento." });
       return;
     }
     if (formData.is_event && formData.event_data.start_at > formData.event_data.end_at) {
-      alert("O término do evento deve ser posterior ao início.");
+      setNotice({ type: "warning", text: "O término do evento deve ser posterior ao início." });
       return;
     }
     setSaving(true);
@@ -384,7 +385,7 @@ export default function ActivityDetail() {
       fetchActivity();
       fetchLogs();
     } else {
-      alert("Erro ao salvar: " + error.message);
+      setNotice({ type: "error", text: `Não foi possível salvar: ${error.message}` });
     }
     setSaving(false);
   }
@@ -416,7 +417,7 @@ export default function ActivityDetail() {
     const { error } = await supabase.from("activities").delete().eq("id", activity.id);
     setDeleting(false);
     if (error) {
-      alert("Erro ao excluir: " + error.message);
+      setNotice({ type: "error", text: `Não foi possível excluir: ${error.message}` });
     } else {
       setShowDeleteSuccess(true);
     }
@@ -483,6 +484,17 @@ export default function ActivityDetail() {
         confirmText="OK"
         variant="success"
       />
+
+      {notice && (
+        <div
+          role="alert"
+          className={`mb-5 flex items-start gap-3 rounded-2xl border p-4 shadow-sm ${notice.type === "error" ? "border-red-200 bg-red-50 text-red-800 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300" : "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200"}`}
+        >
+          <span className="material-symbols-outlined mt-0.5 text-xl">{notice.type === "error" ? "error" : "warning"}</span>
+          <p className="min-w-0 flex-1 text-sm font-medium">{notice.text}</p>
+          <button type="button" onClick={() => setNotice(null)} aria-label="Fechar mensagem" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full hover:bg-black/5 dark:hover:bg-white/10"><span className="material-symbols-outlined text-lg">close</span></button>
+        </div>
+      )}
 
       {showCancelReason && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">

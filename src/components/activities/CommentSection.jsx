@@ -4,6 +4,7 @@ import { ptBR } from "date-fns/locale";
 import { supabase } from "../../lib/supabaseClient";
 import { useCurrentUser } from "../../context/CurrentUserContext";
 import { getUserColor } from "../../lib/colors";
+import ConfirmDialog from "../ui/ConfirmDialog";
 
 export default function CommentSection({ activityId, logs, onNewComment }) {
   const { currentUser } = useCurrentUser();
@@ -16,6 +17,8 @@ export default function CommentSection({ activityId, logs, onNewComment }) {
   const [editingId, setEditingId] = useState(null);
   const [editText, setEditText] = useState("");
   const [message, setMessage] = useState("");
+  const [removalTarget, setRemovalTarget] = useState(null);
+  const [removing, setRemoving] = useState(false);
   const textareaRef = useRef(null);
 
   useEffect(() => {
@@ -67,8 +70,12 @@ export default function CommentSection({ activityId, logs, onNewComment }) {
     if (error) setMessage(`Não foi possível editar: ${error.message}`); else { setEditingId(null); setEditText(""); onNewComment(); }
   };
   const remove = async (log) => {
-    if (!window.confirm("Remover este comentário? O registro da remoção será preservado.")) return;
+    if (!log || removing) return;
+    setRemoving(true);
+    setMessage("");
     const { error } = await supabase.from("activity_logs").update({ metadata: { ...(log.metadata || {}), deleted: true, deleted_at: new Date().toISOString() } }).eq("id", log.id).eq("person_id", currentUser.id);
+    setRemoving(false);
+    setRemovalTarget(null);
     if (error) setMessage(`Não foi possível remover: ${error.message}`); else onNewComment();
   };
 
@@ -82,7 +89,16 @@ export default function CommentSection({ activityId, logs, onNewComment }) {
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2 pl-0 sm:pl-14"><span className="text-[10px] text-outline">Ctrl + Enter para enviar · use @ para mencionar</span><button type="button" onClick={send} disabled={sending || !text.trim()} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-gradient-to-r from-[#ffd84d] to-[#f7bd21] px-5 text-sm font-black text-primary shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"><span className={`material-symbols-outlined icon-plain text-[19px] ${sending ? "animate-spin" : ""}`}>{sending ? "progress_activity" : "send"}</span>{sending ? "Enviando…" : "Enviar"}</button></div>
     </div>
 
-    {!roots.length ? <div className="rounded-3xl border border-dashed border-surface-variant px-5 py-10 text-center dark:border-white/10"><span className="material-symbols-outlined text-4xl text-blue-300">forum</span><h4 className="mt-2 font-bold text-primary dark:text-white">Comece a conversa</h4><p className="mt-1 text-sm text-outline">Registre uma atualização, pergunta ou decisão sobre esta atividade.</p></div> : <div className="space-y-3">{roots.map((log) => <div key={log.id}><CommentCard log={log} currentUser={currentUser} persons={persons} editingId={editingId} editText={editText} setEditText={setEditText} onEdit={() => { setEditingId(log.id); setEditText(log.content); }} onCancelEdit={() => setEditingId(null)} onSaveEdit={() => saveEdit(log)} onRemove={() => remove(log)} onReply={() => startReply(log)} />{repliesFor(log.id).length > 0 && <div className="ml-6 mt-2 space-y-2 border-l-2 border-blue-100 pl-4 dark:border-blue-950 sm:ml-12">{repliesFor(log.id).map((reply) => <CommentCard key={reply.id} log={reply} currentUser={currentUser} persons={persons} editingId={editingId} editText={editText} setEditText={setEditText} onEdit={() => { setEditingId(reply.id); setEditText(reply.content); }} onCancelEdit={() => setEditingId(null)} onSaveEdit={() => saveEdit(reply)} onRemove={() => remove(reply)} onReply={() => startReply(log)} compact />)}</div>}</div>)}</div>}
+    {!roots.length ? <div className="rounded-3xl border border-dashed border-surface-variant px-5 py-10 text-center dark:border-white/10"><span className="material-symbols-outlined text-4xl text-blue-300">forum</span><h4 className="mt-2 font-bold text-primary dark:text-white">Comece a conversa</h4><p className="mt-1 text-sm text-outline">Registre uma atualização, pergunta ou decisão sobre esta atividade.</p></div> : <div className="space-y-3">{roots.map((log) => <div key={log.id}><CommentCard log={log} currentUser={currentUser} persons={persons} editingId={editingId} editText={editText} setEditText={setEditText} onEdit={() => { setEditingId(log.id); setEditText(log.content); }} onCancelEdit={() => setEditingId(null)} onSaveEdit={() => saveEdit(log)} onRemove={() => setRemovalTarget(log)} onReply={() => startReply(log)} />{repliesFor(log.id).length > 0 && <div className="ml-6 mt-2 space-y-2 border-l-2 border-blue-100 pl-4 dark:border-blue-950 sm:ml-12">{repliesFor(log.id).map((reply) => <CommentCard key={reply.id} log={reply} currentUser={currentUser} persons={persons} editingId={editingId} editText={editText} setEditText={setEditText} onEdit={() => { setEditingId(reply.id); setEditText(reply.content); }} onCancelEdit={() => setEditingId(null)} onSaveEdit={() => saveEdit(reply)} onRemove={() => setRemovalTarget(reply)} onReply={() => startReply(log)} compact />)}</div>}</div>)}</div>}
+    <ConfirmDialog
+      isOpen={!!removalTarget}
+      title="Remover comentário"
+      message="Este comentário deixará de aparecer na conversa, mas o registro da remoção será preservado para fins de auditoria. Deseja continuar?"
+      confirmText={removing ? "Removendo..." : "Sim, remover"}
+      cancelText="Manter comentário"
+      onConfirm={() => remove(removalTarget)}
+      onCancel={() => { if (!removing) setRemovalTarget(null); }}
+    />
   </section>;
 }
 
