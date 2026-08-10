@@ -6,6 +6,18 @@ O projeto centraliza agenda, eventos, evidências, pessoas, programas, veículos
 
 ## Últimas novidades
 
+### Calendário responsivo e identificação por programa
+
+**Finalidade:** facilitar a leitura rápida do planejamento mensal sem perder detalhes em telas pequenas.
+
+**Como usar:** no computador, alterne entre **Mês** e **Agenda**; no celular, consulte a lista cronológica otimizada. Os cartões e a legenda usam as mesmas cores dos programas. Clique ou toque em uma legenda para filtrar, selecione-a novamente para mostrar todos e abra um dia para consultar o painel de detalhes. O atalho **Nova atividade neste dia** abre o cadastro com a data preenchida.
+
+### Mensagens integradas às atividades
+
+**Finalidade:** substituir avisos nativos do navegador por confirmações e mensagens acessíveis, consistentes com o modo claro, escuro e a experiência mobile.
+
+**Como usar:** validações e erros aparecem dentro da tela. Ao remover um comentário, confirme a ação no diálogo próprio; o comentário deixa de aparecer na conversa, mas a remoção permanece registrada para auditoria.
+
 ### Tradução híbrida de toda a aplicação
 
 **Finalidade:** apresentar tanto a interface quanto os conteúdos cadastrados em português, inglês ou espanhol sem alterar os registros originais.
@@ -71,12 +83,16 @@ Por padrão, a tradução automática fica **desabilitada**. Um administrador po
 ### Agenda e atividades
 
 - Dashboard semanal e mensal, cards ou lista.
+- Calendário com visualizações Mês e Agenda no computador e lista cronológica no celular.
+- Cartões e legenda interativa com as cores dos programas, também utilizada como filtro rápido.
+- Painel de detalhes do dia e criação rápida de atividade com data preenchida.
 - Filtros por programa, responsável, período e pesquisa textual.
 - Lançamento rápido ou importação de programação no formato WhatsApp.
 - Descrição, início e finalização obrigatórios.
 - Prioridade, status, responsável, envolvidos e menções com `@nome`.
 - Repetição de atividades, comentários e histórico de alterações.
-- Conversas encadeadas, menções com nomes completos, edição e remoção lógica de comentários.
+- Conversas encadeadas, menções com nomes completos, edição e remoção lógica de comentários mediante diálogo de confirmação.
+- Validações, erros e confirmações integrados à interface, sem caixas nativas do navegador nos detalhes da atividade.
 - Linha do tempo pesquisável e filtrável, agrupada por data.
 - Fotos e documentos como evidências.
 - Compartilhamento pelo WhatsApp e exportação em PDF/CSV.
@@ -282,7 +298,7 @@ Antes do commit:
 4. Teste evento, veículos, despesas, avisos e uploads.
 5. Teste relatórios mensais e PDFs.
 6. Teste responsividade, idiomas, modo escuro e funcionamento offline.
-7. Não versione `.env`, `.env.local`, tokens, chaves ou senhas.
+7. Não versione `.env.local`, tokens, chaves privadas ou senhas. Neste repositório, o `.env` é uma exceção controlada e deve conter exclusivamente `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`, que são configurações públicas utilizadas pelo frontend.
 
 ## Publicação
 
@@ -298,6 +314,7 @@ O frontend pode ser hospedado em qualquer provedor compatível com Vite.
 
 - Nunca utilize a chave `service_role` no frontend.
 - Não armazene senhas, segredos ou tokens no repositório.
+- O `.env` versionado deve conter somente `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`; qualquer credencial administrativa, chave privada ou segredo de Edge Function deve permanecer fora do Git.
 - Mantenha RLS habilitado e revise políticas antes da publicação.
 - Restrinja permissões administrativas às responsabilidades reais.
 - Preserve os registros de auditoria.
