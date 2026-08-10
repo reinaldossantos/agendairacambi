@@ -155,6 +155,7 @@ Por padrão, a tradução automática fica **desabilitada**. Um administrador po
 ### Administração
 
 - Pessoas, programas e líderes.
+- Remoção de líderes de programas restrita ao perfil Administrador, com validação na interface e RLS no Supabase.
 - Perfis, permissões e fotos de usuário.
 - Configurações avançadas dos modos de lançamento.
 - Auditoria e rastreabilidade com filtros e comparação dos dados.

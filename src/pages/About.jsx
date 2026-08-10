@@ -212,7 +212,7 @@ const sections = [
     title: "Administração",
     items: [
       "Somente administradores acessam os cadastros administrativos e as Configurações Avançadas.",
-      "Em Programas, crie, edite ou exclua áreas e associe seus líderes. Em Líderes, visualize e altere rapidamente cada vínculo.",
+      "Em Programas, crie, edite ou exclua áreas e associe seus líderes. Em Líderes, visualize e altere rapidamente cada vínculo; somente um usuário Administrador pode remover a liderança de um programa.",
       "Em Pessoas, cadastre nome, e-mail e iniciais, altere os dados, redefina senhas e desative, reative ou exclua usuários conforme a necessidade.",
       "Consulte o Histórico de acessos para verificar data, usuário, e-mail e tipo de evento.",
       "Em Configurações Avançadas, habilite ou desabilite os modos de lançamento e a Auditoria e rastreabilidade.",

@@ -1,7 +1,11 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabaseClient";
+import { useCurrentUser } from "../context/CurrentUserContext";
+import { isAdministrator } from "../lib/security";
 
 export default function AdminLeaders() {
+  const { currentUser } = useCurrentUser();
+  const canRemoveLeader = isAdministrator(currentUser);
   const [programs, setPrograms] = useState([]);
   const [persons, setPersons] = useState([]);
   const [message, setMessage] = useState({ type: "", text: "" });
@@ -29,6 +33,10 @@ export default function AdminLeaders() {
   }
 
   async function handleChangeLeader(programId, newLeaderId) {
+    if (!newLeaderId && !canRemoveLeader) {
+      setMessage({ type: "error", text: "Somente um administrador pode remover o líder de um programa." });
+      return;
+    }
     const { error } = await supabase
       .from("programs")
       .update({ leader_id: newLeaderId || null })
@@ -93,18 +101,19 @@ export default function AdminLeaders() {
                 onChange={(e) => handleChangeLeader(prog.id, e.target.value)}
                 className="bg-surface dark:bg-dark-background border-b-2 border-primary/20 focus:border-accent outline-none py-2 px-3 rounded-t-lg text-sm font-roboto text-on-surface dark:text-gray-200"
               >
-                <option value="">Selecionar líder</option>
+                {(canRemoveLeader || !prog.leader) && <option value="">Selecionar líder</option>}
                 {persons.map((person) => (
                   <option key={person.id} value={person.id}>
                     {person.name} ({person.initials})
                   </option>
                 ))}
               </select>
-              {prog.leader && (
+              {prog.leader && canRemoveLeader && (
                 <button
                   onClick={() => handleChangeLeader(prog.id, "")}
                   className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-full min-h-[44px] min-w-[44px] flex items-center justify-center transition-all active:scale-95"
                   title="Remover líder"
+                  aria-label={`Remover ${prog.leader.name} da liderança de ${prog.name}`}
                 >
                   <span className="material-symbols-outlined">person_remove</span>
                 </button>
@@ -119,6 +128,7 @@ export default function AdminLeaders() {
           💡 <strong>Dica:</strong> Para cadastrar uma nova pessoa, acesse{" "}
           <a href="/admin/persons" className="text-accent underline">Pessoas</a>. Depois, volte aqui para atribuí‑la como líder.
         </p>
+        <p className="mt-2 text-xs font-medium text-outline">A remoção de um líder é uma operação administrativa e fica disponível somente para usuários com perfil Administrador.</p>
       </div>
     </div>
   );
