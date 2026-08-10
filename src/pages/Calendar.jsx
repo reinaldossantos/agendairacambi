@@ -176,6 +176,36 @@ export default function Calendar() {
           </div>
         </div>
         <ProgramSwitcher programs={programs} value={selectedProgram} onChange={(program) => { setSelectedProgram(program); setSelectedDate(null); }} className="max-w-xl" />
+        {programs.length > 0 && (
+          <section aria-labelledby="program-colors-title" className="rounded-2xl border border-surface-variant bg-white p-3 shadow-sm dark:border-white/10 dark:bg-dark-surface">
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-xl text-primary-light dark:text-green-300">palette</span>
+                <h3 id="program-colors-title" className="text-xs font-bold uppercase tracking-wide text-primary dark:text-white">Cores dos programas</h3>
+              </div>
+              {selectedProgram !== "Todos" && <button type="button" onClick={() => setSelectedProgram("Todos")} className="text-xs font-bold text-primary-light hover:underline dark:text-green-300">Mostrar todos</button>}
+            </div>
+            <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1" role="group" aria-label="Legenda e filtro por programa">
+              {programs.map((program) => {
+                const color = getProgramColor(program.name);
+                const selected = selectedProgram === program.name;
+                return (
+                  <button
+                    key={program.id}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => { setSelectedProgram(selected ? "Todos" : program.name); setSelectedDate(null); }}
+                    className={`flex min-h-9 shrink-0 items-center gap-2 rounded-full border px-3 text-xs font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${color.bg} ${color.text} ${color.border} ${selected ? "ring-2 ring-primary ring-offset-2 dark:ring-accent dark:ring-offset-dark-surface" : "hover:brightness-95"}`}
+                  >
+                    <span className={`h-2.5 w-2.5 rounded-full border-2 ${color.border} bg-white/70`} aria-hidden="true" />
+                    {program.name}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mt-2 text-[11px] text-outline md:hidden">Deslize para ver todos e toque em uma cor para filtrar.</p>
+          </section>
+        )}
       </header>
 
       {error && <div role="alert" className="mb-4 flex items-center justify-between rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700"><span>{error}</span><button onClick={fetchActivities} className="font-bold underline">Tentar novamente</button></div>}
