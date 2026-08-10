@@ -159,6 +159,8 @@ const sections = [
       "Registre descrição, valor e comprovantes de cada lançamento; revise os totais e o saldo antes de encaminhar ou finalizar o relatório.",
       "A data do comprovante não pode ser anterior ao dia atual. A competência em mês e ano aparece abaixo do campo de data.",
       "O comprovante fica somente no formulário até o salvamento. Se você cancelar ou sair sem salvar, ele não será enviado ao armazenamento.",
+      "Ao clicar em Finalizar relatório, revise a prévia completa e use Confirmar e finalizar somente depois de conferir identificação, despesas, anexos, banco e totais.",
+      "Enquanto estiver como rascunho, o relatório pode ser excluído por qualquer usuário autenticado. Depois de finalizado, somente um administrador pode excluí-lo; os demais usuários devem solicitar a operação ao administrador do sistema.",
       "Relatórios de Reinaldo são analisados por Thaís; relatórios de Thaís são analisados por Reinaldo. Para os demais usuários, a aprovação exige a decisão dos dois responsáveis.",
       "Acompanhe o painel Fluxo de aprovação: ele informa aprovações concluídas, análise pendente, data, observação e o progresso geral. Solicitações de ajuste e reprovações exigem justificativa e permanecem no histórico.",
       "Após uma solicitação de ajustes, o autor pode corrigir e reenviar o relatório. O reenvio inicia uma nova rodada de análise.",

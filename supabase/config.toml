@@ -391,6 +391,9 @@ verify_jwt = true
 [functions.admin-data-maintenance]
 verify_jwt = true
 
+[functions.delete-expense-report]
+verify_jwt = true
+
 [functions.provision-users]
 verify_jwt = true
 

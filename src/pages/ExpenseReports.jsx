@@ -6,6 +6,7 @@ import { generateExpenseReportPDF } from "../lib/expenseReportPdf";
 import { useLocation } from "react-router-dom";
 import { escapeHtml } from "../lib/security";
 import { signFiles, signedUrl } from "../lib/privateStorage";
+import ConfirmDialog from "../components/ui/ConfirmDialog";
 
 const categories = [
   "Passagens rodoviárias", "Transporte urbano", "Táxi", "Despesas com veículos",
@@ -78,6 +79,7 @@ export default function ExpenseReports() {
   const [decisionComments, setDecisionComments] = useState({});
   const [configuredApproverIds, setConfiguredApproverIds] = useState([]);
   const [receiptPathsPendingDeletion, setReceiptPathsPendingDeletion] = useState([]);
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
   useEffect(() => {
     if (location.state?.quickAction === "expense") {
@@ -423,6 +425,29 @@ export default function ExpenseReports() {
     }
   }
 
+  function requestDeleteReport(report) {
+    if (report.status !== "draft" && currentUser?.access_role !== "admin") {
+      setMessage({ type: "error", text: "Este relatório já foi finalizado. Entre em contato com o administrador do sistema para solicitar a exclusão." });
+      return;
+    }
+    setDeleteTarget(report);
+  }
+
+  async function deleteReport() {
+    if (!deleteTarget || saving) return;
+    setSaving(true);
+    const target = deleteTarget;
+    const { data, error } = await supabase.functions.invoke("delete-expense-report", { body: { reportId: target.id } });
+    setSaving(false);
+    setDeleteTarget(null);
+    if (error || data?.error) {
+      setMessage({ type: "error", text: data?.error || error.message });
+      return;
+    }
+    setMessage({ type: "success", text: `Relatório nº ${String(target.report_number).padStart(5, "0")} excluído com sucesso.` });
+    await loadData();
+  }
+
   if (mode === "form") return (
     <ExpenseForm
       form={form} setForm={setForm} programs={programs} persons={persons}
@@ -468,6 +493,7 @@ export default function ExpenseReports() {
               {isApprover && report.status === "approved" && <button disabled={saving} onClick={() => transitionReport(report, "provisioned")} className="rounded-full bg-blue-600 px-4 py-2 text-sm font-bold text-white">Encaminhar para provisionamento</button>}
               {isApprover && report.status === "provisioned" && <div className="flex flex-wrap gap-2"><input type="date" aria-label="Data prevista para pagamento" value={paymentDates[report.id] || ""} onChange={(event) => setPaymentDates({ ...paymentDates, [report.id]: event.target.value })} className="rounded-xl border border-surface-variant px-3 py-2 text-sm dark:bg-gray-800" /><button disabled={saving} onClick={() => transitionReport(report, "payment_scheduled")} className="rounded-full bg-accent px-4 py-2 text-sm font-bold text-primary">Informar pagamento</button></div>}
               <button onClick={() => printReport(report)} className="rounded-full bg-surface px-3 py-2 text-sm font-medium dark:bg-gray-700"><span className="material-symbols-outlined align-middle text-[18px]">print</span> Imprimir</button><button disabled={!!generatingPdfId} onClick={() => downloadPdf(report)} className="rounded-full bg-red-100 px-3 py-2 text-sm font-medium text-red-700 disabled:cursor-wait disabled:opacity-60"><span className={`material-symbols-outlined align-middle text-[18px] ${generatingPdfId === report.id ? "animate-spin" : ""}`}>{generatingPdfId === report.id ? "progress_activity" : "picture_as_pdf"}</span> {generatingPdfId === report.id ? "Gerando…" : "PDF"}</button>
+              <button disabled={saving} onClick={() => requestDeleteReport(report)} className="rounded-full bg-red-600 px-3 py-2 text-sm font-bold text-white hover:bg-red-700 disabled:opacity-50"><span className="material-symbols-outlined align-middle text-[18px]">delete</span> Excluir</button>
             </div>
             </div>
             {report.approvals?.length > 0 && <ApprovalPanel
@@ -480,6 +506,7 @@ export default function ExpenseReports() {
             />}
           </article>;
         })}</div>}
+      <ConfirmDialog isOpen={!!deleteTarget} title="Excluir relatório de despesas?" message={deleteTarget?.status === "draft" ? `O rascunho nº ${String(deleteTarget?.report_number || "").padStart(5, "0")} será excluído definitivamente.` : `Este relatório já foi finalizado. Como administrador, você pode excluí-lo definitivamente.`} confirmText={saving ? "Excluindo…" : "Excluir relatório"} onConfirm={deleteReport} onCancel={() => !saving && setDeleteTarget(null)} />
     </div>
   );
 }
@@ -534,7 +561,10 @@ function ApprovalPanel({ report, currentUser, saving, comment, onComment, onDeci
 }
 
 function ExpenseForm({ form, setForm, programs, persons, choosePerson, chooseProgram, updateItem, onStoredReceiptRemoved, addItem, addMileageItem, removeItem, total, balance, saving, message, onCancel, onSave, onSubmit }) {
+  const [showFinalizePreview, setShowFinalizePreview] = useState(false);
   const field = (name) => ({ value: form[name], onChange: (event) => setForm({ ...form, [name]: event.target.value }) });
+  const previewItems = form.expense_items.filter((item) => item.description?.trim() || item.date || item.document_number?.trim() || item.amount !== "");
+  const paymentLabel = { checking: "Conta corrente", savings: "Conta poupança", check: "Cheque" }[form.payment_method] || "Não informada";
   return <div className="mx-auto max-w-6xl px-2 sm:px-4">
     <div className="mb-6 flex items-center justify-between gap-4"><div><button onClick={onCancel} className="mb-2 text-sm text-primary dark:text-green-300">← Voltar aos relatórios</button><h2 className="text-headline-lg font-semibold text-primary dark:text-white">Relatório de despesas / adiantamento</h2></div></div>
     {message.text && <Alert message={message} />}
@@ -563,8 +593,9 @@ function ExpenseForm({ form, setForm, programs, persons, choosePerson, choosePro
       <Section title="Despesas"><ExpenseItemsTable items={form.expense_items} updateItem={updateItem} onStoredReceiptRemoved={onStoredReceiptRemoved} removeItem={removeItem} addItem={addItem} addMileageItem={addMileageItem} /></Section>
       <Section title="Prestação de contas"><div className="grid gap-4 sm:grid-cols-3"><Summary label="Adiantamento" value={money(form.advance_amount)} /><Summary label="Despesa realizada" value={money(total)} /><Summary label={balance >= 0 ? "Saldo a devolver" : "Saldo a resgatar"} value={money(Math.abs(balance))} highlight /></div></Section>
       <Section title="Dados bancários"><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"><Field label="Banco *"><input required className={inputClass} {...field("bank_name")} placeholder="Ex.: Banco do Brasil" /></Field><Field label="Forma de crédito *"><select required className={inputClass} {...field("payment_method")}><option value="">Selecione</option><option value="checking">Conta corrente</option><option value="savings">Conta poupança</option><option value="check">Cheque</option></select></Field><Field label="Agência"><input className={inputClass} {...field("bank_branch")} placeholder="Ex.: 1234" /></Field><Field label="Dígito da agência"><input className={inputClass} {...field("bank_branch_digit")} placeholder="Ex.: 5" /></Field><Field label="Conta"><input className={inputClass} {...field("bank_account")} placeholder="Ex.: 12345" /></Field><Field label="Dígito da conta"><input className={inputClass} {...field("bank_account_digit")} placeholder="Ex.: 6" /></Field></div></Section>
-      <div className="sticky bottom-16 z-20 grid grid-cols-2 gap-2 rounded-xl border border-surface-variant bg-white/95 p-3 shadow-xl backdrop-blur dark:border-gray-700 dark:bg-dark-surface/95 sm:flex sm:flex-wrap sm:justify-end sm:gap-3 sm:p-4 md:bottom-4"><button type="button" onClick={onCancel} className="min-h-11 rounded-full border border-outline px-4 py-2.5">Cancelar</button><button disabled={saving} type="button" onClick={onSave} className="min-h-11 rounded-full border border-primary px-4 py-2.5 font-bold text-primary dark:text-white">Salvar rascunho</button><button disabled={saving} type="button" onClick={onSubmit} className="col-span-2 min-h-11 rounded-full bg-accent px-5 py-2.5 font-bold text-primary sm:col-auto">{saving ? "Salvando..." : "Finalizar relatório"}</button></div>
+      <div className="sticky bottom-16 z-20 grid grid-cols-2 gap-2 rounded-xl border border-surface-variant bg-white/95 p-3 shadow-xl backdrop-blur dark:border-gray-700 dark:bg-dark-surface/95 sm:flex sm:flex-wrap sm:justify-end sm:gap-3 sm:p-4 md:bottom-4"><button type="button" onClick={onCancel} className="min-h-11 rounded-full border border-outline px-4 py-2.5">Cancelar</button><button disabled={saving} type="button" onClick={onSave} className="min-h-11 rounded-full border border-primary px-4 py-2.5 font-bold text-primary dark:text-white">Salvar rascunho</button><button disabled={saving} type="button" onClick={() => setShowFinalizePreview(true)} className="col-span-2 min-h-11 rounded-full bg-accent px-5 py-2.5 font-bold text-primary sm:col-auto">Finalizar relatório</button></div>
     </div>
+    {showFinalizePreview && <div className="fixed inset-0 z-[1100] flex items-center justify-center overflow-y-auto bg-stone-950/45 p-4" role="dialog" aria-modal="true" aria-labelledby="expense-preview-title"><div className="my-auto max-h-[calc(100dvh-2rem)] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white p-5 shadow-2xl dark:bg-dark-surface sm:p-7"><div className="flex items-start justify-between gap-4"><div><p className="text-xs font-black uppercase tracking-wider text-primary-light">Verificação obrigatória</p><h3 id="expense-preview-title" className="mt-1 text-xl font-bold text-primary dark:text-white">Prévia do relatório de despesas</h3><p className="mt-1 text-sm text-outline">Confira os dados antes de encaminhar o relatório para aprovação.</p></div><button type="button" onClick={() => setShowFinalizePreview(false)} className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-surface" aria-label="Fechar prévia"><span className="material-symbols-outlined">close</span></button></div><dl className="mt-5 grid gap-3 rounded-xl bg-surface p-4 text-sm dark:bg-gray-800 sm:grid-cols-2"><PreviewInfo label="Usuário" value={form.user_name} /><PreviewInfo label="Programa" value={programs.find((program) => program.id === form.program_id)?.name} /><PreviewInfo label="Cargo" value={form.user_role} /><PreviewInfo label="Projeto" value={form.project_name} /><PreviewInfo label="Período" value={`${form.period_start || "—"} a ${form.period_end || "—"}`} /><PreviewInfo label="Finalidade" value={form.purpose} /><PreviewInfo label="Banco" value={form.bank_name} /><PreviewInfo label="Forma de crédito" value={paymentLabel} /></dl><div className="mt-5 overflow-x-auto rounded-xl border border-surface-variant"><table className="w-full min-w-[560px] text-left text-sm"><thead className="bg-primary text-white"><tr><th className="p-3">Despesa</th><th className="p-3">Data</th><th className="p-3">Documento</th><th className="p-3 text-right">Valor</th><th className="p-3 text-center">Anexos</th></tr></thead><tbody className="divide-y divide-surface-variant">{previewItems.length ? previewItems.map((item, index) => <tr key={index}><td className="p-3">{item.description || "Despesa"}</td><td className="p-3">{item.date || "—"}</td><td className="p-3">{item.document_number || "—"}</td><td className="p-3 text-right font-bold">{money(item.amount)}</td><td className="p-3 text-center">{item.attachments?.length || 0}</td></tr>) : <tr><td colSpan="5" className="p-6 text-center text-outline">Nenhuma despesa informada.</td></tr>}</tbody></table></div><div className="mt-5 grid gap-3 sm:grid-cols-3"><Summary label="Adiantamento" value={money(form.advance_amount)} /><Summary label="Despesa realizada" value={money(total)} /><Summary label={balance >= 0 ? "Saldo a devolver" : "Saldo a resgatar"} value={money(Math.abs(balance))} highlight /></div><div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"><button type="button" disabled={saving} onClick={() => setShowFinalizePreview(false)} className="rounded-full border border-outline px-5 py-3 font-bold">Voltar e corrigir</button><button type="button" disabled={saving} onClick={() => { setShowFinalizePreview(false); onSubmit(); }} className="rounded-full bg-primary px-5 py-3 font-bold text-white hover:bg-primary-light disabled:opacity-50">{saving ? "Finalizando…" : "Confirmar e finalizar"}</button></div></div></div>}
   </div>;
 }
 
@@ -733,4 +764,5 @@ function ExpenseReceiptUpload({ files, onChange, onStoredReceiptRemoved }) {
 function Section({ title, children }) { const [expanded, setExpanded] = useState(true); return <details open={expanded} onToggle={(event) => setExpanded(event.currentTarget.open)} className="group rounded-xl border border-surface-variant bg-white p-4 dark:border-gray-700 dark:bg-dark-surface sm:p-6"><summary className="flex min-h-11 cursor-pointer list-none items-center gap-2"><h3 className="flex-1 text-base font-bold text-primary dark:text-white sm:text-lg">{title}</h3><span className="material-symbols-outlined text-outline transition group-open:rotate-180">expand_more</span></summary><div className="mt-4 border-t border-surface-variant pt-4 dark:border-white/10">{children}</div></details>; }
 function Field({ label, children }) { return <label className="block"><span className="mb-1.5 block text-sm font-medium text-primary dark:text-gray-200">{label}</span>{children}</label>; }
 function Summary({ label, value, highlight }) { return <div className={`rounded-xl p-4 ${highlight ? "bg-accent/30" : "bg-surface dark:bg-gray-800"}`}><p className="text-xs uppercase text-outline">{label}</p><p className="mt-1 text-xl font-bold text-primary dark:text-white">{value}</p></div>; }
+function PreviewInfo({ label, value }) { return <div><dt className="text-xs font-bold uppercase text-outline">{label}</dt><dd className="mt-1 font-medium text-primary dark:text-white">{value || "—"}</dd></div>; }
 function Alert({ message }) { return <div className={`mb-4 rounded-xl p-3 ${message.type === "error" ? "bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300" : "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300"}`}>{message.text}</div>; }

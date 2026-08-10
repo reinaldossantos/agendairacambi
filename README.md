@@ -149,6 +149,8 @@ Por padrão, a tradução automática fica **desabilitada**. Um administrador po
 - Banco e forma de crédito como únicos campos obrigatórios do formulário.
 - Competência mensal visível e bloqueio de datas de comprovantes anteriores ao dia atual.
 - Upload transacional: comprovantes são enviados somente ao salvar, com compensação automática em caso de falha.
+- Prévia obrigatória com identificação, despesas, anexos e totais antes da confirmação da finalização.
+- Rascunhos podem ser excluídos por usuários autenticados; após a finalização, a exclusão é restrita ao administrador.
 - Fluxo individual e rastreável de aprovação: Reinaldo e Thaís aprovam um ao outro; relatórios dos demais usuários exigem as duas aprovações.
 - Aprovação parcial, solicitação de ajustes, reprovação justificada, notificações e histórico de cada decisão.
 - Painel visual com responsáveis, progresso, datas e observações, também incorporado ao PDF.
@@ -269,6 +271,7 @@ As Edge Functions utilizadas incluem:
 - `admin-reset-password`
 - `admin-data-maintenance`
 - `cleanup-old-files`
+- `delete-expense-report`
 - `send-expense-report-email`
 - `translate-content`
 
