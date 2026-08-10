@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 import { useCurrentUser } from "../context/CurrentUserContext";
@@ -25,6 +25,18 @@ export default function ActivityDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { currentUser } = useCurrentUser();
+  const uncommittedUploads = useRef({ images: new Set(), files: new Set() });
+
+  const cleanupUncommittedUploads = useCallback(() => {
+    const imagePaths = [...uncommittedUploads.current.images];
+    const filePaths = [...uncommittedUploads.current.files];
+    if (imagePaths.length) supabase.storage.from("activity-attachments").remove(imagePaths);
+    if (filePaths.length) supabase.storage.from("activity-files").remove(filePaths);
+    uncommittedUploads.current.images.clear();
+    uncommittedUploads.current.files.clear();
+  }, []);
+
+  useEffect(() => () => cleanupUncommittedUploads(), [cleanupUncommittedUploads]);
 
   const [activity, setActivity] = useState(null);
   const [involvedPersons, setInvolvedPersons] = useState([]);
@@ -132,6 +144,7 @@ export default function ActivityDetail() {
 
   const handleEditToggle = () => {
     if (!canEdit) return;
+    if (editMode) cleanupUncommittedUploads();
     setEditMode(!editMode);
     if (!editMode) {
       setFormData({
@@ -167,11 +180,13 @@ export default function ActivityDetail() {
     }));
   };
 
-  const handlePhotosChange = (newPhotos) => {
+  const handlePhotosChange = (newPhotos, metadata) => {
+    for (const path of metadata?.uploadedPaths || []) uncommittedUploads.current.images.add(path);
     setFormData((prev) => ({ ...prev, images: newPhotos }));
   };
 
-  const handleFilesChange = (newFiles) => {
+  const handleFilesChange = (newFiles, metadata) => {
+    for (const path of metadata?.uploadedPaths || []) uncommittedUploads.current.files.add(path);
     setFormData((prev) => ({ ...prev, files: newFiles }));
   };
 
@@ -212,6 +227,8 @@ export default function ActivityDetail() {
       };
       const { error } = await supabase.from("activities").update(updates).eq("id", activity.id);
       if (!error) {
+        uncommittedUploads.current.images.clear();
+        uncommittedUploads.current.files.clear();
         await supabase.from("activity_logs").insert({
           activity_id: activity.id,
           person_id: currentUser.id,
@@ -282,6 +299,8 @@ export default function ActivityDetail() {
     };
     const { error } = await supabase.from("activities").update(updates).eq("id", activity.id);
     if (!error) {
+      uncommittedUploads.current.images.clear();
+      uncommittedUploads.current.files.clear();
       // Log de alteração de status
       if (updates.status !== oldActivity.status) {
         await supabase.from("activity_logs").insert({
@@ -398,29 +417,19 @@ export default function ActivityDetail() {
     setShowDeleteConfirm(false);
     setDeleting(true);
 
-    // Remove fotos do storage
-    if (activity.images && activity.images.length > 0) {
-      const paths = activity.images.map((url) => storagePath(url, "activity-attachments")).filter(Boolean);
-      if (paths.length > 0) {
-        await supabase.storage.from("activity-attachments").remove(paths);
-      }
-    }
-
-    // Remove arquivos do storage
-    if (activity.files && activity.files.length > 0) {
-      const paths = activity.files.map((file) => storagePath(file, "activity-files")).filter(Boolean);
-      if (paths.length > 0) {
-        await supabase.storage.from("activity-files").remove(paths);
-      }
-    }
-
+    const imagePaths = (activity.images || []).map((url) => storagePath(url, "activity-attachments")).filter(Boolean);
+    const filePaths = (activity.files || []).map((file) => storagePath(file, "activity-files")).filter(Boolean);
     const { error } = await supabase.from("activities").delete().eq("id", activity.id);
-    setDeleting(false);
     if (error) {
+      setDeleting(false);
       setNotice({ type: "error", text: `Não foi possível excluir: ${error.message}` });
-    } else {
-      setShowDeleteSuccess(true);
+      return;
     }
+
+    if (imagePaths.length) await supabase.storage.from("activity-attachments").remove(imagePaths);
+    if (filePaths.length) await supabase.storage.from("activity-files").remove(filePaths);
+    setDeleting(false);
+    setShowDeleteSuccess(true);
   };
 
   const handleWhatsAppShare = () => {

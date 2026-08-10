@@ -3,6 +3,7 @@ import { supabase } from "../lib/supabaseClient";
 import ConfirmDialog from "../components/ui/ConfirmDialog";
 import { format } from "date-fns";
 import { useCurrentUser } from "../context/CurrentUserContext";
+import { storagePath } from "../lib/privateStorage";
 
 export default function AdminPersons() {
   const { currentUser } = useCurrentUser();
@@ -119,6 +120,10 @@ export default function AdminPersons() {
       if (!data?.length) {
         setMessage({ type: "error", text: confirmAction === "delete" ? `“${personName}” não foi excluído. Recomendação: utilize Desativar.` : `“${personName}” não foi desativado. O banco não autorizou a operação.` });
         return;
+      }
+      if (confirmAction === "delete" && deleteTarget.avatar_url) {
+        const avatarPath = storagePath(deleteTarget.avatar_url, "profile-photos");
+        if (avatarPath) await supabase.storage.from("profile-photos").remove([avatarPath]);
       }
       setMessage({ type: "success", text: confirmAction === "delete" ? `“${personName}” foi excluído definitivamente.` : `“${personName}” foi desativado. Os registros históricos foram preservados.` });
       window.dispatchEvent(new Event("persons-changed"));

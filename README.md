@@ -6,6 +6,18 @@ O projeto centraliza agenda, eventos, evidências, pessoas, programas, veículos
 
 ## Últimas novidades
 
+### Despesas mais rápidas e armazenamento seguro
+
+**Finalidade:** acelerar o preenchimento das prestações de contas e impedir arquivos sem vínculo no armazenamento.
+
+**Como usar:** ao criar um relatório, o sistema preenche usuário, programa e cargo conforme o perfil autenticado. Somente **Banco** e **Forma de crédito** são obrigatórios. As datas dos comprovantes não aceitam dias anteriores à data atual e exibem automaticamente o mês e o ano da competência. Os comprovantes permanecem locais até o salvamento; cancelar ou abandonar o formulário não envia arquivos ao Storage.
+
+### Manutenção administrativa de dados
+
+**Finalidade:** permitir a remoção controlada de cadastros de teste e aplicar políticas de retenção sem expor dados estruturais.
+
+**Como usar:** administradores acessam **Administração → Manutenção de dados**, escolhem exclusão a partir ou até uma data, selecionam as categorias e geram uma prévia. A exclusão exige a confirmação digitada `EXCLUIR`. A mesma página oferece reconciliação de arquivos órfãos mediante confirmação independente.
+
 ### Calendário responsivo e identificação por programa
 
 **Finalidade:** facilitar a leitura rápida do planejamento mensal sem perder detalhes em telas pequenas.
@@ -133,6 +145,10 @@ Por padrão, a tradução automática fica **desabilitada**. Um administrador po
 
 - Prestação de contas com adiantamento, despesas e saldo.
 - Categorias, comprovantes e quilometragem.
+- Preenchimento automático de usuário, programa e cargo conforme o usuário autenticado.
+- Banco e forma de crédito como únicos campos obrigatórios do formulário.
+- Competência mensal visível e bloqueio de datas de comprovantes anteriores ao dia atual.
+- Upload transacional: comprovantes são enviados somente ao salvar, com compensação automática em caso de falha.
 - Fluxo individual e rastreável de aprovação: Reinaldo e Thaís aprovam um ao outro; relatórios dos demais usuários exigem as duas aprovações.
 - Aprovação parcial, solicitação de ajustes, reprovação justificada, notificações e histórico de cada decisão.
 - Painel visual com responsáveis, progresso, datas e observações, também incorporado ao PDF.
@@ -159,6 +175,8 @@ Por padrão, a tradução automática fica **desabilitada**. Um administrador po
 - Perfis, permissões e fotos de usuário.
 - Configurações avançadas dos modos de lançamento.
 - Auditoria e rastreabilidade com filtros e comparação dos dados.
+- Manutenção restrita a administradores, com prévia, filtro por data, categorias independentes, confirmação reforçada e registro da operação.
+- Reconciliação entre banco e Storage para remoção segura de arquivos órfãos.
 - Interface em português, inglês e espanhol.
 - Tema claro/escuro e instalação como PWA.
 
@@ -249,7 +267,17 @@ As Edge Functions utilizadas incluem:
 - `auth-login`
 - `provision-users`
 - `admin-reset-password`
+- `admin-data-maintenance`
+- `cleanup-old-files`
+- `send-expense-report-email`
 - `translate-content`
+
+Após alterações nos módulos de manutenção e armazenamento, publique as funções correspondentes:
+
+```powershell
+supabase functions deploy admin-data-maintenance --project-ref SEU_PROJECT_REF
+supabase functions deploy cleanup-old-files --project-ref SEU_PROJECT_REF
+```
 
 Depois de executar `access_session_tracking.sql`, publique novamente a função de login:
 
@@ -298,8 +326,10 @@ Antes do commit:
 3. Teste criação e edição de atividade com horários.
 4. Teste evento, veículos, despesas, avisos e uploads.
 5. Teste relatórios mensais e PDFs.
-6. Teste responsividade, idiomas, modo escuro e funcionamento offline.
-7. Não versione `.env.local`, tokens, chaves privadas ou senhas. Neste repositório, o `.env` é uma exceção controlada e deve conter exclusivamente `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`, que são configurações públicas utilizadas pelo frontend.
+6. Como administrador, gere uma prévia na Manutenção de dados sem executar a exclusão.
+7. Teste cancelamento de formulários com anexos e confirme que nenhum arquivo órfão é criado.
+8. Teste responsividade, idiomas, modo escuro e funcionamento offline.
+9. Não versione `.env.local`, tokens, chaves privadas ou senhas. Neste repositório, o `.env` é uma exceção controlada e deve conter exclusivamente `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`, que são configurações públicas utilizadas pelo frontend.
 
 ## Publicação
 

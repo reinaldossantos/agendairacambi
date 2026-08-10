@@ -65,9 +65,10 @@ export async function generateExpenseReportPDF(report) {
     headStyles: { fillColor: primary },
     body: [
       ["Fonte pagadora", report.source_company || "—", "Código", report.company_code || "—"],
-      ["Centro de custos", report.cost_center || "—", "Projeto", `${report.project_name || "—"}${report.project_code ? ` (${report.project_code})` : ""}`],
-      ["Usuário", report.user_name || "—", "CPF", report.user_cpf || "—"],
-      ["Telefone", report.user_phone || "—", "Cargo / Registro", `${report.user_role || "—"} / ${report.registration_number || "—"}`],
+      ["Centro de custos", report.cost_center || "—", "Programa", report.program?.name || "—"],
+      ["Projeto", `${report.project_name || "—"}${report.project_code ? ` (${report.project_code})` : ""}`, "Usuário", report.user_name || "—"],
+      ["CPF", report.user_cpf || "—", "Telefone", report.user_phone || "—"],
+      ["Cargo / Registro", `${report.user_role || "—"} / ${report.registration_number || "—"}`, "Código", report.company_code || "—"],
       ["Período", `${date(report.period_start)} a ${date(report.period_end)}`, "Roteiro", report.travel_route || "—"],
       [{ content: "Justificativa / objetivo", styles: { fontStyle: "bold" } }, { content: report.purpose || "—", colSpan: 3 }],
     ],

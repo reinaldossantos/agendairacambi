@@ -388,6 +388,9 @@ verify_jwt = false
 [functions.admin-reset-password]
 verify_jwt = true
 
+[functions.admin-data-maintenance]
+verify_jwt = true
+
 [functions.provision-users]
 verify_jwt = true
 

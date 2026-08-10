@@ -64,6 +64,7 @@ export default function Settings() {
     const { error: updateError } = await supabase.from("persons").update({ avatar_url: avatarUrl }).eq("id", currentUser.id);
     setUploadingAvatar(false);
     if (updateError) {
+      if (!currentUser.avatar_url) await supabase.storage.from("profile-photos").remove([path]);
       setAvatarMessage({ type: "error", text: `A foto foi enviada, mas o perfil não foi atualizado: ${updateError.message}` });
       return;
     }

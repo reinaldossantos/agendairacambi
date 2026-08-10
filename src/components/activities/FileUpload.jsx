@@ -70,7 +70,7 @@ export default function FileUpload({
     if (uploadedFiles.length > 0) {
       const updatedFiles = [...files, ...uploadedFiles];
       setFiles(updatedFiles);
-      if (onUploadComplete) onUploadComplete(updatedFiles);
+      if (onUploadComplete) onUploadComplete(updatedFiles, { uploadedPaths: uploadedFiles.map((file) => file.path) });
       setUploadStatus(failures.length ? { type: "error", message: `${uploadedFiles.length} enviado(s). ${failures.join(" ")}` } : { type: "success", message: `${uploadedFiles.length} arquivo(s) enviado(s) com sucesso!` });
     } else {
       setUploadStatus({

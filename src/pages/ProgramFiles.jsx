@@ -67,12 +67,12 @@ export default function ProgramFiles() {
       .lt("created_at", thirtyDaysAgo.toISOString());
 
     if (oldFiles?.length) {
-      for (const file of oldFiles) {
-        const path = getStoragePath(file.file_url, "program-files");
-        await supabase.storage.from("program-files").remove([path]);
-      }
       const ids = oldFiles.map(f => f.id);
-      await supabase.from("program_files").delete().in("id", ids);
+      const { error } = await supabase.from("program_files").delete().in("id", ids);
+      if (!error) {
+        const paths = oldFiles.map((file) => getStoragePath(file.file_url, "program-files")).filter(Boolean);
+        if (paths.length) await supabase.storage.from("program-files").remove(paths);
+      }
     }
   }
 
@@ -187,6 +187,7 @@ export default function ProgramFiles() {
     });
 
     if (dbError) {
+      await supabase.storage.from("program-files").remove([storagePath]);
       console.error("Erro ao inserir referência:", JSON.stringify(dbError));
       setMessage({
         type: "error",
@@ -211,12 +212,18 @@ export default function ProgramFiles() {
   async function handleDeleteConfirm() {
     if (!deleteTarget) return;
     const path = getStoragePath(deleteTarget.file_url, "program-files");
-    await supabase.storage.from("program-files").remove([path]);
-    await supabase.from("program_files").delete().eq("id", deleteTarget.id);
+    const { error: deleteError } = await supabase.from("program_files").delete().eq("id", deleteTarget.id);
+    if (deleteError) {
+      setMessage({ type: "error", text: `Não foi possível excluir o registro: ${deleteError.message}` });
+      setShowDeleteConfirm(false);
+      return;
+    }
+    const { error: storageError } = await supabase.storage.from("program-files").remove([path]);
+    if (storageError) setMessage({ type: "error", text: "O registro foi excluído; o arquivo será removido pela limpeza automática." });
     setShowDeleteConfirm(false);
     setDeleteTarget(null);
     fetchFiles();
-    setMessage({ type: "success", text: "Arquivo removido." });
+    if (!storageError) setMessage({ type: "success", text: "Arquivo removido." });
     setTimeout(() => setMessage(null), 3000);
   }
 

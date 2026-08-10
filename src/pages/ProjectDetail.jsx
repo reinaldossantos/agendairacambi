@@ -34,7 +34,32 @@ export default function ProjectDetail() {
   async function addRisk(event) { event.preventDefault(); if (!riskForm.title.trim()) return; const { error } = await supabase.from("management_project_risks").insert({ ...riskForm, project_id: id, owner_id: riskForm.owner_id || null, due_date: riskForm.due_date || null }); if (error) return setMessage(error.message); await supabase.from("management_project_logs").insert({ project_id: id, actor_id: currentUser?.id, log_type: "risk", content: `Risco registrado: ${riskForm.title}.` }); setRiskForm({ title: "", probability: "medium", impact: "medium", response_plan: "", owner_id: "", due_date: "" }); await load(); }
   async function changeRisk(risk, status) { const { error } = await supabase.from("management_project_risks").update({ status }).eq("id", risk.id); if (error) return setMessage(error.message); await supabase.from("management_project_logs").insert({ project_id: id, actor_id: currentUser?.id, log_type: "risk", content: `Risco “${risk.title}” alterado para ${riskStatus[status]}.` }); await load(); }
   async function addComment(event) { event.preventDefault(); if (!comment.trim()) return; const { error } = await supabase.from("management_project_logs").insert({ project_id: id, actor_id: currentUser?.id, log_type: "comment", content: comment.trim() }); if (error) return setMessage(error.message); setComment(""); await load(); }
-  async function uploadFiles(event) { const files = Array.from(event.target.files || []); event.target.value = ""; if (!files.length) return; setUploading(true); const uploaded = []; for (const file of files) { if (file.size > 10 * 1024 * 1024) { setMessage(`${file.name}: limite de 10 MB.`); continue; } const safe = file.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9._-]/g, "_"); const path = `project-files/${id}/${Date.now()}-${safe}`; const { error } = await supabase.storage.from("activity-files").upload(path, file); if (!error) uploaded.push({ name: file.name, path, url: await signedUrl("activity-files", path), type: file.type, size: file.size, uploaded_at: new Date().toISOString() }); else setMessage(error.message); } if (uploaded.length) { await supabase.from("management_projects").update({ attachments: [...(project.attachments || []), ...uploaded] }).eq("id", id); await supabase.from("management_project_logs").insert({ project_id: id, actor_id: currentUser?.id, log_type: "file", content: `${uploaded.length} arquivo(s) adicionado(s) ao projeto.` }); } setUploading(false); await load(); }
+  async function uploadFiles(event) {
+    const files = Array.from(event.target.files || []);
+    event.target.value = "";
+    if (!files.length) return;
+    setUploading(true);
+    const uploaded = [];
+    for (const file of files) {
+      if (file.size > 10 * 1024 * 1024) { setMessage(`${file.name}: limite de 10 MB.`); continue; }
+      const safe = file.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9._-]/g, "_");
+      const path = `project-files/${id}/${Date.now()}-${Math.random().toString(36).slice(2)}-${safe}`;
+      const { error } = await supabase.storage.from("activity-files").upload(path, file);
+      if (!error) uploaded.push({ name: file.name, path, url: await signedUrl("activity-files", path), type: file.type, size: file.size, uploaded_at: new Date().toISOString() });
+      else setMessage(error.message);
+    }
+    if (uploaded.length) {
+      const { error: updateError } = await supabase.from("management_projects").update({ attachments: [...(project.attachments || []), ...uploaded] }).eq("id", id);
+      if (updateError) {
+        await supabase.storage.from("activity-files").remove(uploaded.map((file) => file.path));
+        setMessage(`Não foi possível vincular os arquivos ao projeto: ${updateError.message}`);
+      } else {
+        await supabase.from("management_project_logs").insert({ project_id: id, actor_id: currentUser?.id, log_type: "file", content: `${uploaded.length} arquivo(s) adicionado(s) ao projeto.` });
+      }
+    }
+    setUploading(false);
+    await load();
+  }
 
   if (loading) return <p className="py-20 text-center text-outline">Carregando projeto…</p>;
   if (!project) return <div className="py-20 text-center"><p className="text-outline">Projeto não encontrado.</p><Link to="/projects" className="font-bold text-primary">Voltar ao portfólio</Link></div>;

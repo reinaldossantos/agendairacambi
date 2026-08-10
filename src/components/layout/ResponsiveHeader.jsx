@@ -38,6 +38,7 @@ const groups = [
   { id: "admin", label: "Administração", icon: "settings", tone: "admin", items: [
     { to: "/settings", label: "Configurações", icon: "settings" },
     { to: "/advanced-settings", label: "Ajustes avançados", icon: "tune", requiredRole: "admin" },
+    { to: "/admin/maintenance", label: "Manutenção de dados", icon: "cleaning_services", requiredRole: "admin" },
     { to: "/audit-log", label: "Auditoria do sistema", icon: "policy", restrictedTo: "reinaldo" },
     { to: "/about", label: "Manual do usuário", icon: "help" },
   ] },

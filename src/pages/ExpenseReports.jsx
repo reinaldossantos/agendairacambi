@@ -44,6 +44,20 @@ const receiptCategories = new Set([
   "passagens rodoviarias", "transporte urbano", "taxi", "despesas com veiculos", "alimentacao", "hospedagem",
 ]);
 const normalizeText = (value) => String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+const rolesByPerson = {
+  arielle: "Assistente de Colegiado",
+  luisa: "Captação de Recursos e Relações com o Mercado",
+  reinaldo: "Presidente",
+  guilherme: "Comunicação",
+  dayana: "Educação Ambiental",
+  luiz: "Florestas Para Água",
+  thais: "Gestão Financeira",
+  gabriela: "Pesquisas e Monitoramento",
+  binka: "Relações Institucionais",
+  deivid: "Viveiro e Manutenção",
+  pierre: "Voluntariado",
+};
+const roleForPerson = (name) => rolesByPerson[normalizeText(name).split(/\s+/)[0]] || "";
 const supportsReceipt = (item) => receiptCategories.has(normalizeText(item.suggested_description || item.description));
 const formatRateDate = (value) => value ? value.split("-").reverse().join("/") : "";
 
@@ -63,6 +77,7 @@ export default function ExpenseReports() {
   const [generatingPdfId, setGeneratingPdfId] = useState(null);
   const [decisionComments, setDecisionComments] = useState({});
   const [configuredApproverIds, setConfiguredApproverIds] = useState([]);
+  const [receiptPathsPendingDeletion, setReceiptPathsPendingDeletion] = useState([]);
 
   useEffect(() => {
     if (location.state?.quickAction === "expense") {
@@ -77,8 +92,8 @@ export default function ExpenseReports() {
   const loadData = useCallback(async () => {
     setLoading(true);
     const [reportResult, programResult, ratesResult, approvalResult, approverResult] = await Promise.all([
-      supabase.from("expense_reports").select("*, person:person_id(is_active)").order("created_at", { ascending: false }),
-      supabase.from("programs").select("id,name").order("name"),
+      supabase.from("expense_reports").select("*, person:person_id(is_active), program:program_id(name)").order("created_at", { ascending: false }),
+      supabase.from("programs").select("id,name,leader_id").order("name"),
       supabase.from("mileage_rates").select("*").order("effective_date", { ascending: false }),
       supabase.from("expense_report_approvals").select("*, approver:approver_id(id,name,avatar_url)").order("created_at"),
       supabase.from("expense_approval_config").select("person_id").eq("is_active", true),
@@ -115,14 +130,17 @@ export default function ExpenseReports() {
 
   function newReport() {
     const today = format(new Date(), "yyyy-MM-dd");
+    const userProgram = programs.find((program) => program.leader_id === currentUser?.id);
     setEditingId(null);
-    setForm({ ...emptyForm, expense_items: initialItems(), person_id: currentUser?.id || "", user_name: currentUser?.name || "", period_start: today, period_end: today });
+    setReceiptPathsPendingDeletion([]);
+    setForm({ ...emptyForm, expense_items: initialItems(), person_id: currentUser?.id || "", user_name: currentUser?.name || "", user_role: roleForPerson(currentUser?.name), program_id: userProgram?.id || "", project_name: userProgram?.name || "", period_start: today, period_end: today });
     setMessage({ type: "", text: "" });
     setMode("form");
   }
 
   function editReport(report) {
     setEditingId(report.id);
+    setReceiptPathsPendingDeletion([]);
     setForm({
       ...emptyForm, ...report,
       program_id: report.program_id || "", person_id: report.person_id || "",
@@ -144,7 +162,7 @@ export default function ExpenseReports() {
 
   function choosePerson(id) {
     const person = persons.find((item) => item.id === id);
-    setForm((current) => ({ ...current, person_id: id, user_name: person?.name || "" }));
+    setForm((current) => ({ ...current, person_id: id, user_name: person?.name || "", user_role: roleForPerson(person?.name) }));
   }
 
   function chooseProgram(id) {
@@ -187,21 +205,32 @@ export default function ExpenseReports() {
   }
 
   function removeItem(index) {
+    const storedPaths = (form.expense_items[index]?.attachments || []).filter((file) => !file.pending && file.path).map((file) => file.path);
+    if (storedPaths.length) setReceiptPathsPendingDeletion((current) => [...new Set([...current, ...storedPaths])]);
     setForm((current) => ({ ...current, expense_items: current.expense_items.filter((_, itemIndex) => itemIndex !== index) }));
+  }
+
+  function discardForm() {
+    form.expense_items.forEach((item) => (item.attachments || []).forEach((file) => {
+      if (file.pending && file.url) URL.revokeObjectURL(file.url);
+    }));
+    setReceiptPathsPendingDeletion([]);
+    setMode("list");
   }
 
   async function saveReport(status) {
     setMessage({ type: "", text: "" });
-    if (!form.user_name.trim() || !form.project_name.trim() || !form.period_start || !form.period_end || !form.purpose.trim()) {
-      setMessage({ type: "error", text: "Preencha usuário, projeto, período e justificativa." });
+    if (!form.bank_name.trim() || !form.payment_method) {
+      setMessage({ type: "error", text: "Informe o banco e a forma de crédito." });
       return;
     }
-    if (form.period_end < form.period_start) {
+    if (form.period_start && form.period_end && form.period_end < form.period_start) {
       setMessage({ type: "error", text: "A data final não pode ser anterior à data inicial." });
       return;
     }
-    if (balance < 0 && (!form.bank_name.trim() || !form.payment_method)) {
-      setMessage({ type: "error", text: "Informe o banco e a forma de crédito para o saldo a resgatar." });
+    const today = format(new Date(), "yyyy-MM-dd");
+    if (form.expense_items.some((item) => item.date && item.date < today)) {
+      setMessage({ type: "error", text: "A data do comprovante não pode ser anterior à data atual." });
       return;
     }
     const invalidMileage = form.expense_items.some((item) =>
@@ -213,13 +242,44 @@ export default function ExpenseReports() {
       return;
     }
     setSaving(true);
+    const newlyUploadedPaths = [];
+    let preparedExpenseItems;
+    try {
+      preparedExpenseItems = [];
+      for (const item of form.expense_items) {
+        const attachments = [];
+        for (const attachment of item.attachments || []) {
+          if (!attachment.pending || !attachment.file) {
+            attachments.push(attachment);
+            continue;
+          }
+          const safeName = attachment.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9._-]/g, "_");
+          const path = `expense-receipts/${Date.now()}-${Math.random().toString(36).slice(2)}-${safeName}`;
+          const { error } = await supabase.storage.from("activity-files").upload(path, attachment.file, { upsert: false });
+          if (error) throw error;
+          newlyUploadedPaths.push(path);
+          const url = await signedUrl("activity-files", path);
+          attachments.push({ name: attachment.name, url, path, size: attachment.size, type: attachment.type });
+        }
+        preparedExpenseItems.push({ ...item, attachments });
+      }
+    } catch (error) {
+      if (newlyUploadedPaths.length) await supabase.storage.from("activity-files").remove(newlyUploadedPaths);
+      setSaving(false);
+      setMessage({ type: "error", text: `Não foi possível enviar os comprovantes: ${error.message}` });
+      return;
+    }
     const workflowStatus = status === "submitted" ? "pending_approval" : status;
     const payload = {
       ...form, status: workflowStatus,
       program_id: form.program_id || null, person_id: form.person_id || null,
+      source_company: form.source_company || null,
+      project_name: form.project_name || null, user_name: form.user_name || null,
+      period_start: form.period_start || null, period_end: form.period_end || null,
+      purpose: form.purpose || null,
       advance_amount: Number(form.advance_amount || 0),
       payment_method: form.payment_method || null,
-      expense_items: form.expense_items
+      expense_items: preparedExpenseItems
         .filter((item) => item.description.trim() || item.date || item.document_number.trim() || item.amount !== "")
         .map((item) => ({
           ...item,
@@ -234,14 +294,21 @@ export default function ExpenseReports() {
     delete payload.updated_at;
     delete payload.approvals;
     delete payload.person;
+    delete payload.program;
     const result = editingId
       ? await supabase.from("expense_reports").update(payload).eq("id", editingId).select().single()
       : await supabase.from("expense_reports").insert(payload).select().single();
     setSaving(false);
     if (result.error) {
+      if (newlyUploadedPaths.length) await supabase.storage.from("activity-files").remove(newlyUploadedPaths);
       setMessage({ type: "error", text: result.error.message });
       return;
     }
+    if (receiptPathsPendingDeletion.length) await supabase.storage.from("activity-files").remove(receiptPathsPendingDeletion);
+    form.expense_items.forEach((item) => (item.attachments || []).forEach((file) => {
+      if (file.pending && file.url) URL.revokeObjectURL(file.url);
+    }));
+    setReceiptPathsPendingDeletion([]);
     if (workflowStatus === "pending_approval") {
       const { error: approvalError } = await supabase.rpc("initialize_expense_report_approval", { target_report_id: result.data.id });
       if (approvalError) {
@@ -360,8 +427,9 @@ export default function ExpenseReports() {
     <ExpenseForm
       form={form} setForm={setForm} programs={programs} persons={persons}
       choosePerson={choosePerson} chooseProgram={chooseProgram} updateItem={updateItem}
+      onStoredReceiptRemoved={(path) => setReceiptPathsPendingDeletion((current) => [...new Set([...current, path])])}
       addItem={addItem} addMileageItem={addMileageItem} removeItem={removeItem} total={total} balance={balance}
-      saving={saving} message={message} onCancel={() => setMode("list")}
+      saving={saving} message={message} onCancel={discardForm}
       onSave={() => saveReport("draft")} onSubmit={() => saveReport("submitted")}
     />
   );
@@ -394,9 +462,9 @@ export default function ExpenseReports() {
           return <article key={report.id} className="rounded-xl border border-surface-variant bg-white p-4 dark:border-gray-700 dark:bg-dark-surface">
             <div className="flex flex-col gap-4 md:flex-row md:items-center">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-green-100 text-primary dark:bg-green-900/40 dark:text-green-300"><span className="material-symbols-outlined">receipt_long</span></div>
-            <div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><h3 className="font-bold text-primary dark:text-white">Relatório nº {String(report.report_number).padStart(5, "0")}</h3><span className={`rounded-full px-2 py-1 text-xs font-bold ${statusClass}`}>{displayStatus}</span></div><p className="truncate text-sm">{report.user_name}{report.person?.is_active === false && <span className="ml-2 rounded-full bg-gray-200 px-2 py-1 text-[10px] font-bold text-gray-700 dark:bg-gray-700 dark:text-gray-200">Usuário desativado</span>} · {report.project_name}</p><p className="text-xs text-outline">{report.period_start} a {report.period_end} · Despesas: {money(spent)}{report.payment_due_date ? ` · Pagamento previsto: ${report.payment_due_date}` : ""}</p>{receipts.length > 0 && <div className="mt-2 flex flex-wrap gap-2">{receipts.map((file, fileIndex) => <a key={`${file.path || file.url}-${fileIndex}`} href={file.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 hover:underline dark:bg-blue-900/30 dark:text-blue-300"><span className="material-symbols-outlined text-[15px]">attachment</span>{file.name}</a>)}</div>}</div>
+            <div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><h3 className="font-bold text-primary dark:text-white">Relatório nº {String(report.report_number).padStart(5, "0")}</h3><span className={`rounded-full px-2 py-1 text-xs font-bold ${statusClass}`}>{displayStatus}</span></div><p className="truncate text-sm">{report.user_name || "Usuário não informado"}{report.person?.is_active === false && <span className="ml-2 rounded-full bg-gray-200 px-2 py-1 text-[10px] font-bold text-gray-700 dark:bg-gray-700 dark:text-gray-200">Usuário desativado</span>} · {report.program?.name || report.project_name || "Programa não informado"}</p><p className="text-xs text-outline">{report.period_start || "—"} a {report.period_end || "—"} · Despesas: {money(spent)}{report.payment_due_date ? ` · Pagamento previsto: ${report.payment_due_date}` : ""}</p>{receipts.length > 0 && <div className="mt-2 flex flex-wrap gap-2">{receipts.map((file, fileIndex) => <a key={`${file.path || file.url}-${fileIndex}`} href={file.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 hover:underline dark:bg-blue-900/30 dark:text-blue-300"><span className="material-symbols-outlined text-[15px]">attachment</span>{file.name}</a>)}</div>}</div>
             <div className="flex flex-wrap gap-2">
-              {(report.status === "draft" || (report.status === "changes_requested" && report.person_id === currentUser?.id)) && <button onClick={() => editReport(report)} className="rounded-full border border-primary px-3 py-2 text-sm font-medium text-primary dark:text-white">{report.status === "changes_requested" ? "Corrigir e reenviar" : "Continuar"}</button>}
+              {(report.status === "draft" || (report.status === "changes_requested" && report.person_id === currentUser?.id)) && <button onClick={() => editReport(report)} className="rounded-full bg-primary px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-primary-light hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">{report.status === "changes_requested" ? "Corrigir e reenviar" : "Continuar"}</button>}
               {isApprover && report.status === "approved" && <button disabled={saving} onClick={() => transitionReport(report, "provisioned")} className="rounded-full bg-blue-600 px-4 py-2 text-sm font-bold text-white">Encaminhar para provisionamento</button>}
               {isApprover && report.status === "provisioned" && <div className="flex flex-wrap gap-2"><input type="date" aria-label="Data prevista para pagamento" value={paymentDates[report.id] || ""} onChange={(event) => setPaymentDates({ ...paymentDates, [report.id]: event.target.value })} className="rounded-xl border border-surface-variant px-3 py-2 text-sm dark:bg-gray-800" /><button disabled={saving} onClick={() => transitionReport(report, "payment_scheduled")} className="rounded-full bg-accent px-4 py-2 text-sm font-bold text-primary">Informar pagamento</button></div>}
               <button onClick={() => printReport(report)} className="rounded-full bg-surface px-3 py-2 text-sm font-medium dark:bg-gray-700"><span className="material-symbols-outlined align-middle text-[18px]">print</span> Imprimir</button><button disabled={!!generatingPdfId} onClick={() => downloadPdf(report)} className="rounded-full bg-red-100 px-3 py-2 text-sm font-medium text-red-700 disabled:cursor-wait disabled:opacity-60"><span className={`material-symbols-outlined align-middle text-[18px] ${generatingPdfId === report.id ? "animate-spin" : ""}`}>{generatingPdfId === report.id ? "progress_activity" : "picture_as_pdf"}</span> {generatingPdfId === report.id ? "Gerando…" : "PDF"}</button>
@@ -465,42 +533,44 @@ function ApprovalPanel({ report, currentUser, saving, comment, onComment, onDeci
   </section>;
 }
 
-function ExpenseForm({ form, setForm, programs, persons, choosePerson, chooseProgram, updateItem, addItem, addMileageItem, removeItem, total, balance, saving, message, onCancel, onSave, onSubmit }) {
+function ExpenseForm({ form, setForm, programs, persons, choosePerson, chooseProgram, updateItem, onStoredReceiptRemoved, addItem, addMileageItem, removeItem, total, balance, saving, message, onCancel, onSave, onSubmit }) {
   const field = (name) => ({ value: form[name], onChange: (event) => setForm({ ...form, [name]: event.target.value }) });
   return <div className="mx-auto max-w-6xl px-2 sm:px-4">
     <div className="mb-6 flex items-center justify-between gap-4"><div><button onClick={onCancel} className="mb-2 text-sm text-primary dark:text-green-300">← Voltar aos relatórios</button><h2 className="text-headline-lg font-semibold text-primary dark:text-white">Relatório de despesas / adiantamento</h2></div></div>
     {message.text && <Alert message={message} />}
     <div className="space-y-6">
       <Section title="Identificação"><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Field label="Fonte pagadora"><input required className={inputClass} {...field("source_company")} placeholder="Ex.: IRACAMBI" /></Field>
+        <Field label="Fonte pagadora"><input className={inputClass} {...field("source_company")} placeholder="Ex.: IRACAMBI" /></Field>
         <Field label="Código da empresa"><input className={inputClass} {...field("company_code")} placeholder="Ex.: 001" /></Field>
         <Field label="Centro de custos"><input className={inputClass} {...field("cost_center")} placeholder="Ex.: Projetos Ambientais" /></Field>
         <Field label="Programa"><select className={inputClass} value={form.program_id} onChange={(event) => chooseProgram(event.target.value)}><option value="">Selecione</option>{programs.map((program) => <option key={program.id} value={program.id}>{program.name}</option>)}</select></Field>
-        <Field label="Nome do projeto"><input required className={inputClass} {...field("project_name")} placeholder="Ex.: Restauração da Mata Atlântica" /></Field>
+        <Field label="Nome do projeto"><input className={inputClass} {...field("project_name")} placeholder="Ex.: Restauração da Mata Atlântica" /></Field>
         <Field label="Código do projeto"><input className={inputClass} {...field("project_code")} placeholder="Ex.: PRJ-2026-01" /></Field>
         <Field label="Usuário"><select className={inputClass} value={form.person_id} onChange={(event) => choosePerson(event.target.value)}><option value="">Selecione ou digite abaixo</option>{persons.map((person) => <option key={person.id} value={person.id}>{person.name}</option>)}</select></Field>
-        <Field label="Nome completo"><input required className={inputClass} {...field("user_name")} placeholder="Ex.: Maria da Silva" /></Field>
+        <Field label="Nome completo"><input className={inputClass} {...field("user_name")} placeholder="Ex.: Maria da Silva" /></Field>
         <Field label="CPF"><input className={inputClass} {...field("user_cpf")} placeholder="Ex.: 000.000.000-00" /></Field>
         <Field label="Telefone"><input className={inputClass} {...field("user_phone")} placeholder="Ex.: (32) 99999-0000" /></Field>
         <Field label="Cargo"><input className={inputClass} {...field("user_role")} placeholder="Ex.: Coordenador de projetos" /></Field>
         <Field label="Número do registro"><input className={inputClass} {...field("registration_number")} placeholder="Ex.: 12345" /></Field>
       </div></Section>
       <Section title="Utilização e finalidade"><div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Data inicial"><input required type="date" className={inputClass} {...field("period_start")} /></Field>
-        <Field label="Data final"><input required type="date" className={inputClass} {...field("period_end")} /></Field>
+        <Field label="Data inicial"><input type="date" className={inputClass} {...field("period_start")} /></Field>
+        <Field label="Data final"><input type="date" className={inputClass} {...field("period_end")} /></Field>
         <Field label="Roteiro da viagem"><input className={inputClass} {...field("travel_route")} placeholder="Ex.: Rosário da Limeira X Muriaé X Rosário da Limeira" /></Field>
         <Field label="Valor do adiantamento"><input min="0" step="0.01" type="number" className={inputClass} {...field("advance_amount")} placeholder="Ex.: 500,00" /></Field>
-        <div className="sm:col-span-2"><Field label="Justificativa da despesa / objetivo da viagem"><textarea required rows="3" className={inputClass} {...field("purpose")} placeholder="Ex.: Visita técnica às propriedades participantes do projeto para acompanhamento das áreas restauradas." /></Field></div>
+        <div className="sm:col-span-2"><Field label="Justificativa da despesa / objetivo da viagem"><textarea rows="3" className={inputClass} {...field("purpose")} placeholder="Ex.: Visita técnica às propriedades participantes do projeto para acompanhamento das áreas restauradas." /></Field></div>
       </div></Section>
-      <Section title="Despesas"><ExpenseItemsTable items={form.expense_items} updateItem={updateItem} removeItem={removeItem} addItem={addItem} addMileageItem={addMileageItem} /></Section>
+      <Section title="Despesas"><ExpenseItemsTable items={form.expense_items} updateItem={updateItem} onStoredReceiptRemoved={onStoredReceiptRemoved} removeItem={removeItem} addItem={addItem} addMileageItem={addMileageItem} /></Section>
       <Section title="Prestação de contas"><div className="grid gap-4 sm:grid-cols-3"><Summary label="Adiantamento" value={money(form.advance_amount)} /><Summary label="Despesa realizada" value={money(total)} /><Summary label={balance >= 0 ? "Saldo a devolver" : "Saldo a resgatar"} value={money(Math.abs(balance))} highlight /></div></Section>
-      {balance < 0 && <Section title="Dados bancários para saldo a resgatar"><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"><Field label="Banco"><input required className={inputClass} {...field("bank_name")} placeholder="Ex.: Banco do Brasil" /></Field><Field label="Forma de crédito"><select required className={inputClass} {...field("payment_method")}><option value="">Selecione</option><option value="checking">Conta corrente</option><option value="savings">Conta poupança</option><option value="check">Cheque</option></select></Field><Field label="Agência"><input className={inputClass} {...field("bank_branch")} placeholder="Ex.: 1234" /></Field><Field label="Dígito da agência"><input className={inputClass} {...field("bank_branch_digit")} placeholder="Ex.: 5" /></Field><Field label="Conta"><input className={inputClass} {...field("bank_account")} placeholder="Ex.: 12345" /></Field><Field label="Dígito da conta"><input className={inputClass} {...field("bank_account_digit")} placeholder="Ex.: 6" /></Field></div></Section>}
+      <Section title="Dados bancários"><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"><Field label="Banco *"><input required className={inputClass} {...field("bank_name")} placeholder="Ex.: Banco do Brasil" /></Field><Field label="Forma de crédito *"><select required className={inputClass} {...field("payment_method")}><option value="">Selecione</option><option value="checking">Conta corrente</option><option value="savings">Conta poupança</option><option value="check">Cheque</option></select></Field><Field label="Agência"><input className={inputClass} {...field("bank_branch")} placeholder="Ex.: 1234" /></Field><Field label="Dígito da agência"><input className={inputClass} {...field("bank_branch_digit")} placeholder="Ex.: 5" /></Field><Field label="Conta"><input className={inputClass} {...field("bank_account")} placeholder="Ex.: 12345" /></Field><Field label="Dígito da conta"><input className={inputClass} {...field("bank_account_digit")} placeholder="Ex.: 6" /></Field></div></Section>
       <div className="sticky bottom-16 z-20 grid grid-cols-2 gap-2 rounded-xl border border-surface-variant bg-white/95 p-3 shadow-xl backdrop-blur dark:border-gray-700 dark:bg-dark-surface/95 sm:flex sm:flex-wrap sm:justify-end sm:gap-3 sm:p-4 md:bottom-4"><button type="button" onClick={onCancel} className="min-h-11 rounded-full border border-outline px-4 py-2.5">Cancelar</button><button disabled={saving} type="button" onClick={onSave} className="min-h-11 rounded-full border border-primary px-4 py-2.5 font-bold text-primary dark:text-white">Salvar rascunho</button><button disabled={saving} type="button" onClick={onSubmit} className="col-span-2 min-h-11 rounded-full bg-accent px-5 py-2.5 font-bold text-primary sm:col-auto">{saving ? "Salvando..." : "Finalizar relatório"}</button></div>
     </div>
   </div>;
 }
 
-function ExpenseItemsTable({ items, updateItem, removeItem, addItem, addMileageItem }) {
+function ExpenseItemsTable({ items, updateItem, onStoredReceiptRemoved, removeItem, addItem, addMileageItem }) {
+  const today = format(new Date(), "yyyy-MM-dd");
+  const monthYear = (value) => new Date(`${value || today}T12:00:00`).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
   return (
     <>
       <div className="w-full overflow-hidden">
@@ -579,12 +649,13 @@ function ExpenseItemsTable({ items, updateItem, removeItem, addItem, addMileageI
                       <ExpenseReceiptUpload
                         files={item.attachments || []}
                         onChange={(files) => updateItem(index, "attachments", files)}
+                        onStoredReceiptRemoved={onStoredReceiptRemoved}
                       />
                     ) : (
                       <span className="block py-3 text-center text-sm text-outline">—</span>
                     )}
                   </td>
-                  <td className="p-2"><input type="date" className={`${inputClass} px-2`} value={item.date} onChange={(event) => updateItem(index, "date", event.target.value)} /></td>
+                  <td className="p-2"><input type="date" min={today} className={`${inputClass} px-2`} value={item.date} onChange={(event) => updateItem(index, "date", event.target.value)} /><span className="mt-1 block text-[10px] capitalize text-outline">Mês/ano: {monthYear(item.date)}</span></td>
                   <td className="p-2"><input className={inputClass} value={item.document_number} onChange={(event) => updateItem(index, "document_number", event.target.value)} placeholder="Ex.: NF 1234" /></td>
                   <td className="p-2">
                     {mileage ? (
@@ -610,39 +681,29 @@ function ExpenseItemsTable({ items, updateItem, removeItem, addItem, addMileageI
   );
 }
 
-function ExpenseReceiptUpload({ files, onChange }) {
-  const [uploading, setUploading] = useState(false);
+function ExpenseReceiptUpload({ files, onChange, onStoredReceiptRemoved }) {
   const [uploadError, setUploadError] = useState("");
 
-  async function uploadReceipts(event) {
+  function selectReceipts(event) {
     const selectedFiles = Array.from(event.target.files || []);
     event.target.value = "";
     if (!selectedFiles.length) return;
-    setUploading(true);
     setUploadError("");
-    const uploaded = [];
+    const pending = [];
     for (const file of selectedFiles) {
       if (file.size > 5 * 1024 * 1024) {
         setUploadError(`${file.name}: limite máximo de 5 MB.`);
         continue;
       }
-      const safeName = file.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9._-]/g, "_");
-      const path = `expense-receipts/${Date.now()}-${Math.random().toString(36).slice(2)}-${safeName}`;
-      const { error } = await supabase.storage.from("activity-files").upload(path, file, { upsert: false });
-      if (error) {
-        setUploadError(`Erro ao enviar ${file.name}: ${error.message}`);
-        continue;
-      }
-      const url = await signedUrl("activity-files", path);
-      uploaded.push({ name: file.name, url, path, size: file.size, type: file.type });
+      pending.push({ name: file.name, url: URL.createObjectURL(file), size: file.size, type: file.type, file, pending: true });
     }
-    if (uploaded.length) onChange([...files, ...uploaded]);
-    setUploading(false);
+    if (pending.length) onChange([...files, ...pending]);
   }
 
-  async function removeReceipt(fileIndex) {
+  function removeReceipt(fileIndex) {
     const file = files[fileIndex];
-    if (file?.path) await supabase.storage.from("activity-files").remove([file.path]);
+    if (file?.pending && file.url) URL.revokeObjectURL(file.url);
+    if (!file?.pending && file?.path) onStoredReceiptRemoved(file.path);
     onChange(files.filter((_, index) => index !== fileIndex));
   }
 
@@ -650,8 +711,8 @@ function ExpenseReceiptUpload({ files, onChange }) {
     <div className="space-y-2">
       <label className="flex cursor-pointer items-center justify-center gap-1 rounded-xl border border-dashed border-primary/40 bg-blue-50 px-2 py-2.5 text-xs font-bold text-primary hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-200">
         <span className="material-symbols-outlined text-[18px]">upload_file</span>
-        {uploading ? "Enviando..." : "Anexar comprovante"}
-        <input type="file" multiple accept="image/*,.pdf" onChange={uploadReceipts} disabled={uploading} className="hidden" />
+        Anexar comprovante
+        <input type="file" multiple accept="image/*,.pdf" onChange={selectReceipts} className="hidden" />
       </label>
       {uploadError && <p className="text-xs text-red-600">{uploadError}</p>}
       {files.map((file, index) => (
@@ -660,6 +721,7 @@ function ExpenseReceiptUpload({ files, onChange }) {
             <span className="material-symbols-outlined text-[16px]">{file.type === "application/pdf" ? "picture_as_pdf" : "image"}</span>
             <span className="truncate">{file.name}</span>
           </a>
+          {file.pending && <span className="shrink-0 rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold text-amber-800">Será enviado ao salvar</span>}
           <button type="button" onClick={() => removeReceipt(index)} className="shrink-0 text-red-500" aria-label={`Remover ${file.name}`}><span className="material-symbols-outlined text-[17px]">close</span></button>
         </div>
       ))}

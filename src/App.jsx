@@ -9,6 +9,7 @@ import Settings from "./pages/Settings";
 import AdminPrograms from "./pages/AdminPrograms";
 import AdminPersons from "./pages/AdminPersons";
 import AdminLeaders from "./pages/AdminLeaders";
+import AdminMaintenance from "./pages/AdminMaintenance";
 import About from "./pages/About";
 import Calendar from "./pages/Calendar";
 import Stats from "./pages/Stats";
@@ -64,6 +65,7 @@ function App() {
         <Route path="/admin/programs" element={<AdminOnly><AdminPrograms /></AdminOnly>} />
         <Route path="/admin/persons" element={<AdminOnly><AdminPersons /></AdminOnly>} />
         <Route path="/admin/leaders" element={<AdminOnly><AdminLeaders /></AdminOnly>} />
+        <Route path="/admin/maintenance" element={<AdminOnly><AdminMaintenance /></AdminOnly>} />
         <Route path="/calendar" element={<Calendar />} />
         <Route path="/events" element={<Events />} />
         <Route path="/projects" element={<Projects />} />

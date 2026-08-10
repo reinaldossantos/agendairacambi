@@ -18,6 +18,18 @@ export default function NewActivity() {
   const location = useLocation();
   const { currentUser } = useCurrentUser();
   const { modes } = useAdvancedSettings();
+  const uncommittedUploads = useRef({ images: new Set(), files: new Set() });
+
+  useEffect(() => () => {
+    const imagePaths = [...uncommittedUploads.current.images];
+    const filePaths = [...uncommittedUploads.current.files];
+    if (imagePaths.length) supabase.storage.from("activity-attachments").remove(imagePaths);
+    if (filePaths.length) supabase.storage.from("activity-files").remove(filePaths);
+  }, []);
+
+  const trackUploads = (bucket, metadata) => {
+    for (const path of metadata?.uploadedPaths || []) uncommittedUploads.current[bucket].add(path);
+  };
   const [programs, setPrograms] = useState([]);
   const [managementProjects, setManagementProjects] = useState([]);
   const [persons, setPersons] = useState([]);
@@ -450,6 +462,8 @@ export default function NewActivity() {
     }
 
     setMessage({ type: "success", text: `${list.length} atividade(s) lançada(s)!` });
+    uncommittedUploads.current.images.clear();
+    uncommittedUploads.current.files.clear();
     setLastInserted({ program: selectedProgram, responsible: selectedPerson, weekStart: list[0].week_start, activities: list });
     setWeekText("");
     setQuickActivities([{ date: format(new Date(), "yyyy-MM-dd"), title: "", description: "", involvedIds: [], priority: "Média", repeat: false, repeatEndDate: "", repeatDays: [], images: [], files: [], startDateTime: "", endDateTime: "", isEvent: false, eventData: emptyEventData() }]);
@@ -548,7 +562,7 @@ export default function NewActivity() {
                 Fotos (para todas as atividades)
               </label>
               <PhotoUpload
-                onUploadComplete={(newPhotos) => setGlobalImages(newPhotos)}
+                onUploadComplete={(newPhotos, metadata) => { setGlobalImages(newPhotos); trackUploads("images", metadata); }}
                 existingPhotos={globalImages}
               />
             </div>
@@ -560,7 +574,7 @@ export default function NewActivity() {
                 Arquivos (para todas as atividades)
               </label>
               <FileUpload
-                onUploadComplete={(newFiles) => setGlobalFiles(newFiles)}
+                onUploadComplete={(newFiles, metadata) => { setGlobalFiles(newFiles); trackUploads("files", metadata); }}
                 existingFiles={globalFiles}
               />
             </div>
@@ -671,7 +685,7 @@ export default function NewActivity() {
                     Registro Fotográfico
                   </label>
                   <PhotoUpload
-                    onUploadComplete={(newPhotos) => updateQuickActivity(idx, "images", newPhotos)}
+                    onUploadComplete={(newPhotos, metadata) => { updateQuickActivity(idx, "images", newPhotos); trackUploads("images", metadata); }}
                     existingPhotos={qa.images || []}
                   />
                 </div>
@@ -683,7 +697,7 @@ export default function NewActivity() {
                     Registro Arquivos (PDF, DOC, XLS, ZIP, TXT, etc.)
                   </label>
                   <FileUpload
-                    onUploadComplete={(newFiles) => updateQuickActivity(idx, "files", newFiles)}
+                    onUploadComplete={(newFiles, metadata) => { updateQuickActivity(idx, "files", newFiles); trackUploads("files", metadata); }}
                     existingFiles={qa.files || []}
                   />
                 </div>

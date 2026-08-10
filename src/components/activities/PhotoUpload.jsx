@@ -44,7 +44,7 @@ export default function PhotoUpload({ onUploadComplete, existingPhotos = [] }) {
 
     const updatedPhotos = [...photos, ...uploadedUrls];
     setPhotos(updatedPhotos);
-    if (onUploadComplete) onUploadComplete(updatedPhotos);
+    if (onUploadComplete) onUploadComplete(updatedPhotos, { uploadedPaths: uploadedUrls.map((url) => storagePath(url, "activity-attachments")).filter(Boolean) });
     setUploadStatus(failures.length ? { type: "error", message: `${uploadedUrls.length} enviada(s). ${failures.join(" ")}` } : { type: "success", message: `${uploadedUrls.length} foto(s) enviada(s) com sucesso.` });
     setTimeout(() => setUploadStatus({ type: "", message: "" }), 3000);
     setUploading(false);
