@@ -187,7 +187,7 @@ function UserIdentity({ currentUser, signOut }) {
 }
 
 function NotificationButton({ count, onClick }) {
-  return <button type="button" onClick={onClick} className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/70 text-primary shadow-sm dark:bg-white/5 dark:text-green-300" aria-label="Notificações"><span className="material-symbols-outlined">notifications</span>{count > 0 && <span className="absolute right-0 top-0 flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-black text-primary">{count > 9 ? "9+" : count}</span>}</button>;
+  return <button type="button" onClick={onClick} className={`relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/70 text-primary shadow-sm dark:bg-white/5 dark:text-green-300 ${count > 0 ? "motion-safe:animate-pulse motion-reduce:animate-none ring-2 ring-accent/70" : ""}`} aria-label={count > 0 ? `${count} nova(s) notificação(ões)` : "Notificações"}><span className="material-symbols-outlined">notifications_active</span>{count > 0 && <span className="absolute right-0 top-0 flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-black text-primary">{count > 9 ? "9+" : count}</span>}</button>;
 }
 
 function NotificationPanel({ notifications, error, onClose, onRead, panelRef }) {

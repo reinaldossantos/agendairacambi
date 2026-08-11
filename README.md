@@ -4,6 +4,8 @@ Sistema web responsivo para planejamento, acompanhamento, gestão e prestação 
 
 O projeto centraliza agenda, eventos, evidências, pessoas, programas, veículos, despesas, relatórios, arquivos, avisos, notificações e auditoria em uma única aplicação instalável como PWA.
 
+O sino pulsa enquanto houver notificações novas para o usuário. Cada notificação desaparece somente após ser aberta, e essa leitura é registrada de forma imutável na rastreabilidade com usuário, origem, item e horário.
+
 ## Últimas novidades
 
 ### Solicitações de compras com aprovação e rastreabilidade
@@ -270,6 +272,7 @@ Os scripts SQL estão em `supabase/`. Em uma instalação nova, execute no SQL E
 13. `dynamic_translations.sql` — cache privado das traduções automáticas.
 14. `project_management.sql` — projetos, Kanban, tarefas, riscos, histórico e notificações.
 15. `migrations/20260811153000_purchase_requests.sql` — solicitações de compras, vínculos, aprovações, linha do tempo e notificações.
+16. `migrations/20260811213000_audit_notification_reads.sql` — leitura individual de notificações com alerta visual e rastreabilidade imutável.
 15. `system_audit.sql` — auditoria e rastreabilidade.
 16. `person_deactivation.sql` e correções específicas ainda não aplicadas ao ambiente.
 17. `access_session_tracking.sql` — acesso exclusivo de Reinaldo ao histórico e medição da duração das sessões; execute após `user_authentication.sql`.

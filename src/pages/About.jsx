@@ -209,7 +209,7 @@ const sections = [
     title: "Notificações e mural de avisos",
     items: [
       "O sino reúne notificações em tempo real sobre atividades, menções, comentários, arquivos, despesas e eventos de segurança destinados ao seu perfil.",
-      "O sino exibe somente notificações novas de cada usuário. Ao abrir uma notificação, ela é marcada como lida e deixa a lista para evitar confusão com avisos antigos.",
+      "O sino pulsa quando existem novidades e respeita a preferência de redução de movimento do dispositivo. Ao abrir uma notificação, ela é marcada como lida, deixa a lista e a leitura fica registrada permanentemente com usuário, origem, item e horário.",
       "No Mural, publique avisos para todos ou para um programa, navegue pelas semanas e edite ou exclua seus próprios avisos quando permitido.",
       "Os indicadores visuais do cabeçalho avisam quando existem novidades no Mural ou no Repositório.",
     ],

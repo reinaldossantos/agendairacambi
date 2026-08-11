@@ -106,15 +106,7 @@ export function useNotifications(currentUser) {
     if (!currentUser?.id || !notification) return;
     setNotifications((items) => items.filter((item) => !(item.source === notification.source && item.id === notification.id)));
     setUnreadCount((count) => Math.max(0, count - 1));
-    let result;
-    if (notification.source === "activity") {
-      result = await supabase.from("activity_notification_reads").upsert({ log_id: String(notification.id), person_id: currentUser.id }, { onConflict: "log_id,person_id" });
-    } else if (notification.source === "security") {
-      result = await supabase.from("security_notifications").update({ is_read: true }).eq("id", notification.id).eq("recipient_id", currentUser.id);
-    } else {
-      const table = notification.source === "expense_report" ? "expense_report_notifications" : notification.source === "project" ? "management_project_notifications" : "purchase_request_notifications";
-      result = await supabase.from(table).update({ read_at: new Date().toISOString() }).eq("id", notification.id).eq("recipient_id", currentUser.id);
-    }
+    const result = await supabase.rpc("read_notification", { requested_source: notification.source, requested_id: String(notification.id) });
     if (result.error) {
       setNotificationError(`Não foi possível marcar a notificação como lida: ${result.error.message}`);
       await fetchNotifications();
