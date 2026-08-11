@@ -8,9 +8,9 @@ O projeto centraliza agenda, eventos, evidências, pessoas, programas, veículos
 
 ### Solicitações de compras com aprovação e rastreabilidade
 
-**Finalidade:** organizar necessidades de materiais, serviços e obras desde a justificativa até o recebimento, vinculando cada solicitação aos projetos, editais, programas e pessoas beneficiadas.
+**Finalidade:** organizar necessidades de materiais, serviços e obras desde a justificativa até o recebimento, vinculando cada solicitação aos projetos, editais e programas beneficiados diretamente.
 
-**Como usar:** acesse **Operações → Solicitações de compras**, informe a necessidade, os itens e valores estimados, selecione os beneficiários e, quando aplicável, vincule um projeto ou edital. Confira a prévia antes do envio. Solicitações dos demais usuários exigem aprovação de Reinaldo e Thaís; quando um deles é o solicitante, somente o outro aprova, impedindo autoaprovação.
+**Como usar:** acesse **Operações → Solicitações de compras**, informe a necessidade, os itens e valores estimados, selecione o programa beneficiado diretamente e, quando aplicável, vincule um projeto ou edital. Confira a prévia antes do envio. Solicitações dos demais usuários exigem aprovação de Reinaldo e Thaís; quando um deles é o solicitante, somente o outro aprova, impedindo autoaprovação.
 
 ### Despesas mais rápidas e armazenamento seguro
 
@@ -173,7 +173,7 @@ Por padrão, a tradução automática fica **desabilitada**. Um administrador po
 - Itens com especificação, quantidade, unidade, valor unitário e total estimado automático.
 - Textos narrativos são padronizados ao salvar com primeira letra maiúscula e demais letras minúsculas; códigos, números de documentos, datas e anexos são preservados.
 - Justificativa, urgência, data necessária, local de entrega, fonte do recurso e fornecedor sugerido.
-- Vínculo opcional com projeto de gestão, edital e múltiplos programas ou pessoas beneficiadas.
+- Indicação obrigatória de ao menos um programa beneficiado diretamente, com vínculo opcional a projeto de gestão e edital.
 - Prévia obrigatória antes do envio para análise.
 - Aprovação individual e auditável de Reinaldo e Thaís, sem autoaprovação.
 - Solicitação de ajustes e reprovação com parecer obrigatório.

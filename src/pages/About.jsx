@@ -160,7 +160,7 @@ const sections = [
       "Informe o objeto, a justificativa, a urgência, a data necessária e os itens. Quantidade e valor unitário formam automaticamente o total estimado.",
       "Os textos da solicitação e dos itens são padronizados ao salvar com primeira letra maiúscula e demais letras minúsculas; códigos e números de documentos não são modificados.",
       "Vincule a solicitação a um projeto de gestão e, quando aplicável, informe edital, prazo e fonte do recurso.",
-      "Selecione um ou mais programas e pessoas beneficiadas ou descreva outro público, como comunidades, parceiros e turmas.",
+      "Selecione ao menos um programa beneficiado diretamente; toda a equipe da ONG é considerada beneficiária, sem seleção individual de pessoas.",
       "Salve como rascunho para continuar depois. Antes do envio, confira a prévia completa; durante a aprovação o conteúdo fica protegido contra alterações.",
       "Todas as solicitações ficam visíveis aos usuários autenticados. O solicitante pode editar seus próprios rascunhos e solicitações devolvidas para ajustes; o administrador pode editar qualquer registro.",
       "A exclusão é exclusiva do administrador, inclusive quando a solicitação ainda estiver como rascunho.",
