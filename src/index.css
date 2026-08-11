@@ -53,6 +53,18 @@ body {
 
 .animate-period-in { animation: period-in 240ms ease-out; }
 
+/* Mantém a prévia de reembolso visualmente centralizada, mesmo com conteúdo longo. */
+[aria-labelledby="expense-preview-title"] {
+  display: grid !important;
+  place-items: center !important;
+  overflow: hidden !important;
+}
+
+[aria-labelledby="expense-preview-title"] > div {
+  max-height: min(84dvh, 800px) !important;
+  margin-block: auto !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-period-in { animation: none; }
 }
