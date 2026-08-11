@@ -20,7 +20,7 @@ const groups = [
     { to: "/new", label: "Nova atividade", icon: "add_circle" },
     { to: "/history", label: "Histórico e relatórios", icon: "history" },
     { to: "/expense-reports", label: "Relatórios de despesas", icon: "receipt_long" },
-    { to: "/purchase-requests", label: "Solicitações de compras", icon: "shopping_cart" },
+    { to: "/purchase-requests", label: "Solicitações de compras", icon: "shopping_cart", iconClass: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300" },
     { to: "/expense-report-summary", label: "Resumo financeiro", icon: "analytics" },
     { to: "/monthly-activity-reports", label: "Relatórios mensais", icon: "summarize" },
     { to: "/stats", label: "Estatísticas", icon: "bar_chart" },
@@ -146,7 +146,7 @@ export default function ResponsiveHeader() {
 
 function MenuLink({ item, tone, alerts, onClick }) {
   return <NavLink to={item.to} end={item.end} onClick={onClick} className={({ isActive }) => `flex min-h-12 items-center gap-3 rounded-xl px-4 py-3 transition ${isActive ? "bg-green-100 font-bold text-primary dark:bg-white/15 dark:text-white" : "text-on-surface hover:bg-surface dark:text-gray-200 dark:hover:bg-white/10"}`}>
-    <span className={`material-symbols-outlined ${alerts[item.alert] ? "bg-red-500/10 text-red-500" : `icon-tone-${tone}`}`}>{item.icon}</span><span>{item.label}</span>{alerts[item.alert] && <span className="ml-auto rounded-full bg-red-100 px-2 py-0.5 text-xs font-bold text-red-700">Novo</span>}
+    <span className={`material-symbols-outlined rounded-lg p-1.5 ${alerts[item.alert] ? "bg-red-500/10 text-red-500" : item.iconClass || `icon-tone-${tone}`}`}>{item.icon}</span><span>{item.label}</span>{alerts[item.alert] && <span className="ml-auto rounded-full bg-red-100 px-2 py-0.5 text-xs font-bold text-red-700">Novo</span>}
   </NavLink>;
 }
 
