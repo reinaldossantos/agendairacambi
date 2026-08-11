@@ -273,6 +273,7 @@ Os scripts SQL estão em `supabase/`. Em uma instalação nova, execute no SQL E
 14. `project_management.sql` — projetos, Kanban, tarefas, riscos, histórico e notificações.
 15. `migrations/20260811153000_purchase_requests.sql` — solicitações de compras, vínculos, aprovações, linha do tempo e notificações.
 16. `migrations/20260811213000_audit_notification_reads.sql` — leitura individual de notificações com alerta visual e rastreabilidade imutável.
+17. `migrations/20260811214500_normalize_kombi_purchase_request.sql` — correção do título legado da solicitação de manutenção da Kombi conforme o padrão textual.
 15. `system_audit.sql` — auditoria e rastreabilidade.
 16. `person_deactivation.sql` e correções específicas ainda não aplicadas ao ambiente.
 17. `access_session_tracking.sql` — acesso exclusivo de Reinaldo ao histórico e medição da duração das sessões; execute após `user_authentication.sql`.
