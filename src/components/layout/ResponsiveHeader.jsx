@@ -47,7 +47,7 @@ const groups = [
 
 export default function ResponsiveHeader() {
   const { currentUser, signOut } = useCurrentUser();
-  const { notifications, unreadCount, notificationError, open, toggleOpen, dropdownRef } = useNotifications(currentUser);
+  const { notifications, unreadCount, notificationError, open, toggleOpen, markAsRead, dropdownRef } = useNotifications(currentUser);
   const { locale, changeLocale } = useLanguage();
   const location = useLocation();
   const isOnline = useOnlineStatus();
@@ -98,7 +98,7 @@ export default function ResponsiveHeader() {
           <LanguageSelect locale={locale} changeLocale={changeLocale} />
           <UserIdentity currentUser={currentUser} signOut={signOut} />
           <NotificationButton count={unreadCount} onClick={toggleOpen} />
-          <AnimatePresence>{open && <NotificationPanel notifications={notifications} error={notificationError} onClose={toggleOpen} panelRef={dropdownRef} />}</AnimatePresence>
+          <AnimatePresence>{open && <NotificationPanel notifications={notifications} error={notificationError} onClose={toggleOpen} onRead={markAsRead} panelRef={dropdownRef} />}</AnimatePresence>
         </div>
         <div className="flex items-center gap-1 md:hidden">
           <Link to="/new" className="flex h-10 w-10 items-center justify-center rounded-full bg-[#ffd12f] text-primary shadow-sm transition duration-200 hover:scale-105 hover:bg-[#ffda45] hover:shadow-md" aria-label="Nova atividade"><span className="material-symbols-outlined icon-plain">add</span></Link>
@@ -136,8 +136,8 @@ export default function ResponsiveHeader() {
 
       {mobileNotifications && <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm md:hidden" onMouseDown={(event) => { if (event.target === event.currentTarget) { setMobileNotifications(false); if (open) toggleOpen(); } }}>
         <div className="max-h-[80vh] w-full max-w-md overflow-hidden rounded-xl bg-white shadow-xl dark:bg-gray-800">
-          <div className="flex items-center justify-between border-b border-surface-variant p-4 dark:border-white/10"><h2 className="font-bold text-primary dark:text-white">Notificações</h2><button type="button" onClick={() => { setMobileNotifications(false); if (open) toggleOpen(); }} aria-label="Fechar"><span className="material-symbols-outlined">close</span></button></div>
-          <NotificationList notifications={notifications} error={notificationError} onClose={() => { setMobileNotifications(false); if (open) toggleOpen(); }} />
+          <div className="flex items-center justify-between border-b border-surface-variant p-4 dark:border-white/10"><h2 className="font-bold text-primary dark:text-white">Novas notificações</h2><button type="button" onClick={() => { setMobileNotifications(false); if (open) toggleOpen(); }} aria-label="Fechar"><span className="material-symbols-outlined">close</span></button></div>
+          <NotificationList notifications={notifications} error={notificationError} onRead={markAsRead} onClose={() => { setMobileNotifications(false); if (open) toggleOpen(); }} />
         </div>
       </div>}
     </header>
@@ -190,12 +190,12 @@ function NotificationButton({ count, onClick }) {
   return <button type="button" onClick={onClick} className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/70 text-primary shadow-sm dark:bg-white/5 dark:text-green-300" aria-label="Notificações"><span className="material-symbols-outlined">notifications</span>{count > 0 && <span className="absolute right-0 top-0 flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-black text-primary">{count > 9 ? "9+" : count}</span>}</button>;
 }
 
-function NotificationPanel({ notifications, error, onClose, panelRef }) {
-  return <motion.div ref={panelRef} initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} className="absolute right-6 top-16 z-[70] w-80 overflow-hidden rounded-xl border border-surface-variant bg-white shadow-xl dark:border-white/10 dark:bg-dark-surface"><div className="border-b border-surface-variant p-3 font-bold text-primary dark:border-white/10 dark:text-white">Notificações</div><NotificationList notifications={notifications} error={error} onClose={onClose} /></motion.div>;
+function NotificationPanel({ notifications, error, onClose, onRead, panelRef }) {
+  return <motion.div ref={panelRef} initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} className="absolute right-6 top-16 z-[70] w-80 overflow-hidden rounded-xl border border-surface-variant bg-white shadow-xl dark:border-white/10 dark:bg-dark-surface"><div className="border-b border-surface-variant p-3 font-bold text-primary dark:border-white/10 dark:text-white">Novas notificações</div><NotificationList notifications={notifications} error={error} onClose={onClose} onRead={onRead} /></motion.div>;
 }
 
-function NotificationList({ notifications, error, onClose }) {
+function NotificationList({ notifications, error, onClose, onRead }) {
   if (error) return <div role="alert" className="m-3 rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-300">{error}</div>;
-  if (!notifications.length) return <div className="p-6 text-center text-sm text-outline">Nenhuma notificação.</div>;
-  return <ul className="max-h-80 divide-y divide-surface-variant overflow-y-auto dark:divide-white/10">{notifications.map((notification) => <li key={`${notification.source}-${notification.id}`} className="relative">{!notification.is_read && <span className="absolute left-1.5 top-4 h-2 w-2 rounded-full bg-blue-600" aria-label="Não lida" />}<Link to={notification.link || (notification.activity ? `/activity/${notification.activity.id}` : "#")} onClick={onClose} className={`block p-3 pl-5 hover:bg-surface dark:hover:bg-white/10 ${!notification.is_read ? "bg-blue-50/60 dark:bg-blue-900/10" : ""}`}><div className="flex justify-between gap-3"><strong className="text-xs text-primary dark:text-white">{notification.title || (notification.type === "comment" ? "Comentário" : notification.type === "file" ? "Arquivo" : "Notificação")}</strong><span className="text-[10px] text-outline">{format(new Date(notification.created_at), "dd/MM HH:mm")}</span></div><p className="mt-1 truncate text-sm dark:text-gray-200">{notification.person?.name}{notification.activity?.title ? ` · ${notification.activity.title}` : ""}</p><p className="mt-1 truncate text-xs text-outline">{notification.content}</p></Link></li>)}</ul>;
+  if (!notifications.length) return <div className="p-6 text-center text-sm text-outline">Nenhuma notificação nova.</div>;
+  return <ul className="max-h-80 divide-y divide-surface-variant overflow-y-auto dark:divide-white/10">{notifications.map((notification) => <li key={`${notification.source}-${notification.id}`} className="relative"><span className="absolute left-1.5 top-4 h-2 w-2 rounded-full bg-blue-600" aria-label="Nova" /><Link to={notification.link || (notification.activity ? `/activity/${notification.activity.id}` : "#")} onClick={() => { onRead(notification); onClose(); }} className="block bg-blue-50/60 p-3 pl-5 hover:bg-surface dark:bg-blue-900/10 dark:hover:bg-white/10"><div className="flex justify-between gap-3"><strong className="text-xs text-primary dark:text-white">{notification.title || (notification.type === "comment" ? "Comentário" : notification.type === "file" ? "Arquivo" : "Notificação")}</strong><span className="text-[10px] text-outline">{format(new Date(notification.created_at), "dd/MM HH:mm")}</span></div><p className="mt-1 truncate text-sm dark:text-gray-200">{notification.person?.name}{notification.activity?.title ? ` · ${notification.activity.title}` : ""}</p><p className="mt-1 truncate text-xs text-outline">{notification.content}</p></Link></li>)}</ul>;
 }

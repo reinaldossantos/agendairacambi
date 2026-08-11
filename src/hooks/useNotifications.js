@@ -32,10 +32,10 @@ export function useNotifications(currentUser) {
 
     const [logsResult, expenseResult, securityResult, projectResult, purchaseResult] = await Promise.all([
       activityQuery,
-      supabase.from("expense_report_notifications").select("id,type,title,content,created_at,read_at,report_id,person:actor_id(name)").eq("recipient_id", currentUser.id).order("created_at", { ascending: false }).limit(30),
-      supabase.from("security_notifications").select("id,type,title,content,created_at,is_read").eq("recipient_id", currentUser.id).order("created_at", { ascending: false }).limit(30),
-      supabase.from("management_project_notifications").select("id,title,content,created_at,read_at,project_id,person:actor_id(name)").eq("recipient_id", currentUser.id).order("created_at", { ascending: false }).limit(30),
-      supabase.from("purchase_request_notifications").select("id,type,title,content,created_at,read_at,request_id,person:actor_id(name)").eq("recipient_id", currentUser.id).order("created_at", { ascending: false }).limit(30),
+      supabase.from("expense_report_notifications").select("id,type,title,content,created_at,read_at,report_id,person:actor_id(name)").eq("recipient_id", currentUser.id).is("read_at", null).order("created_at", { ascending: false }).limit(30),
+      supabase.from("security_notifications").select("id,type,title,content,created_at,is_read").eq("recipient_id", currentUser.id).eq("is_read", false).order("created_at", { ascending: false }).limit(30),
+      supabase.from("management_project_notifications").select("id,title,content,created_at,read_at,project_id,person:actor_id(name)").eq("recipient_id", currentUser.id).is("read_at", null).order("created_at", { ascending: false }).limit(30),
+      supabase.from("purchase_request_notifications").select("id,type,title,content,created_at,read_at,request_id,person:actor_id(name)").eq("recipient_id", currentUser.id).is("read_at", null).order("created_at", { ascending: false }).limit(30),
     ]);
     const queryError = logsResult.error || expenseResult.error || securityResult.error || projectResult.error || purchaseResult.error;
     if (queryError) {
@@ -62,9 +62,9 @@ export function useNotifications(currentUser) {
     const projectNotifications = (projectResult.data || []).map((item) => ({ ...item, source: "project", link: `/projects/${item.project_id}`, is_read: Boolean(item.read_at) }));
     const purchaseNotifications = (purchaseResult.data || []).map((item) => ({ ...item, source: "purchase_request", link: "/purchase-requests", is_read: Boolean(item.read_at) }));
     const combined = [...activityNotifications, ...expenseNotifications, ...securityNotifications, ...projectNotifications, ...purchaseNotifications]
-      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 30);
+      .filter((item) => !item.is_read).sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 30);
     setNotifications(combined);
-    setUnreadCount(combined.filter((item) => !item.is_read).length);
+    setUnreadCount(combined.length);
     setNotificationError("");
   }, [currentUser]);
 
@@ -99,20 +99,27 @@ export function useNotifications(currentUser) {
   async function toggleOpen() {
     const opening = !open;
     setOpen(opening);
-    if (!opening || !currentUser?.id) return;
-    const unreadActivity = notifications.filter((item) => item.source === "activity" && !item.is_read);
-    const operations = [
-      supabase.from("expense_report_notifications").update({ read_at: new Date().toISOString() }).eq("recipient_id", currentUser.id).is("read_at", null),
-      supabase.from("security_notifications").update({ is_read: true }).eq("recipient_id", currentUser.id).eq("is_read", false),
-      supabase.from("purchase_request_notifications").update({ read_at: new Date().toISOString() }).eq("recipient_id", currentUser.id).is("read_at", null),
-    ];
-    if (notifications.some((item) => item.source === "project" && !item.is_read)) operations.push(supabase.from("management_project_notifications").update({ read_at: new Date().toISOString() }).eq("recipient_id", currentUser.id).is("read_at", null));
-    if (unreadActivity.length) operations.push(supabase.from("activity_notification_reads").upsert(unreadActivity.map((item) => ({ log_id: String(item.id), person_id: currentUser.id })), { onConflict: "log_id,person_id" }));
-    const results = await Promise.all(operations);
-    const updateError = results.find((result) => result.error)?.error;
-    if (updateError) setNotificationError(`Não foi possível marcar as notificações como lidas: ${updateError.message}`);
-    await fetchNotifications();
+    if (opening) await fetchNotifications();
   }
 
-  return { notifications, unreadCount, notificationError, open, toggleOpen, dropdownRef };
+  async function markAsRead(notification) {
+    if (!currentUser?.id || !notification) return;
+    setNotifications((items) => items.filter((item) => !(item.source === notification.source && item.id === notification.id)));
+    setUnreadCount((count) => Math.max(0, count - 1));
+    let result;
+    if (notification.source === "activity") {
+      result = await supabase.from("activity_notification_reads").upsert({ log_id: String(notification.id), person_id: currentUser.id }, { onConflict: "log_id,person_id" });
+    } else if (notification.source === "security") {
+      result = await supabase.from("security_notifications").update({ is_read: true }).eq("id", notification.id).eq("recipient_id", currentUser.id);
+    } else {
+      const table = notification.source === "expense_report" ? "expense_report_notifications" : notification.source === "project" ? "management_project_notifications" : "purchase_request_notifications";
+      result = await supabase.from(table).update({ read_at: new Date().toISOString() }).eq("id", notification.id).eq("recipient_id", currentUser.id);
+    }
+    if (result.error) {
+      setNotificationError(`Não foi possível marcar a notificação como lida: ${result.error.message}`);
+      await fetchNotifications();
+    }
+  }
+
+  return { notifications, unreadCount, notificationError, open, toggleOpen, markAsRead, dropdownRef };
 }
