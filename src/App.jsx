@@ -18,6 +18,7 @@ import ProgramFiles from "./pages/ProgramFiles";
 import AdvancedSettings from "./pages/AdvancedSettings";
 import Vehicles from "./pages/Vehicles";
 import ExpenseReports from "./pages/ExpenseReports";
+import PurchaseRequests from "./pages/PurchaseRequests";
 import ExpenseReportSummary from "./pages/ExpenseReportSummary";
 import MonthlyActivityReports from "./pages/MonthlyActivityReports";
 import AuditLog from "./pages/AuditLog";
@@ -78,6 +79,7 @@ function App() {
         <Route path="/advanced-settings" element={<AdminOnly><AdvancedSettings /></AdminOnly>} />
         <Route path="/vehicles" element={<Vehicles />} />
         <Route path="/expense-reports" element={<ExpenseReports />} />
+        <Route path="/purchase-requests" element={<PurchaseRequests />} />
         <Route path="/expense-report-summary" element={<ExpenseReportSummary />} />
         <Route path="/monthly-activity-reports" element={<MonthlyActivityReports />} />
         <Route path="/audit-log" element={<ReinaldoOnly><AuditLog /></ReinaldoOnly>} />

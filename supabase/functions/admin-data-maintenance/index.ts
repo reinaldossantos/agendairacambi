@@ -5,6 +5,7 @@ const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers
 const scopes: Record<string, Array<{ table: string; dateColumn: string }>> = {
   activities: [{ table: "activities", dateColumn: "created_at" }],
   expense_reports: [{ table: "expense_reports", dateColumn: "created_at" }],
+  purchase_requests: [{ table: "purchase_requests", dateColumn: "created_at" }],
   monthly_reports: [{ table: "monthly_activity_reports", dateColumn: "created_at" }],
   vehicle_bookings: [{ table: "vehicle_bookings", dateColumn: "created_at" }],
   announcements: [{ table: "announcements", dateColumn: "created_at" }],
@@ -56,7 +57,7 @@ serve(async (request) => {
   if (!execute) return new Response(JSON.stringify({ preview: true, results, total: Object.values(results).reduce((sum, item) => sum + item.count, 0) }), { headers: { ...cors, "Content-Type": "application/json" } });
 
   // Exclui dependências e históricos antes dos registros principais quando não há cascata.
-  const orderedScopes = ["notifications", "audit_logs", "expense_reports", "monthly_reports", "vehicle_bookings", "announcements", "program_files", "activities", "projects"];
+  const orderedScopes = ["notifications", "audit_logs", "expense_reports", "purchase_requests", "monthly_reports", "vehicle_bookings", "announcements", "program_files", "activities", "projects"];
   for (const scope of orderedScopes.filter((item) => selectedScopes.includes(item))) {
     for (const target of scopes[scope]) {
       const query = admin.from(target.table).delete();

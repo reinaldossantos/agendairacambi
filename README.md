@@ -6,6 +6,12 @@ O projeto centraliza agenda, eventos, evidências, pessoas, programas, veículos
 
 ## Últimas novidades
 
+### Solicitações de compras com aprovação e rastreabilidade
+
+**Finalidade:** organizar necessidades de materiais, serviços e obras desde a justificativa até o recebimento, vinculando cada solicitação aos projetos, editais, programas e pessoas beneficiadas.
+
+**Como usar:** acesse **Operações → Solicitações de compras**, informe a necessidade, os itens e valores estimados, selecione os beneficiários e, quando aplicável, vincule um projeto ou edital. Confira a prévia antes do envio. Solicitações dos demais usuários exigem aprovação de Reinaldo e Thaís; quando um deles é o solicitante, somente o outro aprova, impedindo autoaprovação.
+
 ### Despesas mais rápidas e armazenamento seguro
 
 **Finalidade:** acelerar o preenchimento das prestações de contas e impedir arquivos sem vínculo no armazenamento.
@@ -156,6 +162,22 @@ Por padrão, a tradução automática fica **desabilitada**. Um administrador po
 - Painel visual com responsáveis, progresso, datas e observações, também incorporado ao PDF.
 - PDF, impressão e resumo consolidado por programa e descrição.
 
+### Solicitações de compras
+
+- Numeração incremental automática e rascunhos editáveis pelo solicitante.
+- Consulta disponível para todos os usuários autenticados; cada solicitante edita seus próprios rascunhos ou solicitações devolvidas para ajustes, enquanto o administrador pode editar qualquer registro.
+- Exclusão restrita exclusivamente ao perfil Administrador, inclusive para rascunhos.
+- Itens com especificação, quantidade, unidade, valor unitário e total estimado automático.
+- Justificativa, urgência, data necessária, local de entrega, fonte do recurso e fornecedor sugerido.
+- Vínculo opcional com projeto de gestão, edital e múltiplos programas ou pessoas beneficiadas.
+- Prévia obrigatória antes do envio para análise.
+- Aprovação individual e auditável de Reinaldo e Thaís, sem autoaprovação.
+- Solicitação de ajustes e reprovação com parecer obrigatório.
+- Acompanhamento operacional por cotação, pedido, recebimento parcial, recebimento e cancelamento.
+- Notificações em tempo real e histórico de decisões e mudanças de situação.
+- Linha do tempo operacional imutável com autoria e data para cotações solicitadas e recebidas, fornecedores, proposta escolhida, pedido, nota fiscal, pagamento e recebimentos.
+- Comentários e documentos da equipe vinculados ao processo; anexos são enviados de forma compensável para impedir arquivos sem referência quando o registro falha.
+
 ### Veículos
 
 - Cadastro e situação da frota.
@@ -241,6 +263,7 @@ Os scripts SQL estão em `supabase/`. Em uma instalação nova, execute no SQL E
 12. `activity_collaboration.sql` — permissão segura para edição dos próprios comentários.
 13. `dynamic_translations.sql` — cache privado das traduções automáticas.
 14. `project_management.sql` — projetos, Kanban, tarefas, riscos, histórico e notificações.
+15. `migrations/20260811153000_purchase_requests.sql` — solicitações de compras, vínculos, aprovações, linha do tempo e notificações.
 15. `system_audit.sql` — auditoria e rastreabilidade.
 16. `person_deactivation.sql` e correções específicas ainda não aplicadas ao ambiente.
 17. `access_session_tracking.sql` — acesso exclusivo de Reinaldo ao histórico e medição da duração das sessões; execute após `user_authentication.sql`.

@@ -20,6 +20,7 @@ const groups = [
     { to: "/new", label: "Nova atividade", icon: "add_circle" },
     { to: "/history", label: "Histórico e relatórios", icon: "history" },
     { to: "/expense-reports", label: "Relatórios de despesas", icon: "receipt_long" },
+    { to: "/purchase-requests", label: "Solicitações de compras", icon: "shopping_cart" },
     { to: "/expense-report-summary", label: "Resumo financeiro", icon: "analytics" },
     { to: "/monthly-activity-reports", label: "Relatórios mensais", icon: "summarize" },
     { to: "/stats", label: "Estatísticas", icon: "bar_chart" },

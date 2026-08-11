@@ -30,13 +30,14 @@ export function useNotifications(currentUser) {
       ? activityQuery.or(`activity_id.in.(${activityIds.join(",")}),person_id.eq.${currentUser.id}`)
       : activityQuery.eq("person_id", currentUser.id);
 
-    const [logsResult, expenseResult, securityResult, projectResult] = await Promise.all([
+    const [logsResult, expenseResult, securityResult, projectResult, purchaseResult] = await Promise.all([
       activityQuery,
       supabase.from("expense_report_notifications").select("id,type,title,content,created_at,read_at,report_id,person:actor_id(name)").eq("recipient_id", currentUser.id).order("created_at", { ascending: false }).limit(30),
       supabase.from("security_notifications").select("id,type,title,content,created_at,is_read").eq("recipient_id", currentUser.id).order("created_at", { ascending: false }).limit(30),
       supabase.from("management_project_notifications").select("id,title,content,created_at,read_at,project_id,person:actor_id(name)").eq("recipient_id", currentUser.id).order("created_at", { ascending: false }).limit(30),
+      supabase.from("purchase_request_notifications").select("id,type,title,content,created_at,read_at,request_id,person:actor_id(name)").eq("recipient_id", currentUser.id).order("created_at", { ascending: false }).limit(30),
     ]);
-    const queryError = logsResult.error || expenseResult.error || securityResult.error;
+    const queryError = logsResult.error || expenseResult.error || securityResult.error || projectResult.error || purchaseResult.error;
     if (queryError) {
       setNotificationError(`Não foi possível carregar as notificações: ${queryError.message}`);
       return;
@@ -59,7 +60,8 @@ export function useNotifications(currentUser) {
     const expenseNotifications = (expenseResult.data || []).map((item) => ({ ...item, source: "expense_report", link: "/expense-reports", is_read: Boolean(item.read_at) }));
     const securityNotifications = (securityResult.data || []).map((item) => ({ ...item, source: "security", link: "/admin/persons" }));
     const projectNotifications = (projectResult.data || []).map((item) => ({ ...item, source: "project", link: `/projects/${item.project_id}`, is_read: Boolean(item.read_at) }));
-    const combined = [...activityNotifications, ...expenseNotifications, ...securityNotifications, ...projectNotifications]
+    const purchaseNotifications = (purchaseResult.data || []).map((item) => ({ ...item, source: "purchase_request", link: "/purchase-requests", is_read: Boolean(item.read_at) }));
+    const combined = [...activityNotifications, ...expenseNotifications, ...securityNotifications, ...projectNotifications, ...purchaseNotifications]
       .sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 30);
     setNotifications(combined);
     setUnreadCount(combined.filter((item) => !item.is_read).length);
@@ -80,9 +82,11 @@ export function useNotifications(currentUser) {
       .on("postgres_changes", { event: "*", schema: "public", table: "security_notifications" }, fetchNotifications).subscribe(realtimeStatus);
     const projectChannel = supabase.channel("notifications:projects")
       .on("postgres_changes", { event: "*", schema: "public", table: "management_project_notifications" }, fetchNotifications).subscribe(realtimeStatus);
+    const purchaseChannel = supabase.channel("notifications:purchases")
+      .on("postgres_changes", { event: "*", schema: "public", table: "purchase_request_notifications" }, fetchNotifications).subscribe(realtimeStatus);
     return () => {
       window.clearTimeout(initialFetch);
-      supabase.removeChannel(activityChannel); supabase.removeChannel(expenseChannel); supabase.removeChannel(securityChannel); supabase.removeChannel(projectChannel);
+      supabase.removeChannel(activityChannel); supabase.removeChannel(expenseChannel); supabase.removeChannel(securityChannel); supabase.removeChannel(projectChannel); supabase.removeChannel(purchaseChannel);
     };
   }, [currentUser, fetchNotifications]);
 
@@ -100,6 +104,7 @@ export function useNotifications(currentUser) {
     const operations = [
       supabase.from("expense_report_notifications").update({ read_at: new Date().toISOString() }).eq("recipient_id", currentUser.id).is("read_at", null),
       supabase.from("security_notifications").update({ is_read: true }).eq("recipient_id", currentUser.id).eq("is_read", false),
+      supabase.from("purchase_request_notifications").update({ read_at: new Date().toISOString() }).eq("recipient_id", currentUser.id).is("read_at", null),
     ];
     if (notifications.some((item) => item.source === "project" && !item.is_read)) operations.push(supabase.from("management_project_notifications").update({ read_at: new Date().toISOString() }).eq("recipient_id", currentUser.id).is("read_at", null));
     if (unreadActivity.length) operations.push(supabase.from("activity_notification_reads").upsert(unreadActivity.map((item) => ({ log_id: String(item.id), person_id: currentUser.id })), { onConflict: "log_id,person_id" }));

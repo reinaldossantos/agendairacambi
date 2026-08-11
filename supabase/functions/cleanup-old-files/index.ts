@@ -47,7 +47,7 @@ serve(async (request) => {
     if (profile?.access_role !== "admin" || !profile.is_active || profile.locked_at) return new Response("Não autorizado", { status: 403 });
   }
 
-  const [activities, programFiles, projects, projectTasks, reports, monthlyReports, persons] = await Promise.all([
+  const [activities, programFiles, projects, projectTasks, reports, monthlyReports, persons, purchaseSteps] = await Promise.all([
     client.from("activities").select("images,files"),
     client.from("program_files").select("file_url"),
     client.from("management_projects").select("attachments"),
@@ -55,8 +55,9 @@ serve(async (request) => {
     client.from("expense_reports").select("expense_items"),
     client.from("monthly_activity_reports").select("activity_snapshot"),
     client.from("persons").select("avatar_url"),
+    client.from("purchase_request_steps").select("attachments"),
   ]);
-  const queryError = [activities.error, programFiles.error, projects.error, projectTasks.error, reports.error, monthlyReports.error, persons.error].find(Boolean);
+  const queryError = [activities.error, programFiles.error, projects.error, projectTasks.error, reports.error, monthlyReports.error, persons.error, purchaseSteps.error].find(Boolean);
   if (queryError) return new Response(JSON.stringify({ error: queryError.message }), { status: 500, headers: { "content-type": "application/json" } });
 
   const referenced: Record<string, Set<string>> = {
@@ -76,6 +77,7 @@ serve(async (request) => {
     addReferences(referenced["activity-files"], activity.files || [], "activity-files");
   }
   for (const person of persons.data || []) addReferences(referenced["profile-photos"], [person.avatar_url], "profile-photos");
+  for (const step of purchaseSteps.data || []) addReferences(referenced["activity-files"], step.attachments || [], "activity-files");
 
   // A carência protege uploads em andamento; objetos sem referência após esse prazo são órfãos.
   const graceLimit = Date.now() - 24 * 60 * 60 * 1000;

@@ -5,6 +5,7 @@ import { supabase } from "../lib/supabaseClient";
 const options = [
   { id: "activities", label: "Atividades e eventos", description: "Atividades da agenda e seus relacionamentos dependentes.", icon: "event_busy" },
   { id: "expense_reports", label: "Relatórios de despesas", description: "Prestações de contas, aprovações e notificações vinculadas.", icon: "receipt_long" },
+  { id: "purchase_requests", label: "Solicitações de compras", description: "Solicitações, aprovações, histórico e notificações vinculadas.", icon: "shopping_cart" },
   { id: "monthly_reports", label: "Relatórios mensais", description: "Rascunhos e relatórios mensais consolidados.", icon: "summarize" },
   { id: "vehicle_bookings", label: "Reservas de veículos", description: "Agendamentos e históricos operacionais dos veículos.", icon: "directions_car" },
   { id: "announcements", label: "Avisos do mural", description: "Publicações e avisos institucionais.", icon: "campaign" },
