@@ -108,6 +108,7 @@ Por padrão, a tradução automática fica **desabilitada**. Um administrador po
 - Filtros por programa, responsável, período e pesquisa textual.
 - Lançamento rápido ou importação de programação no formato WhatsApp.
 - Descrição, início e finalização obrigatórios.
+- Títulos e descrições são padronizados ao salvar, com primeira letra maiúscula e demais letras minúsculas, independentemente da digitação original.
 - Prioridade, status, responsável, envolvidos e menções com `@nome`.
 - Repetição de atividades, comentários e histórico de alterações.
 - Conversas encadeadas, menções com nomes completos, edição e remoção lógica de comentários mediante diálogo de confirmação.
@@ -169,6 +170,7 @@ Por padrão, a tradução automática fica **desabilitada**. Um administrador po
 - Consulta disponível para todos os usuários autenticados; cada solicitante edita seus próprios rascunhos ou solicitações devolvidas para ajustes, enquanto o administrador pode editar qualquer registro.
 - Exclusão restrita exclusivamente ao perfil Administrador, inclusive para rascunhos.
 - Itens com especificação, quantidade, unidade, valor unitário e total estimado automático.
+- Textos narrativos são padronizados ao salvar com primeira letra maiúscula e demais letras minúsculas; códigos, números de documentos, datas e anexos são preservados.
 - Justificativa, urgência, data necessária, local de entrega, fonte do recurso e fornecedor sugerido.
 - Vínculo opcional com projeto de gestão, edital e múltiplos programas ou pessoas beneficiadas.
 - Prévia obrigatória antes do envio para análise.

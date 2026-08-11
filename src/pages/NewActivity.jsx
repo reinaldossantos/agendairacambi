@@ -13,6 +13,7 @@ import FileUpload from "../components/activities/FileUpload";
 import EventFields from "../components/activities/EventFields";
 import TeamMemberSelector from "../components/activities/TeamMemberSelector";
 import { emptyEventData } from "../lib/events";
+import { sentenceCase, sentenceCaseEventData } from "../lib/textFormatting";
 
 export default function NewActivity() {
   const location = useLocation();
@@ -410,6 +411,9 @@ export default function NewActivity() {
 
     list = list.map((activity) => ({
       ...activity,
+      title: sentenceCase(activity.title),
+      description: sentenceCase(activity.description),
+      event_data: activity.is_event ? sentenceCaseEventData(activity.event_data) : activity.event_data,
       involved_ids: [...new Set([...(activity.involved_ids || []), ...mentionedPersonIds(activity.description)])],
     }));
 

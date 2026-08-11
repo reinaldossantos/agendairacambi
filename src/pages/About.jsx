@@ -60,6 +60,7 @@ const sections = [
       "No modo WhatsApp, cole uma programação com cabeçalhos como “Segunda:” e “Terça-feira:”; o sistema separa o texto e atribui as datas correspondentes.",
       "Se o texto não tiver cabeçalhos reconhecidos, use a opção de transferi-lo para o modo Rápido.",
       "No modo Rápido, informe programa, data, título, descrição, prioridade, início, finalização, responsável e pessoas envolvidas. Descrição e horários são obrigatórios.",
+      "Ao salvar, títulos e descrições são ajustados automaticamente para primeira letra maiúscula e demais letras minúsculas, mesmo quando digitados inteiramente em maiúsculas ou minúsculas.",
       "Você pode adicionar várias atividades, repetir uma atividade em diversas datas e usar @nome na descrição para mencionar e envolver uma pessoa.",
       "Fotos e documentos podem ser anexados como evidência. No modo WhatsApp, os anexos informados são aplicados às atividades geradas.",
       "Depois de publicar, compartilhe uma atividade ou a programação pelo WhatsApp usando o texto formatado pelo sistema.",
@@ -156,6 +157,7 @@ const sections = [
     items: [
       "Acesse Operações → Solicitações de compras para registrar materiais, bens, serviços, obras ou instalações necessários.",
       "Informe o objeto, a justificativa, a urgência, a data necessária e os itens. Quantidade e valor unitário formam automaticamente o total estimado.",
+      "Os textos da solicitação e dos itens são padronizados ao salvar com primeira letra maiúscula e demais letras minúsculas; códigos e números de documentos não são modificados.",
       "Vincule a solicitação a um projeto de gestão e, quando aplicável, informe edital, prazo e fonte do recurso.",
       "Selecione um ou mais programas e pessoas beneficiadas ou descreva outro público, como comunidades, parceiros e turmas.",
       "Salve como rascunho para continuar depois. Antes do envio, confira a prévia completa; durante a aprovação o conteúdo fica protegido contra alterações.",

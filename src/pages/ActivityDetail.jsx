@@ -13,6 +13,7 @@ import EventFields from "../components/activities/EventFields";
 import { emptyEventData, normalizeEventData } from "../lib/events";
 import { shareViaWhatsApp, formatSingleActivityForWhatsAppSimple } from "../lib/whatsapp";
 import { signFiles, signImages, storagePath } from "../lib/privateStorage";
+import { sentenceCase, sentenceCaseEventData } from "../lib/textFormatting";
 
 const priorityColors = {
   Baixa: "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400",
@@ -209,8 +210,8 @@ export default function ActivityDetail() {
     if (canEdit && activity) {
       setSaving(true);
       const updates = {
-        title: formData.title,
-        description: formData.description,
+        title: sentenceCase(formData.title),
+        description: sentenceCase(formData.description),
         status: "Cancelado",
         priority: formData.priority,
         due_date: formData.due_date,
@@ -222,7 +223,7 @@ export default function ActivityDetail() {
         images: formData.images,
         files: formData.files,
         is_event: formData.is_event,
-        event_data: formData.is_event ? formData.event_data : {},
+        event_data: formData.is_event ? sentenceCaseEventData(formData.event_data) : {},
         updated_at: new Date().toISOString(),
       };
       const { error } = await supabase.from("activities").update(updates).eq("id", activity.id);
@@ -281,8 +282,8 @@ export default function ActivityDetail() {
     const oldActivity = { ...activity };
 
     const updates = {
-      title: formData.title,
-      description: formData.description,
+      title: sentenceCase(formData.title),
+      description: sentenceCase(formData.description),
       status: formData.status,
       priority: formData.priority,
       due_date: formData.due_date,
@@ -294,7 +295,7 @@ export default function ActivityDetail() {
       images: formData.images,
       files: formData.files,
       is_event: formData.is_event,
-      event_data: formData.is_event ? formData.event_data : {},
+      event_data: formData.is_event ? sentenceCaseEventData(formData.event_data) : {},
       updated_at: new Date().toISOString(),
     };
     const { error } = await supabase.from("activities").update(updates).eq("id", activity.id);

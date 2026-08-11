@@ -3,6 +3,7 @@ import { supabase } from "../lib/supabaseClient";
 import { useCurrentUser } from "../context/CurrentUserContext";
 import { signFiles } from "../lib/privateStorage";
 import ConfirmDialog from "../components/ui/ConfirmDialog";
+import { sentenceCase } from "../lib/textFormatting";
 
 const inputClass = "w-full rounded-xl border border-surface-variant bg-surface px-3 py-2.5 text-on-surface focus:border-primary focus:ring-primary dark:border-gray-700 dark:bg-gray-800 dark:text-white";
 const emptyItem = () => ({ description: "", specification: "", quantity: 1, unit: "un", estimated_unit_price: "" });
@@ -73,14 +74,14 @@ export default function PurchaseRequests() {
     const errorText = validate(); if (errorText) return setMessage({ type: "error", text: errorText });
     setBusy(true);
     const payload = {
-      requester_id: editingId ? form.requester_id : currentUser.id, title: form.title.trim(), request_type: form.request_type,
-      urgency: form.urgency, needed_by: form.needed_by || null, justification: form.justification.trim(),
-      management_project_id: form.management_project_id || null, edital_name: form.edital_name.trim() || null,
+      requester_id: editingId ? form.requester_id : currentUser.id, title: sentenceCase(form.title), request_type: form.request_type,
+      urgency: form.urgency, needed_by: form.needed_by || null, justification: sentenceCase(form.justification),
+      management_project_id: form.management_project_id || null, edital_name: form.edital_name.trim() ? sentenceCase(form.edital_name) : null,
       edital_number: form.edital_number.trim() || null, edital_deadline: form.edital_deadline || null,
-      funding_source: form.funding_source.trim() || null, program_ids: form.program_ids,
-      beneficiary_person_ids: form.beneficiary_person_ids, beneficiary_description: form.beneficiary_description.trim() || null,
-      supplier_suggestion: form.supplier_suggestion.trim() || null, delivery_location: form.delivery_location.trim() || null,
-      items: form.items, estimated_total: total,
+      funding_source: form.funding_source.trim() ? sentenceCase(form.funding_source) : null, program_ids: form.program_ids,
+      beneficiary_person_ids: form.beneficiary_person_ids, beneficiary_description: form.beneficiary_description.trim() ? sentenceCase(form.beneficiary_description) : null,
+      supplier_suggestion: form.supplier_suggestion.trim() ? sentenceCase(form.supplier_suggestion) : null, delivery_location: form.delivery_location.trim() ? sentenceCase(form.delivery_location) : null,
+      items: form.items.map((item) => ({ ...item, description: sentenceCase(item.description), specification: item.specification?.trim() ? sentenceCase(item.specification) : "" })), estimated_total: total,
     };
     const result = editingId ? await supabase.from("purchase_requests").update(payload).eq("id", editingId).select().single() : await supabase.from("purchase_requests").insert(payload).select().single();
     setBusy(false);
@@ -116,8 +117,8 @@ export default function PurchaseRequests() {
         uploadedPaths.push(path); attachments.push({ name: file.name, path, size: file.size, type: file.type });
       }
       const { error } = await supabase.rpc("record_purchase_request_step", {
-        target_request_id: request.id, requested_step_type: step.step_type, step_title: step.title,
-        step_description: step.description || null, step_supplier_name: step.supplier_name || null,
+        target_request_id: request.id, requested_step_type: step.step_type, step_title: sentenceCase(step.title),
+        step_description: step.description?.trim() ? sentenceCase(step.description) : null, step_supplier_name: step.supplier_name?.trim() ? sentenceCase(step.supplier_name) : null,
         step_document_number: step.document_number || null, step_amount: step.amount === "" ? null : Number(step.amount),
         step_event_date: step.event_date, step_attachments: attachments,
       });
