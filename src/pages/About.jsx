@@ -193,6 +193,8 @@ const sections = [
     title: "Veículos",
     items: [
       "Consulte a disponibilidade e os agendamentos e reserve um veículo informando solicitante, programa, data e hora, finalidade e destino.",
+      "Quando houver somente um veículo disponível, ele será selecionado automaticamente. O programa é preenchido conforme o usuário autenticado ou o solicitante selecionado.",
+      "As datas e horários de saída e retorno não podem ser anteriores ao momento atual; o retorno também deve permanecer posterior à saída.",
       "Edite ou cancele uma reserva quando necessário. Ao finalizar o uso, informe os dados solicitados e registre ocorrências, avarias ou observações.",
       "Usuários autorizados podem cadastrar e editar veículos, placa e situação: disponível, em manutenção ou inativo.",
     ],

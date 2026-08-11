@@ -182,6 +182,8 @@ Por padrão, a tradução automática fica **desabilitada**. Um administrador po
 
 - Cadastro e situação da frota.
 - Reserva por pessoa, programa, período, finalidade e destino.
+- Quando existe somente um veículo disponível, ele é selecionado automaticamente; o programa também é preenchido conforme o responsável autenticado.
+- Saída e retorno não aceitam datas ou horários anteriores ao momento atual, com validação duplicada na interface e no Supabase.
 - Controle de disponibilidade e conflitos.
 - Finalização com quilometragem, ocorrências e avarias.
 

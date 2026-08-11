@@ -52,7 +52,7 @@ export default function Vehicles() {
     setError("");
     const [vehicleResult, programResult, bookingResult] = await Promise.all([
       supabase.from("vehicles").select("*").order("name"),
-      supabase.from("programs").select("id, name").order("name"),
+      supabase.from("programs").select("id, name, leader_id").order("name"),
       supabase
         .from("vehicle_bookings")
         .select("*, vehicle:vehicle_id(id,name,plate,capacity), person:person_id(id,name,is_active), program:program_id(id,name)")
@@ -73,11 +73,27 @@ export default function Vehicles() {
 
   useEffect(() => {
     if (location.state?.quickAction === "booking") {
+      const start = new Date();
+      start.setMinutes(Math.ceil((start.getMinutes() + 1) / 30) * 30, 0, 0);
       setTab("schedule");
+      setEditingBooking(null);
+      setBookingForm((current) => ({ ...current, start_at: toLocalInput(start), end_at: toLocalInput(new Date(start.getTime() + 60 * 60 * 1000)) }));
       setShowBookingForm(true);
       window.history.replaceState({}, document.title);
     }
   }, [location.state]);
+
+  useEffect(() => {
+    if (!showBookingForm || editingBooking) return;
+    const available = vehicles.filter((vehicle) => vehicle.status === "available");
+    const userProgram = programs.find((program) => program.leader_id === currentUser?.id);
+    setBookingForm((current) => ({
+      ...current,
+      vehicle_id: available.length === 1 ? available[0].id : current.vehicle_id,
+      person_id: currentUser?.id || current.person_id,
+      program_id: userProgram?.id || current.program_id,
+    }));
+  }, [showBookingForm, editingBooking, vehicles, programs, currentUser]);
 
   const scheduledBookings = useMemo(
     () => bookings.filter((item) => item.status === "scheduled"),
@@ -93,12 +109,16 @@ export default function Vehicles() {
 
   function openNewBooking() {
     const start = new Date();
-    start.setMinutes(Math.ceil(start.getMinutes() / 30) * 30, 0, 0);
+    start.setMinutes(Math.ceil((start.getMinutes() + 1) / 30) * 30, 0, 0);
     const end = new Date(start.getTime() + 60 * 60 * 1000);
+    const available = vehicles.filter((vehicle) => vehicle.status === "available");
+    const userProgram = programs.find((program) => program.leader_id === currentUser?.id);
     setEditingBooking(null);
     setBookingForm({
       ...emptyBooking,
+      vehicle_id: available.length === 1 ? available[0].id : "",
       person_id: currentUser?.id || "",
+      program_id: userProgram?.id || "",
       start_at: toLocalInput(start),
       end_at: toLocalInput(end),
     });
@@ -127,6 +147,11 @@ export default function Vehicles() {
   async function saveBooking(event) {
     event.preventDefault();
     setError("");
+    const now = new Date();
+    if (new Date(bookingForm.start_at) < now || new Date(bookingForm.end_at) < now) {
+      setError("As datas de saída e retorno não podem ser anteriores à data e hora atuais.");
+      return;
+    }
     if (new Date(bookingForm.end_at) <= new Date(bookingForm.start_at)) {
       setError("O horário de término deve ser posterior ao horário de início.");
       return;
@@ -165,6 +190,11 @@ export default function Vehicles() {
     setShowBookingForm(false);
     setSuccess(editingBooking ? "Agendamento atualizado." : "Veículo agendado com sucesso.");
     await loadData();
+  }
+
+  function chooseBookingPerson(personId) {
+    const program = programs.find((item) => item.leader_id === personId);
+    setBookingForm((current) => ({ ...current, person_id: personId, program_id: program?.id || "" }));
   }
 
   function openVehicleForm(vehicle = null) {
@@ -378,12 +408,12 @@ export default function Vehicles() {
               </div>
             )}
             <div className="grid sm:grid-cols-2 gap-4">
-              <Field label="Veículo"><select required className={inputClass} value={bookingForm.vehicle_id} onChange={(e) => setBookingForm({ ...bookingForm, vehicle_id: e.target.value })}><option value="">Selecione</option>{vehicles.filter(v => v.status === "available" || v.id === bookings.find(b => b.id === editingBooking)?.vehicle_id).map(v => <option key={v.id} value={v.id}>{v.name} · {v.plate}</option>)}</select></Field>
-              <Field label="Solicitante"><select required className={inputClass} value={bookingForm.person_id} onChange={(e) => setBookingForm({ ...bookingForm, person_id: e.target.value })}><option value="">Selecione</option>{persons.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>
-              <Field label="Programa"><select required className={inputClass} value={bookingForm.program_id} onChange={(e) => setBookingForm({ ...bookingForm, program_id: e.target.value })}><option value="">Selecione</option>{programs.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>
+              <Field label="Veículo"><select required disabled={!editingBooking && vehicles.filter((vehicle) => vehicle.status === "available").length === 1} className={`${inputClass} disabled:cursor-not-allowed disabled:opacity-75`} value={bookingForm.vehicle_id} onChange={(e) => setBookingForm({ ...bookingForm, vehicle_id: e.target.value })}><option value="">Selecione</option>{vehicles.filter(v => v.status === "available" || v.id === bookings.find(b => b.id === editingBooking)?.vehicle_id).map(v => <option key={v.id} value={v.id}>{v.name} · {v.plate}</option>)}</select></Field>
+              <Field label="Solicitante"><select required className={inputClass} value={bookingForm.person_id} onChange={(e) => chooseBookingPerson(e.target.value)}><option value="">Selecione</option>{persons.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>
+              <Field label="Programa"><select required disabled={programs.some((program) => program.leader_id === bookingForm.person_id)} className={`${inputClass} disabled:cursor-not-allowed disabled:opacity-75`} value={bookingForm.program_id} onChange={(e) => setBookingForm({ ...bookingForm, program_id: e.target.value })}><option value="">Selecione</option>{programs.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>
               <Field label="Número de passageiros"><input required min="1" type="number" className={inputClass} value={bookingForm.passengers} onChange={(e) => setBookingForm({ ...bookingForm, passengers: e.target.value })} /></Field>
-              <Field label="Saída"><input required type="datetime-local" className={inputClass} value={bookingForm.start_at} onChange={(e) => setBookingForm({ ...bookingForm, start_at: e.target.value })} /></Field>
-              <Field label="Retorno"><input required type="datetime-local" className={inputClass} value={bookingForm.end_at} onChange={(e) => setBookingForm({ ...bookingForm, end_at: e.target.value })} /></Field>
+              <Field label="Saída"><input required type="datetime-local" min={toLocalInput(new Date())} className={inputClass} value={bookingForm.start_at} onChange={(e) => setBookingForm({ ...bookingForm, start_at: e.target.value })} /></Field>
+              <Field label="Retorno"><input required type="datetime-local" min={bookingForm.start_at || toLocalInput(new Date())} className={inputClass} value={bookingForm.end_at} onChange={(e) => setBookingForm({ ...bookingForm, end_at: e.target.value })} /></Field>
               <Field label="Finalidade"><input required className={inputClass} value={bookingForm.purpose} onChange={(e) => setBookingForm({ ...bookingForm, purpose: e.target.value })} placeholder="Ex.: visita de campo" /></Field>
               <Field label="Destino"><input className={inputClass} value={bookingForm.destination} onChange={(e) => setBookingForm({ ...bookingForm, destination: e.target.value })} placeholder="Cidade ou local" /></Field>
             </div>
