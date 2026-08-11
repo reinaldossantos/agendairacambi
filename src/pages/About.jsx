@@ -30,6 +30,7 @@ const sections = [
     title: "Acesso, senha e segurança",
     items: [
       "Entre com o e-mail cadastrado e sua senha. No primeiro acesso, substitua obrigatoriamente a senha temporária por uma senha pessoal de pelo menos oito caracteres.",
+      "A nova senha precisa ser diferente da senha temporária e de uma senha nova que já tenha sido salva em tentativa anterior. A conclusão fica registrada no histórico de segurança.",
       "Em caso de esquecimento, use “Esqueceu a senha?” para receber as instruções de recuperação no e-mail cadastrado.",
       "Após três tentativas incorretas, o acesso é bloqueado e o administrador recebe uma notificação de segurança.",
       "Nunca compartilhe sua senha. O administrador pode redefini-la, desativar ou reativar o acesso, mas não consegue visualizar sua senha.",

@@ -93,6 +93,7 @@ Por padrão, a tradução automática fica **desabilitada**. Um administrador po
 
 - Autenticação por e-mail e senha via Supabase Auth.
 - Troca obrigatória da senha temporária no primeiro acesso.
+- A finalização da primeira troca altera somente os campos de segurança do próprio perfil e registra o evento no histórico de acessos.
 - Recuperação de senha por e-mail.
 - Bloqueio após três tentativas incorretas e notificação de segurança.
 - Desativação, reativação e redefinição administrativa de acesso.
