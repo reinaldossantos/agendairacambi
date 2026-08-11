@@ -250,6 +250,7 @@ const sections = [
       "Escolha categorias independentes para a manutenção. Cadastros estruturais, usuários, programas, veículos e configurações ficam protegidos contra limpeza em massa.",
       "Digite EXCLUIR somente depois de revisar a prévia. Para reconciliar o armazenamento, use a confirmação LIMPAR ARQUIVOS; apenas objetos sem referência e com mais de 24 horas são removidos.",
       "Em Configurações Avançadas, ajuste os modos de lançamento. A Auditoria e rastreabilidade permanece obrigatoriamente habilitada e não pode ser desativada.",
+      "Ao abrir a Auditoria do sistema, são consultados somente os movimentos de hoje. Use as datas inicial e final para carregar outro período; módulos e campos aparecem com nomes traduzidos para facilitar a leitura.",
       "Conceda apenas as permissões necessárias à responsabilidade real de cada pessoa e programa.",
     ],
   },
