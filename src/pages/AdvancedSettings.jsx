@@ -1,7 +1,6 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useAdvancedSettings } from "../context/AdvancedSettingsContext";
 import ExpenseAdvancedSettings from "../components/settings/ExpenseAdvancedSettings";
-import { supabase } from "../lib/supabaseClient";
 
 export default function AdvancedSettings() {
   const { modes, toggleMode } = useAdvancedSettings();
@@ -9,28 +8,6 @@ export default function AdvancedSettings() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [auditEnabled, setAuditEnabled] = useState(false);
-  const [auditSaving, setAuditSaving] = useState(false);
-  const [auditMessage, setAuditMessage] = useState("");
-
-  useEffect(() => {
-    supabase.from("app_settings").select("value").eq("key", "audit_settings").maybeSingle().then(({ data }) => setAuditEnabled(data?.value?.enabled === true));
-  }, []);
-
-  async function toggleAudit() {
-    if (auditSaving) return;
-    setAuditSaving(true);
-    setAuditMessage("");
-    const enabled = !auditEnabled;
-    const { error: auditError } = await supabase.from("app_settings").upsert({ key: "audit_settings", value: { enabled }, updated_at: new Date().toISOString() });
-    setAuditSaving(false);
-    if (auditError) {
-      setAuditMessage(`Não foi possível alterar a auditoria: ${auditError.message}`);
-      return;
-    }
-    setAuditEnabled(enabled);
-    setAuditMessage(enabled ? "Auditoria e rastreabilidade habilitadas." : "Auditoria desabilitada. Os registros anteriores foram preservados.");
-  }
 
   const handleLogin = (e) => {
     e.preventDefault();
@@ -114,11 +91,10 @@ export default function AdvancedSettings() {
           <div>
             <div className="flex items-center gap-2"><span className="material-symbols-outlined text-primary dark:text-green-300">policy</span><p className="font-roboto text-label-md font-bold text-primary dark:text-white">Auditoria e rastreabilidade</p></div>
             <p className="mt-1 text-sm text-on-surface-variant dark:text-gray-400">Registra inclusões, edições e exclusões com usuário, data, hora e cópia dos dados alterados.</p>
-            <p className={`mt-1 text-xs font-bold ${auditEnabled ? "text-green-700 dark:text-green-300" : "text-outline"}`}>{auditEnabled ? "Habilitada" : "Desabilitada"}</p>
+            <p className="mt-1 text-xs font-bold text-green-700 dark:text-green-300">Permanentemente habilitada</p>
           </div>
-          <button type="button" disabled={auditSaving} onClick={toggleAudit} aria-label="Ativar ou desativar auditoria" className={`relative h-7 w-14 shrink-0 rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${auditEnabled ? "bg-primary" : "bg-stone-300"}`}><span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-transform ${auditEnabled ? "translate-x-8" : "translate-x-1"}`} /></button>
+          <span className="material-symbols-outlined rounded-full bg-green-100 p-2 text-green-700 dark:bg-green-900/30 dark:text-green-300" aria-label="Auditoria permanentemente habilitada">verified_user</span>
         </div>
-        {auditMessage && <p role="status" className={`rounded-lg p-3 text-sm ${auditMessage.startsWith("Não") ? "bg-red-50 text-red-700" : "bg-green-50 text-green-700"}`}>{auditMessage}</p>}
         <ExpenseAdvancedSettings />
         <div className="pt-4 border-t border-surface-variant dark:border-white/10">
           <button

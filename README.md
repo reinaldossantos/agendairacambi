@@ -6,6 +6,8 @@ O projeto centraliza agenda, eventos, evidências, pessoas, programas, veículos
 
 O sino pulsa enquanto houver notificações novas para o usuário. Cada notificação desaparece somente após ser aberta, e essa leitura é registrada de forma imutável na rastreabilidade com usuário, origem, item e horário.
 
+A auditoria geral permanece obrigatoriamente habilitada e não pode ser desligada pela interface ou pelo banco. Ela usa a identidade autenticada, registra as tabelas operacionais e preserva os históricos anteriores que já possuíam autoria e data confiáveis.
+
 ## Últimas novidades
 
 ### Solicitações de compras com aprovação e rastreabilidade
@@ -274,6 +276,7 @@ Os scripts SQL estão em `supabase/`. Em uma instalação nova, execute no SQL E
 15. `migrations/20260811153000_purchase_requests.sql` — solicitações de compras, vínculos, aprovações, linha do tempo e notificações.
 16. `migrations/20260811213000_audit_notification_reads.sql` — leitura individual de notificações com alerta visual e rastreabilidade imutável.
 17. `migrations/20260811214500_normalize_kombi_purchase_request.sql` — correção do título legado da solicitação de manutenção da Kombi conforme o padrão textual.
+18. `migrations/20260811223000_make_system_audit_permanent.sql` — auditoria permanente, identidade autenticada, cobertura operacional ampliada e recuperação de históricos confiáveis.
 15. `system_audit.sql` — auditoria e rastreabilidade.
 16. `person_deactivation.sql` e correções específicas ainda não aplicadas ao ambiente.
 17. `access_session_tracking.sql` — acesso exclusivo de Reinaldo ao histórico e medição da duração das sessões; execute após `user_authentication.sql`.

@@ -249,7 +249,7 @@ const sections = [
       "Em Manutenção de dados, administradores podem visualizar e excluir registros de teste a partir de uma data, aplicar retenção até uma data e reconciliar arquivos órfãos. A prévia e a confirmação digitada são obrigatórias.",
       "Escolha categorias independentes para a manutenção. Cadastros estruturais, usuários, programas, veículos e configurações ficam protegidos contra limpeza em massa.",
       "Digite EXCLUIR somente depois de revisar a prévia. Para reconciliar o armazenamento, use a confirmação LIMPAR ARQUIVOS; apenas objetos sem referência e com mais de 24 horas são removidos.",
-      "Em Configurações Avançadas, habilite ou desabilite os modos de lançamento e a Auditoria e rastreabilidade.",
+      "Em Configurações Avançadas, ajuste os modos de lançamento. A Auditoria e rastreabilidade permanece obrigatoriamente habilitada e não pode ser desativada.",
       "Conceda apenas as permissões necessárias à responsabilidade real de cada pessoa e programa.",
     ],
   },

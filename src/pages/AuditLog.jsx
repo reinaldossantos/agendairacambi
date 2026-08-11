@@ -8,6 +8,12 @@ const tableLabels = {
   announcements: "Avisos", program_files: "Arquivos", vehicles: "Veículos", vehicle_bookings: "Agendamentos de veículos",
   expense_reports: "Relatórios de despesas", expense_report_notifications: "Notificações de despesas", mileage_rates: "Tarifas de KM",
   monthly_activity_reports: "Relatórios mensais", app_settings: "Configurações",
+  expense_report_approvals: "Aprovações de despesas", expense_approval_config: "Configuração de aprovadores",
+  management_projects: "Projetos", management_project_tasks: "Tarefas de projetos", management_project_risks: "Riscos de projetos",
+  management_project_logs: "Histórico de projetos", management_project_notifications: "Notificações de projetos",
+  purchase_requests: "Solicitações de compras", purchase_request_approvals: "Aprovações de compras",
+  purchase_request_history: "Histórico de compras", purchase_request_steps: "Etapas de compras", purchase_request_notifications: "Notificações de compras",
+  security_notifications: "Notificações de segurança", notification_read_audit: "Leituras de notificações", audit_control: "Controle da auditoria",
 };
 
 export default function AuditLog() {
@@ -36,7 +42,7 @@ export default function AuditLog() {
 
   const tables = [...new Set(logs.map((log) => log.table_name))].sort();
   return <div className="mx-auto max-w-7xl px-2 sm:px-4">
-    <div className="mb-6 flex flex-col justify-between gap-3 sm:flex-row sm:items-end"><div><p className="text-sm font-medium text-primary-light dark:text-green-300">Governança e segurança</p><h2 className="text-headline-lg font-semibold text-primary dark:text-white">Auditoria do sistema</h2><p className="text-sm text-outline">Histórico imutável de inclusões, edições e exclusões.</p></div><button onClick={loadLogs} className="rounded-full border border-primary px-4 py-2.5 text-sm font-bold text-primary dark:text-white"><span className="material-symbols-outlined align-middle text-[18px]">refresh</span> Atualizar</button></div>
+    <div className="mb-6 flex flex-col justify-between gap-3 sm:flex-row sm:items-end"><div><p className="text-sm font-medium text-primary-light dark:text-green-300">Governança e segurança</p><h2 className="text-headline-lg font-semibold text-primary dark:text-white">Auditoria do sistema</h2><p className="text-sm text-outline">Histórico imutável de inclusões, edições e exclusões.</p><span className="mt-2 inline-flex items-center gap-1 rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-800 dark:bg-green-900/30 dark:text-green-300"><span className="material-symbols-outlined text-[16px]">verified_user</span>Auditoria permanente ativa</span></div><button onClick={loadLogs} className="rounded-full border border-primary px-4 py-2.5 text-sm font-bold text-primary dark:text-white"><span className="material-symbols-outlined align-middle text-[18px]">refresh</span> Atualizar</button></div>
     {error && <div className="mb-4 rounded-xl bg-red-50 p-4 text-sm text-red-700">Não foi possível consultar a auditoria: {error}</div>}
     <section className="mb-5 grid gap-3 rounded-xl border border-surface-variant bg-white p-4 dark:border-gray-700 dark:bg-dark-surface md:grid-cols-5">
       <Filter label="Buscar"><input value={filters.search} onChange={(event) => setFilters({ ...filters, search: event.target.value })} placeholder="Usuário, registro ou campo" /></Filter>
