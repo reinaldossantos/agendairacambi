@@ -4,9 +4,13 @@ import { supabase } from "../lib/supabaseClient";
 import { useCurrentUser } from "../context/CurrentUserContext";
 
 const IRACAMBI_DOMAIN = "@iracambi.com";
+const LOGIN_ALIASES = {
+  robin: "iracambi@iracambi.com",
+};
 
 function completeEmail(value) {
   const normalized = value.trim().toLowerCase();
+  if (LOGIN_ALIASES[normalized]) return LOGIN_ALIASES[normalized];
   return normalized.includes("@") ? normalized : `${normalized}${IRACAMBI_DOMAIN}`;
 }
 

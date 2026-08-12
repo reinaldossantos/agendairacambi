@@ -7,7 +7,8 @@ const json = (body: unknown, status = 200) => new Response(JSON.stringify(body),
 serve(async (request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: cors });
   const { email, password, userAgent } = await request.json();
-  const normalizedEmail = String(email || "").trim().toLowerCase();
+  const suppliedLogin = String(email || "").trim().toLowerCase();
+  const normalizedEmail = ["robin", "robin@iracambi.com"].includes(suppliedLogin) ? "iracambi@iracambi.com" : suppliedLogin;
   const forwardedFor = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || null;
   const url = Deno.env.get("SUPABASE_URL")!;
   const admin = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
