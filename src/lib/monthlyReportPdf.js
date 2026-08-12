@@ -2,7 +2,8 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { signFiles, signImages } from "./privateStorage";
+import { signFiles, storagePath } from "./privateStorage";
+import { supabase } from "./supabaseClient";
 
 const dateLabel = (value) => value ? format(parseISO(value), "dd/MM/yyyy") : "—";
 
@@ -21,30 +22,50 @@ function loadLogo() {
   });
 }
 
-function loadEvidenceImage(url) {
+function blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function evidenceDataUrl(value) {
+  const path = storagePath(value, "activity-attachments");
+  if (path) {
+    const { data, error } = await supabase.storage.from("activity-attachments").download(path);
+    if (error || !data) throw error || new Error("Evidência não encontrada.");
+    return blobToDataUrl(data);
+  }
+  const url = typeof value === "string" ? value : value?.url;
+  if (!url) throw new Error("Endereço da evidência ausente.");
+  const response = await fetch(url);
+  if (!response.ok) throw new Error("Não foi possível carregar a evidência.");
+  return blobToDataUrl(await response.blob());
+}
+
+async function loadEvidenceImage(value) {
+  const source = await evidenceDataUrl(value);
   return new Promise((resolve, reject) => {
     const image = new Image();
-    image.crossOrigin = "anonymous";
     image.onload = () => {
       const canvas = document.createElement("canvas");
-      canvas.width = image.naturalWidth;
-      canvas.height = image.naturalHeight;
-      canvas.getContext("2d").drawImage(image, 0, 0);
-      resolve({ data: canvas.toDataURL("image/jpeg", 0.82), ratio: image.naturalWidth / image.naturalHeight });
+      const maxDimension = 1600;
+      const scale = Math.min(1, maxDimension / Math.max(image.naturalWidth, image.naturalHeight));
+      canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+      canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+      canvas.getContext("2d").drawImage(image, 0, 0, canvas.width, canvas.height);
+      resolve({ data: canvas.toDataURL("image/jpeg", 0.82), ratio: canvas.width / canvas.height });
     };
     image.onerror = reject;
-    image.src = url;
+    image.src = source;
   });
 }
 
 export async function generateMonthlyReportPDF(report) {
   report = structuredClone(report);
-  report.activity_snapshot = await Promise.all((report.activity_snapshot || []).map(async (activity) => ({
-    ...activity,
-    images: await signImages(activity.images || []),
-    selected_images: await signImages(activity.selected_images || activity.images || []),
-    files: await signFiles(activity.files || []),
-  })));
+  report.activity_snapshot = await Promise.all((report.activity_snapshot || []).map(async (activity) => ({ ...activity, files: await signFiles(activity.files || []) })));
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const pageWidth = doc.internal.pageSize.getWidth();
   const primary = [26, 59, 46];
@@ -122,6 +143,7 @@ export async function generateMonthlyReportPDF(report) {
   section("Carga horária total", `${totalHours.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 2 })} horas`);
 
   const activitiesWithEvidence = activities.filter((item) => evidenceCount(item));
+  const failedImages = [];
   if (activitiesWithEvidence.length) {
     doc.addPage();
     let y = 18;
@@ -176,6 +198,7 @@ export async function generateMonthlyReportPDF(report) {
             y += 43;
           }
         } catch {
+          failedImages.push(`${activity.title || "Atividade"} · foto ${selectedImages.indexOf(url) + 1}`);
           const frameX = 14 + (column * 61);
           const frameWidth = 56;
           const frameHeight = 38;
@@ -218,6 +241,10 @@ export async function generateMonthlyReportPDF(report) {
   section("Destaques do mês", report.highlights);
   section("Dificuldades e pendências", report.challenges);
   section("Planejamento do mês seguinte", report.next_month_plan);
+
+  if (failedImages.length) {
+    throw new Error(`Não foi possível incorporar ${failedImages.length} foto(s): ${failedImages.slice(0, 3).join("; ")}. Verifique os arquivos e tente novamente`);
+  }
 
   const pages = doc.getNumberOfPages();
   for (let page = 1; page <= pages; page += 1) {

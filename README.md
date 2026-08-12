@@ -4,6 +4,8 @@ Sistema web responsivo para planejamento, acompanhamento, gestão e prestação 
 
 O projeto centraliza agenda, eventos, evidências, pessoas, programas, veículos, despesas, relatórios, arquivos, avisos, notificações e auditoria em uma única aplicação instalável como PWA.
 
+Nos relatórios mensais, as evidências fotográficas são preservadas pelo caminho estável do armazenamento privado. Ao criar ou reabrir um rascunho, o sistema renova o acesso das imagens; durante o PDF, baixa cada foto autenticada e a redimensiona para incorporação segura, inclusive em dispositivos móveis. O PDF não é concluído silenciosamente se alguma foto selecionada falhar.
+
 O sino pulsa enquanto houver notificações novas para o usuário. Cada notificação desaparece somente após ser aberta, e essa leitura é registrada de forma imutável na rastreabilidade com usuário, origem, item e horário.
 
 A auditoria geral permanece obrigatoriamente habilitada e não pode ser desligada pela interface ou pelo banco. Ela usa a identidade autenticada, registra as tabelas operacionais e preserva os históricos anteriores que já possuíam autoria e data confiáveis. A consulta abre somente os movimentos de hoje, busca o período diretamente no banco e apresenta módulos e campos técnicos com nomes em português.

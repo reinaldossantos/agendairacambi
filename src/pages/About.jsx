@@ -132,6 +132,7 @@ const sections = [
       "Escolha mês, programa e responsável e gere um rascunho com as atividades encontradas na agenda. Se não houver atividades, o conteúdo pode ser preenchido manualmente.",
       "Revise o resumo executivo e a equipe; inclua ou retire atividades e complete categoria, objetivo, resultado e observações.",
       "Selecione as fotos que entrarão no PDF, consulte os documentos anexos e preencha indicadores, destaques, dificuldades, pendências e planejamento do próximo mês.",
+      "As fotos do rascunho usam acesso privado renovado sempre que o relatório é aberto. Na geração do PDF, cada imagem selecionada é baixada e incorporada; se uma foto estiver inválida ou indisponível, o sistema informa a falha e não entrega um PDF incompleto.",
       "A carga horária é calculada automaticamente entre o início e a finalização de cada atividade e totalizada no relatório mensal individual ou do programa.",
       "Salve o rascunho durante a revisão e finalize somente quando o conteúdo estiver pronto. Relatórios finalizados ficam disponíveis para consulta e PDF.",
       "Se já existir relatório para o mesmo mês, programa e responsável, o sistema solicitará confirmação antes de substituir o anterior. Regerar um rascunho apaga seus complementos manuais.",

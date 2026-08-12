@@ -4,6 +4,7 @@ import { ptBR } from "date-fns/locale";
 import { supabase } from "../lib/supabaseClient";
 import { useCurrentUser } from "../context/CurrentUserContext";
 import { generateMonthlyReportPDF } from "../lib/monthlyReportPdf";
+import { signFiles, signedUrl, storagePath } from "../lib/privateStorage";
 import ConfirmDialog from "../components/ui/ConfirmDialog";
 
 const inputClass = "w-full rounded-xl border border-surface-variant bg-surface px-3 py-2.5 text-on-surface focus:border-primary focus:ring-primary dark:border-gray-700 dark:bg-gray-800 dark:text-white";
@@ -17,6 +18,30 @@ const activityHours = (start, end) => {
   return milliseconds > 0 ? milliseconds / 3600000 : 0;
 };
 const hoursLabel = (hours) => `${Number(hours || 0).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 2 })} h`;
+const stableImage = (image) => storagePath(image, "activity-attachments") || (typeof image === "string" ? image : image?.url || "");
+const stableFile = (file) => {
+  const path = storagePath(file, "activity-files");
+  const externalUrl = !path ? (typeof file === "string" ? file : file?.url || "") : "";
+  return { ...(typeof file === "object" ? file : {}), name: file?.name || path.split("/").pop(), path, url: externalUrl };
+};
+const persistableActivity = (activity) => ({
+  ...activity,
+  images: (activity.images || []).map(stableImage).filter(Boolean),
+  selected_images: (activity.selected_images || activity.images || []).map(stableImage).filter(Boolean),
+  files: (activity.files || []).map(stableFile),
+});
+async function viewableActivity(activity) {
+  const persisted = persistableActivity(activity);
+  const imagePaths = [...new Set([...(persisted.images || []), ...(persisted.selected_images || [])])];
+  const signedEntries = await Promise.all(imagePaths.map(async (path) => [path, await signedUrl("activity-attachments", path)]));
+  const signed = new Map(signedEntries);
+  return {
+    ...persisted,
+    images: persisted.images.map((path) => signed.get(path) || path),
+    selected_images: persisted.selected_images.map((path) => signed.get(path) || path),
+    files: await signFiles(persisted.files || []),
+  };
+}
 
 export default function MonthlyActivityReports() {
   const { currentUser, persons } = useCurrentUser();
@@ -87,14 +112,14 @@ export default function MonthlyActivityReports() {
     const { data, error } = await query;
     setSaving(false);
     if (error) return setMessage({ type: "error", text: `Não foi possível consultar as atividades: ${error.message}` });
-    const activities = (data || []).map((activity) => ({
+    const activities = await Promise.all((data || []).map((activity) => viewableActivity({
       id: activity.id, included: true, date: activity.due_date, title: activity.title,
       category: "", objective: activity.description || "", result: activity.status === "Realizado" ? "Atividade realizada" : activity.status || "",
       observation: "", status: activity.status, responsible_name: activity.responsible?.name || "",
       start_datetime: activity.start_datetime || "", end_datetime: activity.end_datetime || "",
       hours: activityHours(activity.start_datetime, activity.end_datetime),
       involved_ids: activity.involved_ids || [], images: activity.images || [], selected_images: activity.images || [], files: activity.files || [],
-    }));
+    })));
     const involvedIds = [...new Set(activities.flatMap((item) => item.involved_ids || []))];
     const team = persons.filter((person) => involvedIds.includes(person.id) || activities.some((item) => item.responsible_name === person.name)).map((person) => person.name);
     const responsible = selectedPerson || currentUser;
@@ -133,7 +158,12 @@ export default function MonthlyActivityReports() {
     await generateDraft(true);
   }
 
-  function openReport(report) { setForm({ ...report, activity_snapshot: report.activity_snapshot || [], indicators: report.indicators || [] }); setMode("form"); setMessage({ type: "", text: "" }); }
+  async function openReport(report) {
+    setSaving(true);
+    const activitySnapshot = await Promise.all((report.activity_snapshot || []).map(viewableActivity));
+    setForm({ ...report, activity_snapshot: activitySnapshot, indicators: report.indicators || [] });
+    setSaving(false); setMode("form"); setMessage({ type: "", text: "" });
+  }
   function updateActivity(index, field, value) { setForm((current) => ({ ...current, activity_snapshot: current.activity_snapshot.map((item, itemIndex) => itemIndex === index ? { ...item, [field]: value } : item) })); }
   function updateIndicator(index, field, value) { setForm((current) => ({ ...current, indicators: current.indicators.map((item, itemIndex) => itemIndex === index ? { ...item, [field]: value } : item) })); }
 
@@ -152,7 +182,7 @@ export default function MonthlyActivityReports() {
 
   async function saveReport(finalize = false) {
     setSaving(true);
-    const payload = { ...form, status: finalize ? "submitted" : form.status, submitted_at: finalize ? new Date().toISOString() : form.submitted_at || null };
+    const payload = { ...form, activity_snapshot: (form.activity_snapshot || []).map(persistableActivity), status: finalize ? "submitted" : form.status, submitted_at: finalize ? new Date().toISOString() : form.submitted_at || null };
     delete payload.id; delete payload.report_number; delete payload.created_at; delete payload.updated_at; delete payload.approved_at; delete payload.approved_by;
     const result = form.id
       ? await supabase.from("monthly_activity_reports").update(payload).eq("id", form.id).select().single()
@@ -165,7 +195,7 @@ export default function MonthlyActivityReports() {
       setMode("list");
       return;
     }
-    setForm(result.data);
+    setForm({ ...result.data, activity_snapshot: await Promise.all((result.data.activity_snapshot || []).map(viewableActivity)) });
     loadData();
   }
 
@@ -204,14 +234,14 @@ export default function MonthlyActivityReports() {
       setMessage({ type: "error", text: `O rascunho não foi alterado porque não foi possível consultar a agenda: ${activityResult.error.message}` });
       return;
     }
-    const activities = (activityResult.data || []).map((activity) => ({
+    const activities = await Promise.all((activityResult.data || []).map((activity) => viewableActivity({
       id: activity.id, included: true, date: activity.due_date, title: activity.title, category: "",
       objective: activity.description || "", result: activity.status === "Realizado" ? "Atividade realizada" : activity.status || "",
       observation: "", status: activity.status, responsible_name: activity.responsible?.name || "",
       start_datetime: activity.start_datetime || "", end_datetime: activity.end_datetime || "",
       hours: activityHours(activity.start_datetime, activity.end_datetime),
       involved_ids: activity.involved_ids || [], images: activity.images || [], selected_images: activity.images || [], files: activity.files || [],
-    }));
+    })));
     const realized = activities.filter((item) => item.status === "Realizado").length;
     const cancelled = activities.filter((item) => item.status === "Cancelado").length;
     const totalHours = activities.reduce((sum, item) => sum + item.hours, 0);
