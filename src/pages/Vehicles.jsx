@@ -46,6 +46,7 @@ export default function Vehicles() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const canManageFleet = currentUser?.access_role === "admin" || currentUser?.name?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() === "thais";
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -221,7 +222,12 @@ export default function Vehicles() {
       ? await supabase.from("vehicles").update(payload).eq("id", editingVehicle)
       : await supabase.from("vehicles").insert(payload);
     setSaving(false);
-    if (result.error) return setError(result.error.message);
+    if (result.error) {
+      if (result.error.code === "42501") return setError("Seu perfil não possui permissão para cadastrar ou alterar veículos. Entre novamente e, se o problema continuar, procure o administrador.");
+      if (result.error.code === "23505") return setError("Já existe um veículo cadastrado com essa placa.");
+      if (result.error.code === "23514") return setError("Confira o nome, a placa e a capacidade informados.");
+      return setError(`Não foi possível salvar o veículo: ${result.error.message}`);
+    }
     setShowVehicleForm(false);
     setSuccess(editingVehicle ? "Veículo atualizado." : "Veículo cadastrado.");
     await loadData();
@@ -364,16 +370,16 @@ export default function Vehicles() {
         </div>
       ) : (
         <>
-          <div className="flex justify-end mb-4">
+          {canManageFleet && <div className="flex justify-end mb-4">
             <button onClick={() => openVehicleForm()} className="border border-primary text-primary dark:text-white dark:border-white px-4 py-2 rounded-full flex items-center gap-2"><span className="material-symbols-outlined">add</span>Cadastrar veículo</button>
-          </div>
+          </div>}
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {vehicles.length === 0 && <div className="sm:col-span-2 lg:col-span-3"><Empty icon="no_crash" text="Nenhum veículo cadastrado." /></div>}
             {vehicles.map((vehicle) => (
               <article key={vehicle.id} className="bg-white dark:bg-dark-surface border border-surface-variant dark:border-white/10 rounded-xl p-5">
                 <div className="flex justify-between items-start">
                   <span className="material-symbols-outlined text-4xl text-primary-light dark:text-green-300">directions_car</span>
-                  <button onClick={() => openVehicleForm(vehicle)} className="p-2 rounded-full hover:bg-surface dark:hover:bg-white/10"><span className="material-symbols-outlined">edit</span></button>
+                  {canManageFleet && <button onClick={() => openVehicleForm(vehicle)} className="p-2 rounded-full hover:bg-surface dark:hover:bg-white/10" aria-label={`Editar ${vehicle.name}`}><span className="material-symbols-outlined">edit</span></button>}
                 </div>
                 <h3 className="font-bold text-lg text-primary dark:text-white mt-3">{vehicle.name}</h3>
                 <p className="font-mono tracking-wider text-outline">{vehicle.plate}</p>

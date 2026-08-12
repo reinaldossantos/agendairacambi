@@ -6,6 +6,8 @@ O projeto centraliza agenda, eventos, evidências, pessoas, programas, veículos
 
 No acesso, o usuário `robin` é associado de forma segura à conta institucional `iracambi@iracambi.com`, inclusive na função de autenticação, para funcionar também em dispositivos que ainda estejam atualizando o PWA.
 
+No módulo de veículos, Thaís e o administrador podem cadastrar e atualizar a frota. A leitura permanece disponível à equipe, enquanto operações de exclusão continuam restritas ao administrador; inclusões e alterações permanecem registradas na auditoria.
+
 Nos relatórios mensais, as evidências fotográficas são preservadas pelo caminho estável do armazenamento privado. Ao criar ou reabrir um rascunho, o sistema renova o acesso das imagens; durante o PDF, baixa cada foto autenticada e a redimensiona para incorporação segura, inclusive em dispositivos móveis. O PDF não é concluído silenciosamente se alguma foto selecionada falhar.
 
 O sino pulsa enquanto houver notificações novas para o usuário. Cada notificação desaparece somente após ser aberta, e essa leitura é registrada de forma imutável na rastreabilidade com usuário, origem, item e horário.
