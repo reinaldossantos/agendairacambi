@@ -15,6 +15,8 @@ export default function ChangePassword() {
   const [savedHint, setSavedHint] = useState("");
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
 
   useEffect(() => {
     if (!session || location.pathname !== "/reset-password") return undefined;
@@ -57,12 +59,8 @@ export default function ChangePassword() {
       </div>
       {savedHint && <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"><span className="material-symbols-outlined text-[20px]">lightbulb</span><div><strong className="block">Sua dica cadastrada</strong><span>{savedHint}</span></div></div>}
       {message && <p className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{message}</p>}
-      <label className="block text-sm font-bold text-primary dark:text-white">Nova senha
-        <input required minLength="8" type="password" autoComplete="new-password" placeholder="Mínimo de 8 caracteres" value={password} onChange={(event) => setPassword(event.target.value)} className={`mt-1 ${inputClass}`} />
-      </label>
-      <label className="block text-sm font-bold text-primary dark:text-white">Confirme a nova senha
-        <input required minLength="8" type="password" autoComplete="new-password" placeholder="Digite novamente" value={confirmation} onChange={(event) => setConfirmation(event.target.value)} className={`mt-1 ${inputClass}`} />
-      </label>
+      <PasswordField label="Nova senha" value={password} onChange={setPassword} visible={showPassword} onToggle={() => setShowPassword((value) => !value)} placeholder="Mínimo de 8 caracteres" />
+      <PasswordField label="Confirme a nova senha" value={confirmation} onChange={setConfirmation} visible={showConfirmation} onToggle={() => setShowConfirmation((value) => !value)} placeholder="Digite novamente" />
       <label className="block text-sm font-bold text-primary dark:text-white">Dica para lembrar sua senha
         <input required minLength="4" maxLength="160" type="text" autoComplete="off" placeholder="Ex.: nome do meu primeiro animal" value={hint} onChange={(event) => setHint(event.target.value)} className={`mt-1 ${inputClass}`} />
         <span className="mt-1 block text-xs font-normal text-outline">Não escreva a senha nem parte dela. Use uma lembrança que faça sentido somente para você.</span>
@@ -70,4 +68,15 @@ export default function ChangePassword() {
       <button disabled={saving} className="w-full rounded-full bg-primary py-3 font-bold text-white disabled:opacity-60">{saving ? "Salvando…" : "Salvar nova senha e dica"}</button>
     </form>
   </main>;
+}
+
+function PasswordField({ label, value, onChange, visible, onToggle, placeholder }) {
+  return <label className="block text-sm font-bold text-primary dark:text-white">{label}
+    <span className="relative mt-1 block">
+      <input required minLength="8" type={visible ? "text" : "password"} autoComplete="new-password" placeholder={placeholder} value={value} onChange={(event) => onChange(event.target.value)} className={`${inputClass} pr-12`} />
+      <button type="button" onClick={onToggle} className="absolute inset-y-0 right-0 flex w-12 items-center justify-center rounded-r-xl text-outline transition hover:bg-primary/5 hover:text-primary" aria-label={visible ? `Ocultar ${label.toLowerCase()}` : `Visualizar ${label.toLowerCase()}`} aria-pressed={visible} title={visible ? "Ocultar senha" : "Visualizar senha"}>
+        <span className="material-symbols-outlined text-[21px]">{visible ? "visibility_off" : "visibility"}</span>
+      </button>
+    </span>
+  </label>;
 }

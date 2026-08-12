@@ -29,7 +29,7 @@ const sections = [
     icon: "login",
     title: "Acesso, senha e segurança",
     items: [
-      "Entre com o e-mail cadastrado e sua senha. No primeiro acesso, substitua obrigatoriamente a senha temporária por uma senha pessoal de pelo menos oito caracteres.",
+      "Entre com o e-mail cadastrado e sua senha. No primeiro acesso, substitua obrigatoriamente a senha temporária por uma senha pessoal de pelo menos oito caracteres. Use o ícone de olho para visualizar ou ocultar a nova senha e a confirmação enquanto digita.",
       "Cadastre também uma dica de senha que faça sentido somente para você. A dica não pode conter a própria senha e somente será exibida depois da confirmação do link de recuperação enviado ao seu e-mail.",
       "A nova senha precisa ser diferente da senha temporária e de uma senha nova que já tenha sido salva em tentativa anterior. A conclusão fica registrada no histórico de segurança.",
       "Em caso de esquecimento, use “Esqueceu a senha?” para receber as instruções de recuperação no e-mail cadastrado.",
