@@ -202,7 +202,8 @@ const sections = [
       "Quando houver somente um veículo disponível, ele será selecionado automaticamente. O programa é preenchido conforme o usuário autenticado ou o solicitante selecionado.",
       "As datas e horários de saída e retorno não podem ser anteriores ao momento atual; o retorno também deve permanecer posterior à saída.",
       "Edite ou cancele uma reserva quando necessário. Ao finalizar o uso, informe os dados solicitados e registre ocorrências, avarias ou observações.",
-      "Usuários autorizados podem cadastrar e editar veículos, placa e situação: disponível, em manutenção ou inativo.",
+      "Thaís e o administrador podem cadastrar e editar veículos, placa, capacidade e situação: disponível, em manutenção ou inativo. Os demais usuários consultam a frota e fazem agendamentos; exclusões permanecem restritas ao administrador.",
+      "Cadastros e alterações da frota ficam registrados na auditoria do sistema.",
     ],
   },
   {
