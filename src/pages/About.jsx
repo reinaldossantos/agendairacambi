@@ -181,6 +181,7 @@ const sections = [
       "Ao iniciar um relatório, usuário, programa e cargo são preenchidos automaticamente conforme o perfil autenticado; revise os dados antes de salvar.",
       "Somente Banco e Forma de crédito são obrigatórios. Os demais campos podem ser completados conforme a necessidade da prestação de contas.",
       "Registre descrição, valor e comprovantes de cada lançamento; revise os totais e o saldo antes de encaminhar ou finalizar o relatório.",
+      "No celular, os lançamentos aparecem em cartões legíveis e os botões de salvar e finalizar ficam abaixo do formulário, sem encobrir despesas. No computador, os mesmos dados permanecem organizados em tabela.",
       "A data do comprovante não pode ser anterior ao dia atual. A competência em mês e ano aparece abaixo do campo de data.",
       "O comprovante fica somente no formulário até o salvamento. Se você cancelar ou sair sem salvar, ele não será enviado ao armazenamento.",
       "Ao clicar em Finalizar relatório, revise a prévia completa e use Confirmar e finalizar somente depois de conferir identificação, despesas, anexos, banco e totais.",

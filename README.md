@@ -24,6 +24,8 @@ A auditoria geral permanece obrigatoriamente habilitada e não pode ser desligad
 
 **Como usar:** ao criar um relatório, o sistema preenche usuário, programa e cargo conforme o perfil autenticado. Somente **Banco** e **Forma de crédito** são obrigatórios. As datas dos comprovantes não aceitam dias anteriores à data atual e exibem automaticamente o mês e o ano da competência. Os comprovantes permanecem locais até o salvamento; cancelar ou abandonar o formulário não envia arquivos ao Storage.
 
+No celular, cada lançamento é apresentado em um cartão responsivo com descrição, comprovante, data, documento e valor em tamanho legível. A barra de ações permanece no fluxo da página para não encobrir campos, e a prévia de finalização também utiliza cartões em telas pequenas.
+
 ### Manutenção administrativa de dados
 
 **Finalidade:** permitir a remoção controlada de cadastros de teste e aplicar políticas de retenção sem expor dados estruturais.
