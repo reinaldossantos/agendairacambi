@@ -247,7 +247,8 @@ const sections = [
     items: [
       "Somente administradores acessam os cadastros administrativos e as Configurações Avançadas.",
       "Em Programas, crie, edite ou exclua áreas e associe seus líderes. Em Líderes, visualize e altere rapidamente cada vínculo; somente um usuário Administrador pode remover a liderança de um programa.",
-      "Em Pessoas, cadastre nome, e-mail e iniciais, altere os dados, redefina senhas e desative, reative ou exclua usuários conforme a necessidade.",
+      "Em Administração → Pessoas e acessos, cadastre nome, e-mail e iniciais, altere os dados, redefina senhas e desative, reative ou exclua usuários conforme a necessidade.",
+      "Na mesma tela, consulte Rastreabilidade de acessos para verificar entrada, última atividade, saída, duração da sessão, situação, dispositivo e endereço IP.",
       "Consulte o Histórico de acessos para verificar data, usuário, e-mail e tipo de evento.",
       "Em Manutenção de dados, administradores podem visualizar e excluir registros de teste a partir de uma data, aplicar retenção até uma data e reconciliar arquivos órfãos. A prévia e a confirmação digitada são obrigatórias.",
       "Escolha categorias independentes para a manutenção. Cadastros estruturais, usuários, programas, veículos e configurações ficam protegidos contra limpeza em massa.",

@@ -32,11 +32,11 @@ const groups = [
   { id: "management", label: "Gestão", icon: "groups", tone: "management", items: [
     { to: "/projects", label: "Gestão de projetos", icon: "view_kanban" },
     { to: "/programs", label: "Programas", icon: "account_tree" },
-    { to: "/admin/programs", label: "Administrar programas", icon: "admin_panel_settings", requiredRole: "admin" },
-    { to: "/admin/persons", label: "Pessoas", icon: "group", requiredRole: "admin" },
-    { to: "/admin/leaders", label: "Líderes", icon: "diversity_3", requiredRole: "admin" },
   ] },
   { id: "admin", label: "Administração", icon: "settings", tone: "admin", items: [
+    { to: "/admin/persons", label: "Pessoas e acessos", icon: "manage_accounts", requiredRole: "admin" },
+    { to: "/admin/programs", label: "Administrar programas", icon: "admin_panel_settings", requiredRole: "admin" },
+    { to: "/admin/leaders", label: "Líderes", icon: "diversity_3", requiredRole: "admin" },
     { to: "/settings", label: "Configurações", icon: "settings" },
     { to: "/advanced-settings", label: "Ajustes avançados", icon: "tune", requiredRole: "admin" },
     { to: "/admin/maintenance", label: "Manutenção de dados", icon: "cleaning_services", requiredRole: "admin" },
