@@ -2,7 +2,7 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { signFiles, storagePath } from "./privateStorage";
+import { signFiles, signedUrl, storagePath } from "./privateStorage";
 import { supabase } from "./supabaseClient";
 
 const dateLabel = (value) => value ? format(parseISO(value), "dd/MM/yyyy") : "—";
@@ -35,8 +35,12 @@ async function evidenceDataUrl(value) {
   const path = storagePath(value, "activity-attachments");
   if (path) {
     const { data, error } = await supabase.storage.from("activity-attachments").download(path);
-    if (error || !data) throw error || new Error("Evidência não encontrada.");
-    return blobToDataUrl(data);
+    if (!error && data) return blobToDataUrl(data);
+    const fallbackUrl = await signedUrl("activity-attachments", path);
+    if (!fallbackUrl) throw error || new Error("Evidência não encontrada.");
+    const fallbackResponse = await fetch(fallbackUrl);
+    if (!fallbackResponse.ok) throw new Error("Não foi possível carregar a evidência.");
+    return blobToDataUrl(await fallbackResponse.blob());
   }
   const url = typeof value === "string" ? value : value?.url;
   if (!url) throw new Error("Endereço da evidência ausente.");

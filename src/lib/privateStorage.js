@@ -26,11 +26,13 @@ export async function signedUrl(bucket, value, expiresIn = 3600) {
   const path = storagePath(value, bucket);
   if (!path) return typeof value === "string" ? value : value?.url || "";
   const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, expiresIn);
-  if (error) {
-    console.error(`Não foi possível renovar o acesso ao arquivo em ${bucket}:`, error.message);
+  if (!error && data?.signedUrl) return data.signedUrl;
+  const { data: fallback, error: fallbackError } = await supabase.functions.invoke("sign-private-files", { body: { bucket, values: [path] } });
+  if (fallbackError || !fallback?.urls?.[0]?.url) {
+    console.error(`Não foi possível renovar o acesso ao arquivo em ${bucket}:`, fallbackError?.message || fallback?.urls?.[0]?.error || error?.message);
     return "";
   }
-  return data.signedUrl;
+  return fallback.urls[0].url;
 }
 
 export async function signImages(images = [], bucket = "activity-attachments") {
