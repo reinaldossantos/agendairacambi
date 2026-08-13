@@ -300,22 +300,29 @@ function AccessHistory({ persons }) {
     setLoading(true);
     const startIso = new Date(`${startDate}T00:00:00-03:00`).toISOString();
     const endIso = new Date(`${endDate}T23:59:59.999-03:00`).toISOString();
-    let query = supabase.from("user_access_logs").select("*, person:person_id(name)")
-      .lte("occurred_at", endIso)
-      .or(`occurred_at.gte.${startIso},last_seen_at.gte.${startIso},ended_at.gte.${startIso}`)
-      .order("occurred_at", { ascending: false })
-      .limit(500);
-    if (personFilter) query = query.eq("person_id", personFilter);
-    if (eventFilter) query = query.eq("event_type", eventFilter);
-    const { data, error } = await query;
+    const filteredQuery = (column) => {
+      let query = supabase.from("user_access_logs").select("*, person:person_id(name)")
+        .gte(column, startIso).lte(column, endIso).order("occurred_at", { ascending: false }).limit(500);
+      if (personFilter) query = query.eq("person_id", personFilter);
+      if (eventFilter) query = query.eq("event_type", eventFilter);
+      return query;
+    };
+    const results = await Promise.all([
+      filteredQuery("occurred_at"),
+      filteredQuery("last_seen_at"),
+      filteredQuery("ended_at"),
+    ]);
     setLoading(false);
     setSearched(true);
+    const error = results.find((result) => result.error)?.error;
     if (error) {
       setLogs([]);
       setSearchError(`Não foi possível consultar os acessos: ${error.message}`);
       return;
     }
-    setLogs(data || []);
+    const uniqueLogs = new Map();
+    results.forEach(({ data }) => (data || []).forEach((log) => uniqueLogs.set(log.id, log)));
+    setLogs([...uniqueLogs.values()].sort((a, b) => new Date(b.occurred_at) - new Date(a.occurred_at)).slice(0, 500));
   }
 
   return <section className="mt-8 rounded-2xl border border-surface-variant bg-white p-4 dark:border-gray-700 dark:bg-gray-900 sm:p-5"><header className="mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-end"><div><p className="text-xs font-bold uppercase tracking-wider text-primary-light">Acesso exclusivo de Reinaldo</p><h3 className="text-xl font-bold text-primary dark:text-white">Rastreabilidade de acessos</h3><p className="text-sm text-outline">Escolha o período e os filtros. Os acessos somente serão carregados ao pesquisar.</p></div><span className="w-fit rounded-full bg-emerald-100 px-3 py-1.5 text-xs font-bold text-emerald-800">Consulta restrita</span></header><form onSubmit={searchAccesses} className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5"><AccessDate label="Data inicial" value={startDate} onChange={setStartDate} max={endDate} /><AccessDate label="Data final" value={endDate} onChange={setEndDate} min={startDate} /><AccessFilter label="Usuário" value={personFilter} onChange={setPersonFilter}><option value="">Todos</option>{persons.map((person) => <option key={person.id} value={person.id}>{person.name}</option>)}</AccessFilter><AccessFilter label="Evento" value={eventFilter} onChange={setEventFilter}><option value="">Todos</option>{Object.entries(accessLabels).map(([value,label]) => <option key={value} value={value}>{label}</option>)}</AccessFilter><button disabled={loading} className="min-h-11 self-end rounded-xl bg-primary px-5 py-2.5 font-bold text-white disabled:opacity-60"><span className={`material-symbols-outlined mr-1 align-middle text-[18px] ${loading ? "animate-spin" : ""}`}>{loading ? "progress_activity" : "search"}</span>{loading ? "Pesquisando…" : "Pesquisar acessos"}</button></form>{searchError && <p role="alert" className="mb-4 rounded-xl bg-red-50 p-3 text-sm text-red-700">{searchError}</p>}{searched && !searchError && <><div className="mb-5 grid grid-cols-3 gap-3"><AccessMetric label="Sessões" value={sessions.length} /><AccessMetric label="Tempo registrado" value={durationLabel(totalTime)} /><AccessMetric label="Ativas agora" value={sessions.filter(activeSession).length} /></div><div className="grid gap-3 md:hidden">{logs.map((log) => <AccessCard key={log.id} log={log} />)}</div><div className="hidden overflow-x-auto md:block"><table className="w-full min-w-[980px] text-sm"><thead><tr className="border-b bg-surface text-left text-xs uppercase text-outline dark:bg-gray-800"><th className="p-3">Usuário</th><th className="p-3">Entrada / evento</th><th className="p-3">Última atividade</th><th className="p-3">Saída</th><th className="p-3">Duração</th><th className="p-3">Situação</th><th className="p-3">Dispositivo</th><th className="p-3">IP</th></tr></thead><tbody>{logs.map((log) => <tr key={log.id} className="border-b border-surface-variant/70"><td className="p-3"><strong className="block text-primary dark:text-white">{log.person?.name || "—"}</strong><span className="text-xs text-outline">{log.email}</span></td><td className="p-3">{dateTime(log.occurred_at)}<span className="block text-xs text-outline">{accessLabels[log.event_type] || log.event_type}</span></td><td className="p-3">{dateTime(log.last_seen_at)}</td><td className="p-3">{dateTime(log.ended_at)}</td><td className="p-3 font-bold">{log.event_type === "login_success" ? durationLabel(sessionSeconds(log)) : "—"}</td><td className="p-3"><Status log={log} /></td><td className="max-w-52 truncate p-3" title={log.user_agent}>{deviceLabel(log.user_agent)}</td><td className="p-3 font-mono text-xs">{log.ip_address || "—"}</td></tr>)}</tbody></table></div>{!logs.length && <p className="py-10 text-center text-outline">Nenhum acesso encontrado para os filtros informados.</p>}<p className="mt-4 rounded-xl bg-blue-50 p-3 text-xs text-blue-800 dark:bg-blue-950/30 dark:text-blue-300">A duração é atualizada a cada minuto. Se o navegador for fechado sem usar “Sair”, a última atividade indica o término aproximado. A consulta retorna no máximo 500 movimentos por pesquisa.</p></>}</section>;
