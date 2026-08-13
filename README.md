@@ -76,7 +76,7 @@ Por padrão, a tradução automática fica **desabilitada**. Um administrador po
 
 **Finalidade:** facilitar a leitura do desempenho do período.
 
-**Como usar:** o painel mostra percentual concluído, realizadas, restantes e distribuição por status. Os indicadores abrem o Histórico com os filtros correspondentes. Atividades canceladas aparecem na distribuição, mas não reduzem a taxa de conclusão.
+**Como usar:** o painel mostra percentual concluído, realizadas, restantes e distribuição por status. Os indicadores abrem o Histórico com os filtros correspondentes. Ao consultar uma atividade, o botão **Voltar para a pesquisa** restaura período, programa, responsável e status. Atividades canceladas aparecem na distribuição, mas não reduzem a taxa de conclusão.
 
 ### Navegador inteligente de período
 

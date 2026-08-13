@@ -119,6 +119,7 @@ const sections = [
     title: "Histórico e exportações",
     items: [
       "No Histórico, filtre as atividades por período, programa, responsável e status, inclusive Cancelado.",
+      "Ao abrir uma atividade a partir dos resultados, use Voltar para a pesquisa para recuperar exatamente o período e os demais filtros aplicados.",
       "A tabela completa permite conferir os dados e abrir uma atividade específica.",
       "Exporte os resultados em CSV para análise em planilhas ou em PDF para salvar, imprimir e compartilhar.",
       "No Dashboard também é possível gerar o relatório em PDF do período exibido.",

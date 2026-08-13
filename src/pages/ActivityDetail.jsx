@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 import { useCurrentUser } from "../context/CurrentUserContext";
 import { format, parseISO, isValid as isDateValid } from "date-fns";
@@ -26,6 +26,7 @@ const priorityColors = {
 export default function ActivityDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { currentUser } = useCurrentUser();
   const uncommittedUploads = useRef({ images: new Set(), files: new Set() });
 
@@ -465,9 +466,14 @@ export default function ActivityDetail() {
   if (!activity) return <div className="text-center py-20 font-roboto">Atividade não encontrada.</div>;
 
   const priority = activity.priority || "Média";
+  const returnTo = typeof location.state?.returnTo === "string" && location.state.returnTo.startsWith("/history") ? location.state.returnTo : "";
 
   return (
     <div className="max-w-4xl mx-auto mb-24 px-4 md:px-0 font-roboto">
+      <button type="button" onClick={() => returnTo ? navigate(returnTo) : navigate(-1)} className="mb-5 inline-flex min-h-11 items-center gap-2 rounded-full border border-primary px-4 py-2 text-sm font-bold text-primary transition hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 dark:border-green-300 dark:text-green-300" aria-label={returnTo ? "Voltar para a pesquisa de atividades" : "Voltar para a tela anterior"}>
+        <span className="material-symbols-outlined icon-plain text-[20px]">arrow_back</span>
+        {returnTo ? (location.state?.returnLabel || "Voltar para a pesquisa") : "Voltar"}
+      </button>
       <ConfirmDialog
         isOpen={showDeleteConfirm}
         title="Excluir atividade"

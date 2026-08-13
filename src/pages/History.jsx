@@ -11,11 +11,11 @@ export default function History() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filterProgram, setFilterProgram] = useState("");
-  const [filterPerson, setFilterPerson] = useState("");
-  const [filterStatus, setFilterStatus] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  const [filterProgram, setFilterProgram] = useState(() => searchParams.get("program") || "");
+  const [filterPerson, setFilterPerson] = useState(() => searchParams.get("person") || "");
+  const [filterStatus, setFilterStatus] = useState(() => searchParams.get("status") || "");
+  const [startDate, setStartDate] = useState(() => searchParams.get("start") || "");
+  const [endDate, setEndDate] = useState(() => searchParams.get("end") || "");
   const [programs, setPrograms] = useState([]);
   const [persons, setPersons] = useState([]);
   const [programNameToId, setProgramNameToId] = useState({});
@@ -122,6 +122,17 @@ export default function History() {
     setStartDate("");
     setEndDate("");
     setSearchParams({});
+  }
+
+  function currentSearchUrl() {
+    const params = new URLSearchParams();
+    if (filterStatus) params.set("status", filterStatus);
+    if (startDate) params.set("start", startDate);
+    if (endDate) params.set("end", endDate);
+    if (filterProgram) params.set("program", filterProgram);
+    if (filterPerson) params.set("person", filterPerson);
+    const query = params.toString();
+    return query ? `/history?${query}` : "/history";
   }
 
   function exportCSV() {
@@ -309,7 +320,7 @@ export default function History() {
                   activities.map((a, index) => (
                     <tr key={a.id} className={`transition-colors ${index % 2 === 0 ? "bg-white dark:bg-gray-900" : "bg-stone-50 dark:bg-gray-800/50"} hover:bg-surface dark:hover:bg-gray-800`}>
                       <td className="px-2 md:px-4 py-3">
-                        <Link to={`/activity/${a.id}`} className="font-roboto font-semibold text-primary dark:text-white hover:underline block text-xs md:text-sm">
+                        <Link to={`/activity/${a.id}`} state={{ returnTo: currentSearchUrl(), returnLabel: "Voltar para a pesquisa" }} className="font-roboto font-semibold text-primary dark:text-white hover:underline block text-xs md:text-sm">
                           {a.title}
                         </Link>
                         <p className="text-[10px] md:text-xs text-outline dark:text-gray-500 line-clamp-1">{a.description}</p>
