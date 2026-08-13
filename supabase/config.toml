@@ -415,6 +415,9 @@ verify_jwt = true
 [functions.cleanup-old-files]
 verify_jwt = true
 
+[functions.legacy-media-maintenance]
+verify_jwt = true
+
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 

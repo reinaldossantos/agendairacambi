@@ -4,12 +4,15 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 type StoredObject = { name: string; id?: string | null; created_at?: string | null };
 
 const objectPath = (value: unknown, bucket: string) => {
-  if (value && typeof value === "object" && "path" in value) return String((value as { path: unknown }).path);
+  if (value && typeof value === "object" && "path" in value) return String((value as { path: unknown }).path).replace(new RegExp(`^${bucket}/`), "");
   const raw = typeof value === "string" ? value : (value as { url?: string } | null)?.url;
   if (!raw) return "";
-  const marker = `/${bucket}/`;
-  const index = raw.indexOf(marker);
-  return index >= 0 ? decodeURIComponent(raw.slice(index + marker.length).split("?")[0]) : raw;
+  const clean = raw.split("?")[0];
+  for (const marker of [`/object/sign/${bucket}/`, `/object/public/${bucket}/`, `/object/${bucket}/`, `/${bucket}/`]) {
+    const index = clean.indexOf(marker);
+    if (index >= 0) return decodeURIComponent(clean.slice(index + marker.length));
+  }
+  return decodeURIComponent(clean).replace(new RegExp(`^${bucket}/`), "");
 };
 
 const addReferences = (target: Set<string>, values: unknown[], bucket: string) => {

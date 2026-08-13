@@ -253,7 +253,7 @@ const sections = [
       "A rastreabilidade não carrega movimentos automaticamente: informe as datas inicial e final, escolha usuário e evento quando necessário e clique em Pesquisar acessos. A consulta busca somente o período e os filtros selecionados.",
       "A pesquisa inclui sessões iniciadas antes do período que permaneceram ativas ou foram encerradas dentro dele; o tempo registrado considera apenas a parcela correspondente às datas pesquisadas.",
       "Consulte o Histórico de acessos para verificar data, usuário, e-mail e tipo de evento.",
-      "Em Manutenção de dados, administradores podem visualizar e excluir registros de teste a partir de uma data, aplicar retenção até uma data e reconciliar arquivos órfãos. A prévia e a confirmação digitada são obrigatórias.",
+      "Em Manutenção de dados, administradores podem visualizar e excluir registros de teste, aplicar retenção e reconciliar arquivos órfãos. Também podem apagar, separadamente, fotos e/ou documentos legados anteriores a 30, 60, 90, 180 ou 365 dias, ou a uma data personalizada. A prévia mostra quantidades, espaço estimado e uma amostra das atividades; a confirmação digitada é obrigatória e os textos das atividades são preservados.",
       "Escolha categorias independentes para a manutenção. Cadastros estruturais, usuários, programas, veículos e configurações ficam protegidos contra limpeza em massa.",
       "Digite EXCLUIR somente depois de revisar a prévia. Para reconciliar o armazenamento, use a confirmação LIMPAR ARQUIVOS; apenas objetos sem referência e com mais de 24 horas são removidos.",
       "Em Configurações Avançadas, ajuste os modos de lançamento. A Auditoria e rastreabilidade permanece obrigatoriamente habilitada e não pode ser desativada.",

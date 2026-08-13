@@ -38,7 +38,7 @@ No celular, cada lançamento é apresentado em um cartão responsivo com descri�
 
 **Finalidade:** permitir a remoção controlada de cadastros de teste e aplicar políticas de retenção sem expor dados estruturais.
 
-**Como usar:** administradores acessam **Administração → Manutenção de dados**, escolhem exclusão a partir ou até uma data, selecionam as categorias e geram uma prévia. A exclusão exige a confirmação digitada `EXCLUIR`. A mesma página oferece reconciliação de arquivos órfãos mediante confirmação independente.
+**Como usar:** administradores acessam **Administração → Manutenção de dados**, escolhem exclusão a partir ou até uma data, selecionam as categorias e geram uma prévia. A exclusão exige a confirmação digitada `EXCLUIR`. A mesma página oferece uma limpeza independente de mídias legadas: escolha fotos, documentos ou ambos e retenção de 30, 60, 90, 180, 365 dias ou uma data personalizada. A prévia informa atividades, referências, objetos, espaço estimado e uma amostra antes da confirmação `APAGAR MIDIAS`. Os textos e demais dados das atividades são preservados. A reconciliação de arquivos órfãos continua separada e exige confirmação própria.
 
 ### Calendário responsivo e identificação por programa
 
