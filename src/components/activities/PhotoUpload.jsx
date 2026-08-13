@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
-import { signedUrl, storagePath } from "../../lib/privateStorage";
+import { storagePath } from "../../lib/privateStorage";
+import PrivateStorageImage from "../ui/PrivateStorageImage";
 
 export default function PhotoUpload({ onUploadComplete, existingPhotos = [] }) {
   const [photos, setPhotos] = useState(existingPhotos);
@@ -38,8 +39,7 @@ export default function PhotoUpload({ onUploadComplete, existingPhotos = [] }) {
         continue;
       }
 
-      const url = await signedUrl("activity-attachments", filePath);
-      uploadedUrls.push(url);
+      uploadedUrls.push(filePath);
     }
 
     const updatedPhotos = [...photos, ...uploadedUrls];
@@ -98,8 +98,9 @@ export default function PhotoUpload({ onUploadComplete, existingPhotos = [] }) {
         <div className="grid grid-cols-3 gap-2">
           {photos.map((url, idx) => (
             <div key={idx} className="relative group">
-              <img
-                src={url}
+              <PrivateStorageImage
+                bucket="activity-attachments"
+                source={url}
                 alt="Anexo"
                 className="w-full h-24 object-cover rounded-lg border border-surface-variant dark:border-white/10"
               />

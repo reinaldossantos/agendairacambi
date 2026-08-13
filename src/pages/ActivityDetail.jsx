@@ -5,6 +5,7 @@ import { useCurrentUser } from "../context/CurrentUserContext";
 import { format, parseISO, isValid as isDateValid } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import CommentSection from "../components/activities/CommentSection";
+import PrivateStorageImage from "../components/ui/PrivateStorageImage";
 import ActivityTimeline from "../components/activities/ActivityTimeline";
 import ConfirmDialog from "../components/ui/ConfirmDialog";
 import PhotoUpload from "../components/activities/PhotoUpload";
@@ -758,7 +759,7 @@ export default function ActivityDetail() {
         {!editMode && activity.images?.length > 0 && (
           <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-2">
             {activity.images.map((url, idx) => (
-              <img key={idx} src={url} alt="Anexo" className="w-full h-32 object-cover rounded-lg border border-surface-variant dark:border-white/10" />
+              <PrivateStorageImage key={idx} bucket="activity-attachments" source={url} alt={`Anexo ${idx + 1}`} className="w-full h-32 object-cover rounded-lg border border-surface-variant dark:border-white/10" link />
             ))}
           </div>
         )}
