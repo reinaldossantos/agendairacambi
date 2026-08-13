@@ -10,7 +10,6 @@ export default function AdminPersons() {
   const canViewAccessHistory = currentUser?.email?.toLowerCase() === "reinaldo@iracambi.com";
   const [persons, setPersons] = useState([]);
   const [form, setForm] = useState({ name: "", initials: "", email: "" });
-  const [accessLogs, setAccessLogs] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -29,11 +28,7 @@ export default function AdminPersons() {
       return;
     }
     setPersons(data || []);
-    if (canViewAccessHistory) {
-      const { data: logs } = await supabase.from("user_access_logs").select("*, person:person_id(name)").order("occurred_at", { ascending: false }).limit(1000);
-      setAccessLogs(logs || []);
-    }
-  }, [canViewAccessHistory]);
+  }, []);
 
   useEffect(() => {
     const timer = window.setTimeout(fetchPersons, 0);
@@ -244,12 +239,7 @@ export default function AdminPersons() {
       </div>
 
       <div className={canViewAccessHistory ? "" : "hidden"} aria-hidden={!canViewAccessHistory}>
-      <AccessHistory logs={accessLogs} />
-      <div className="hidden">
-
-      <section className="mt-8 rounded-xl border border-surface-variant bg-white p-4 dark:border-gray-700 dark:bg-gray-900 sm:p-5"><h3 className="mb-4 text-lg font-bold text-primary dark:text-white">Histórico de acessos</h3><div className="grid gap-2 md:hidden">{accessLogs.map((log) => <article key={log.id} className="rounded-xl bg-surface p-3 dark:bg-gray-800"><div className="flex items-center justify-between gap-2"><strong className="text-sm text-primary dark:text-white">{log.person?.name || "—"}</strong><span className="text-[10px] text-outline">{format(new Date(log.occurred_at), "dd/MM/yyyy HH:mm:ss")}</span></div><p className="mt-1 truncate text-xs text-outline">{log.email}</p><span className="mt-2 inline-flex rounded-full bg-white px-2 py-1 text-[10px] font-bold dark:bg-gray-700">{log.event_type}</span></article>)}</div><div className="hidden overflow-x-auto md:block"><table className="min-w-[700px] w-full text-sm"><thead><tr className="bg-surface text-left"><th className="p-2">Data e hora</th><th className="p-2">Usuário</th><th className="p-2">E-mail</th><th className="p-2">Evento</th></tr></thead><tbody>{accessLogs.map((log) => <tr key={log.id} className="border-t"><td className="p-2">{format(new Date(log.occurred_at), "dd/MM/yyyy HH:mm:ss")}</td><td className="p-2">{log.person?.name || "—"}</td><td className="p-2">{log.email}</td><td className="p-2">{log.event_type}</td></tr>)}</tbody></table></div>{!accessLogs.length && <p className="p-6 text-center text-outline">Nenhum acesso registrado.</p>}</section>
-
-      </div>
+      <AccessHistory persons={persons} />
       </div>
 
       {/* Modal de confirmação para exclusão */}
@@ -282,17 +272,48 @@ const durationLabel = (seconds) => { const hours = Math.floor(seconds / 3600); c
 const activeSession = (log) => log.event_type === "login_success" && !log.ended_at && log.last_seen_at && Date.now() - new Date(log.last_seen_at).getTime() < 130000;
 const deviceLabel = (agent = "") => `${/mobile|android|iphone|ipad/i.test(agent) ? "Mobile" : "Computador"} · ${/edg/i.test(agent) ? "Edge" : /chrome/i.test(agent) ? "Chrome" : /firefox/i.test(agent) ? "Firefox" : /safari/i.test(agent) ? "Safari" : "Navegador"}`;
 
-function AccessHistory({ logs }) {
+function AccessHistory({ persons }) {
+  const today = format(new Date(), "yyyy-MM-dd");
+  const [logs, setLogs] = useState([]);
   const [personFilter, setPersonFilter] = useState("");
   const [eventFilter, setEventFilter] = useState("");
-  const people = [...new Set(logs.map((log) => log.person?.name).filter(Boolean))].sort((a, b) => a.localeCompare(b, "pt-BR"));
-  const filtered = logs.filter((log) => (!personFilter || log.person?.name === personFilter) && (!eventFilter || log.event_type === eventFilter));
-  const sessions = filtered.filter((log) => log.event_type === "login_success");
+  const [startDate, setStartDate] = useState(today);
+  const [endDate, setEndDate] = useState(today);
+  const [loading, setLoading] = useState(false);
+  const [searched, setSearched] = useState(false);
+  const [searchError, setSearchError] = useState("");
+  const sessions = logs.filter((log) => log.event_type === "login_success");
   const totalTime = sessions.reduce((total, log) => total + sessionSeconds(log), 0);
-  return <section className="mt-8 rounded-2xl border border-surface-variant bg-white p-4 dark:border-gray-700 dark:bg-gray-900 sm:p-5"><header className="mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-end"><div><p className="text-xs font-bold uppercase tracking-wider text-primary-light">Acesso exclusivo de Reinaldo</p><h3 className="text-xl font-bold text-primary dark:text-white">Rastreabilidade de acessos</h3><p className="text-sm text-outline">Entradas, permanência, encerramento e dispositivo utilizado.</p></div><span className="w-fit rounded-full bg-emerald-100 px-3 py-1.5 text-xs font-bold text-emerald-800">Consulta restrita</span></header><div className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5"><AccessFilter label="Usuário" value={personFilter} onChange={setPersonFilter}><option value="">Todos</option>{people.map((name) => <option key={name}>{name}</option>)}</AccessFilter><AccessFilter label="Evento" value={eventFilter} onChange={setEventFilter}><option value="">Todos</option>{Object.entries(accessLabels).map(([value,label]) => <option key={value} value={value}>{label}</option>)}</AccessFilter><AccessMetric label="Sessões" value={sessions.length} /><AccessMetric label="Tempo registrado" value={durationLabel(totalTime)} /><AccessMetric label="Ativas agora" value={sessions.filter(activeSession).length} /></div><div className="grid gap-3 md:hidden">{filtered.map((log) => <AccessCard key={log.id} log={log} />)}</div><div className="hidden overflow-x-auto md:block"><table className="w-full min-w-[980px] text-sm"><thead><tr className="border-b bg-surface text-left text-xs uppercase text-outline dark:bg-gray-800"><th className="p-3">Usuário</th><th className="p-3">Entrada / evento</th><th className="p-3">Última atividade</th><th className="p-3">Saída</th><th className="p-3">Duração</th><th className="p-3">Situação</th><th className="p-3">Dispositivo</th><th className="p-3">IP</th></tr></thead><tbody>{filtered.map((log) => <tr key={log.id} className="border-b border-surface-variant/70"><td className="p-3"><strong className="block text-primary dark:text-white">{log.person?.name || "—"}</strong><span className="text-xs text-outline">{log.email}</span></td><td className="p-3">{dateTime(log.occurred_at)}<span className="block text-xs text-outline">{accessLabels[log.event_type] || log.event_type}</span></td><td className="p-3">{dateTime(log.last_seen_at)}</td><td className="p-3">{dateTime(log.ended_at)}</td><td className="p-3 font-bold">{log.event_type === "login_success" ? durationLabel(sessionSeconds(log)) : "—"}</td><td className="p-3"><Status log={log} /></td><td className="max-w-52 truncate p-3" title={log.user_agent}>{deviceLabel(log.user_agent)}</td><td className="p-3 font-mono text-xs">{log.ip_address || "—"}</td></tr>)}</tbody></table></div>{!filtered.length && <p className="py-10 text-center text-outline">Nenhum acesso encontrado.</p>}<p className="mt-4 rounded-xl bg-blue-50 p-3 text-xs text-blue-800 dark:bg-blue-950/30 dark:text-blue-300">A duração é atualizada a cada minuto. Se o navegador for fechado sem usar “Sair”, a última atividade indica o término aproximado.</p></section>;
+
+  async function searchAccesses(event) {
+    event.preventDefault();
+    setSearchError("");
+    if (!startDate || !endDate) return setSearchError("Informe as datas inicial e final.");
+    if (endDate < startDate) return setSearchError("A data final não pode ser anterior à data inicial.");
+    setLoading(true);
+    let query = supabase.from("user_access_logs").select("*, person:person_id(name)")
+      .gte("occurred_at", new Date(`${startDate}T00:00:00-03:00`).toISOString())
+      .lte("occurred_at", new Date(`${endDate}T23:59:59.999-03:00`).toISOString())
+      .order("occurred_at", { ascending: false })
+      .limit(500);
+    if (personFilter) query = query.eq("person_id", personFilter);
+    if (eventFilter) query = query.eq("event_type", eventFilter);
+    const { data, error } = await query;
+    setLoading(false);
+    setSearched(true);
+    if (error) {
+      setLogs([]);
+      setSearchError(`Não foi possível consultar os acessos: ${error.message}`);
+      return;
+    }
+    setLogs(data || []);
+  }
+
+  return <section className="mt-8 rounded-2xl border border-surface-variant bg-white p-4 dark:border-gray-700 dark:bg-gray-900 sm:p-5"><header className="mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-end"><div><p className="text-xs font-bold uppercase tracking-wider text-primary-light">Acesso exclusivo de Reinaldo</p><h3 className="text-xl font-bold text-primary dark:text-white">Rastreabilidade de acessos</h3><p className="text-sm text-outline">Escolha o período e os filtros. Os acessos somente serão carregados ao pesquisar.</p></div><span className="w-fit rounded-full bg-emerald-100 px-3 py-1.5 text-xs font-bold text-emerald-800">Consulta restrita</span></header><form onSubmit={searchAccesses} className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5"><AccessDate label="Data inicial" value={startDate} onChange={setStartDate} max={endDate} /><AccessDate label="Data final" value={endDate} onChange={setEndDate} min={startDate} /><AccessFilter label="Usuário" value={personFilter} onChange={setPersonFilter}><option value="">Todos</option>{persons.map((person) => <option key={person.id} value={person.id}>{person.name}</option>)}</AccessFilter><AccessFilter label="Evento" value={eventFilter} onChange={setEventFilter}><option value="">Todos</option>{Object.entries(accessLabels).map(([value,label]) => <option key={value} value={value}>{label}</option>)}</AccessFilter><button disabled={loading} className="min-h-11 self-end rounded-xl bg-primary px-5 py-2.5 font-bold text-white disabled:opacity-60"><span className={`material-symbols-outlined mr-1 align-middle text-[18px] ${loading ? "animate-spin" : ""}`}>{loading ? "progress_activity" : "search"}</span>{loading ? "Pesquisando…" : "Pesquisar acessos"}</button></form>{searchError && <p role="alert" className="mb-4 rounded-xl bg-red-50 p-3 text-sm text-red-700">{searchError}</p>}{searched && !searchError && <><div className="mb-5 grid grid-cols-3 gap-3"><AccessMetric label="Sessões" value={sessions.length} /><AccessMetric label="Tempo registrado" value={durationLabel(totalTime)} /><AccessMetric label="Ativas agora" value={sessions.filter(activeSession).length} /></div><div className="grid gap-3 md:hidden">{logs.map((log) => <AccessCard key={log.id} log={log} />)}</div><div className="hidden overflow-x-auto md:block"><table className="w-full min-w-[980px] text-sm"><thead><tr className="border-b bg-surface text-left text-xs uppercase text-outline dark:bg-gray-800"><th className="p-3">Usuário</th><th className="p-3">Entrada / evento</th><th className="p-3">Última atividade</th><th className="p-3">Saída</th><th className="p-3">Duração</th><th className="p-3">Situação</th><th className="p-3">Dispositivo</th><th className="p-3">IP</th></tr></thead><tbody>{logs.map((log) => <tr key={log.id} className="border-b border-surface-variant/70"><td className="p-3"><strong className="block text-primary dark:text-white">{log.person?.name || "—"}</strong><span className="text-xs text-outline">{log.email}</span></td><td className="p-3">{dateTime(log.occurred_at)}<span className="block text-xs text-outline">{accessLabels[log.event_type] || log.event_type}</span></td><td className="p-3">{dateTime(log.last_seen_at)}</td><td className="p-3">{dateTime(log.ended_at)}</td><td className="p-3 font-bold">{log.event_type === "login_success" ? durationLabel(sessionSeconds(log)) : "—"}</td><td className="p-3"><Status log={log} /></td><td className="max-w-52 truncate p-3" title={log.user_agent}>{deviceLabel(log.user_agent)}</td><td className="p-3 font-mono text-xs">{log.ip_address || "—"}</td></tr>)}</tbody></table></div>{!logs.length && <p className="py-10 text-center text-outline">Nenhum acesso encontrado para os filtros informados.</p>}<p className="mt-4 rounded-xl bg-blue-50 p-3 text-xs text-blue-800 dark:bg-blue-950/30 dark:text-blue-300">A duração é atualizada a cada minuto. Se o navegador for fechado sem usar “Sair”, a última atividade indica o término aproximado. A consulta retorna no máximo 500 movimentos por pesquisa.</p></>}</section>;
 }
 
 function AccessFilter({ label, value, onChange, children }) { return <label className="text-xs font-bold uppercase text-outline">{label}<select value={value} onChange={(event) => onChange(event.target.value)} className="mt-1 min-h-11 w-full rounded-xl border border-surface-variant bg-surface px-3 text-sm normal-case dark:bg-gray-800">{children}</select></label>; }
+function AccessDate({ label, value, onChange, min, max }) { return <label className="text-xs font-bold uppercase text-outline">{label}<input required type="date" value={value} min={min} max={max} onChange={(event) => onChange(event.target.value)} className="mt-1 min-h-11 w-full rounded-xl border border-surface-variant bg-surface px-3 text-sm normal-case dark:bg-gray-800" /></label>; }
 function AccessMetric({ label, value }) { return <div className="rounded-xl border border-surface-variant bg-surface p-3 dark:bg-gray-800"><span className="text-[10px] font-bold uppercase text-outline">{label}</span><strong className="block text-lg text-primary dark:text-white">{value}</strong></div>; }
 function Status({ log }) { if (activeSession(log)) return <span className="rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-bold text-emerald-800">Ativa</span>; return <span className="rounded-full bg-surface px-2 py-1 text-[10px] font-bold text-outline dark:bg-gray-700">{log.event_type === "login_success" ? "Encerrada" : accessLabels[log.event_type]}</span>; }
 function AccessCard({ log }) { return <article className="rounded-xl border border-surface-variant p-4"><div className="flex justify-between gap-2"><div><strong className="text-primary dark:text-white">{log.person?.name || "—"}</strong><p className="text-xs text-outline">{log.email}</p></div><Status log={log} /></div><dl className="mt-3 grid grid-cols-2 gap-3 text-xs"><div><dt className="text-outline">Entrada / evento</dt><dd className="font-bold">{dateTime(log.occurred_at)}</dd></div><div><dt className="text-outline">Duração</dt><dd className="font-bold">{log.event_type === "login_success" ? durationLabel(sessionSeconds(log)) : "—"}</dd></div><div><dt className="text-outline">Última atividade</dt><dd>{dateTime(log.last_seen_at)}</dd></div><div><dt className="text-outline">Saída</dt><dd>{dateTime(log.ended_at)}</dd></div><div className="col-span-2"><dt className="text-outline">Dispositivo</dt><dd>{deviceLabel(log.user_agent)} · {log.ip_address || "IP não informado"}</dd></div></dl></article>; }

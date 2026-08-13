@@ -14,7 +14,7 @@ O sino pulsa enquanto houver notificações novas para o usuário. Cada notifica
 
 A auditoria geral permanece obrigatoriamente habilitada e não pode ser desligada pela interface ou pelo banco. Ela usa a identidade autenticada, registra as tabelas operacionais e preserva os históricos anteriores que já possuíam autoria e data confiáveis. A consulta abre somente os movimentos de hoje, busca o período diretamente no banco e apresenta módulos e campos técnicos com nomes em português.
 
-Administradores consultam o tempo de uso em **Administração → Pessoas e acessos → Rastreabilidade de acessos**, com entrada, última atividade, saída, duração, situação, dispositivo e IP de cada sessão.
+Administradores consultam o tempo de uso em **Administração → Pessoas e acessos → Rastreabilidade de acessos**, com entrada, última atividade, saída, duração, situação, dispositivo e IP de cada sessão. O histórico não é carregado ao abrir a tela: a consulta exige um período e só busca no banco depois do comando **Pesquisar acessos**, respeitando também os filtros de usuário e evento.
 
 ## Últimas novidades
 
