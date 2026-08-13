@@ -16,6 +16,8 @@ A auditoria geral permanece obrigatoriamente habilitada e não pode ser desligad
 
 Administradores consultam o tempo de uso em **Administração → Pessoas e acessos → Rastreabilidade de acessos**, com entrada, última atividade, saída, duração, situação, dispositivo e IP de cada sessão. O histórico não é carregado ao abrir a tela: a consulta exige um período e só busca no banco depois do comando **Pesquisar acessos**, respeitando também os filtros de usuário e evento.
 
+A pesquisa por data considera sessões que começaram, permaneceram ativas ou foram encerradas durante o período escolhido. O indicador de tempo registrado contabiliza somente a parcela da sessão contida no intervalo pesquisado.
+
 ## Últimas novidades
 
 ### Solicitações de compras com aprovação e rastreabilidade

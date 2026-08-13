@@ -250,6 +250,7 @@ const sections = [
       "Em Administração → Pessoas e acessos, cadastre nome, e-mail e iniciais, altere os dados, redefina senhas e desative, reative ou exclua usuários conforme a necessidade.",
       "Na mesma tela, consulte Rastreabilidade de acessos para verificar entrada, última atividade, saída, duração da sessão, situação, dispositivo e endereço IP.",
       "A rastreabilidade não carrega movimentos automaticamente: informe as datas inicial e final, escolha usuário e evento quando necessário e clique em Pesquisar acessos. A consulta busca somente o período e os filtros selecionados.",
+      "A pesquisa inclui sessões iniciadas antes do período que permaneceram ativas ou foram encerradas dentro dele; o tempo registrado considera apenas a parcela correspondente às datas pesquisadas.",
       "Consulte o Histórico de acessos para verificar data, usuário, e-mail e tipo de evento.",
       "Em Manutenção de dados, administradores podem visualizar e excluir registros de teste a partir de uma data, aplicar retenção até uma data e reconciliar arquivos órfãos. A prévia e a confirmação digitada são obrigatórias.",
       "Escolha categorias independentes para a manutenção. Cadastros estruturais, usuários, programas, veículos e configurações ficam protegidos contra limpeza em massa.",

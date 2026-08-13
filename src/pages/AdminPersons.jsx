@@ -268,6 +268,11 @@ export default function AdminPersons() {
 const accessLabels = { login_success: "Entrada", login_failure: "Tentativa sem sucesso", account_locked: "Conta bloqueada", logout: "Saída", password_changed: "Senha alterada", password_reset: "Senha redefinida" };
 const dateTime = (value) => value ? format(new Date(value), "dd/MM/yyyy HH:mm:ss") : "—";
 const sessionSeconds = (log) => Number(log.duration_seconds || (log.last_seen_at ? Math.max(0, Math.floor((new Date(log.ended_at || log.last_seen_at) - new Date(log.occurred_at)) / 1000)) : 0));
+const sessionSecondsInRange = (log, rangeStart, rangeEnd) => {
+  const startedAt = Math.max(new Date(log.occurred_at).getTime(), rangeStart.getTime());
+  const finishedAt = Math.min(new Date(log.ended_at || log.last_seen_at || log.occurred_at).getTime(), rangeEnd.getTime());
+  return Math.max(0, Math.floor((finishedAt - startedAt) / 1000));
+};
 const durationLabel = (seconds) => { const hours = Math.floor(seconds / 3600); const minutes = Math.floor((seconds % 3600) / 60); return hours ? `${hours}h ${minutes}min` : `${minutes}min`; };
 const activeSession = (log) => log.event_type === "login_success" && !log.ended_at && log.last_seen_at && Date.now() - new Date(log.last_seen_at).getTime() < 130000;
 const deviceLabel = (agent = "") => `${/mobile|android|iphone|ipad/i.test(agent) ? "Mobile" : "Computador"} · ${/edg/i.test(agent) ? "Edge" : /chrome/i.test(agent) ? "Chrome" : /firefox/i.test(agent) ? "Firefox" : /safari/i.test(agent) ? "Safari" : "Navegador"}`;
@@ -282,8 +287,10 @@ function AccessHistory({ persons }) {
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [searchError, setSearchError] = useState("");
+  const rangeStart = new Date(`${startDate}T00:00:00-03:00`);
+  const rangeEnd = new Date(`${endDate}T23:59:59.999-03:00`);
   const sessions = logs.filter((log) => log.event_type === "login_success");
-  const totalTime = sessions.reduce((total, log) => total + sessionSeconds(log), 0);
+  const totalTime = sessions.reduce((total, log) => total + sessionSecondsInRange(log, rangeStart, rangeEnd), 0);
 
   async function searchAccesses(event) {
     event.preventDefault();
@@ -291,9 +298,11 @@ function AccessHistory({ persons }) {
     if (!startDate || !endDate) return setSearchError("Informe as datas inicial e final.");
     if (endDate < startDate) return setSearchError("A data final não pode ser anterior à data inicial.");
     setLoading(true);
+    const startIso = new Date(`${startDate}T00:00:00-03:00`).toISOString();
+    const endIso = new Date(`${endDate}T23:59:59.999-03:00`).toISOString();
     let query = supabase.from("user_access_logs").select("*, person:person_id(name)")
-      .gte("occurred_at", new Date(`${startDate}T00:00:00-03:00`).toISOString())
-      .lte("occurred_at", new Date(`${endDate}T23:59:59.999-03:00`).toISOString())
+      .lte("occurred_at", endIso)
+      .or(`occurred_at.gte.${startIso},last_seen_at.gte.${startIso},ended_at.gte.${startIso}`)
       .order("occurred_at", { ascending: false })
       .limit(500);
     if (personFilter) query = query.eq("person_id", personFilter);
