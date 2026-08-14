@@ -187,7 +187,7 @@ const sections = [
       "O comprovante fica somente no formulário até o salvamento. Se você cancelar ou sair sem salvar, ele não será enviado ao armazenamento.",
       "Ao clicar em Finalizar relatório, revise a prévia completa e use Confirmar e finalizar somente depois de conferir identificação, despesas, anexos, banco e totais.",
       "Enquanto estiver como rascunho, o relatório pode ser excluído por qualquer usuário autenticado. Depois de finalizado, somente um administrador pode excluí-lo; os demais usuários devem solicitar a operação ao administrador do sistema.",
-      "Relatórios de Reinaldo são analisados por Thaís; relatórios de Thaís são analisados por Reinaldo. Para os demais usuários, a aprovação exige a decisão dos dois responsáveis.",
+      "Relatórios de Reinaldo são analisados por Thaís; relatórios de Thaís são analisados por Reinaldo. Para os demais usuários, a aprovação exige a decisão dos dois responsáveis. As pendências e notificações são associadas ao perfil autenticado ativo do aprovador.",
       "Acompanhe o painel Fluxo de aprovação: ele informa aprovações concluídas, análise pendente, data, observação e o progresso geral. Solicitações de ajuste e reprovações exigem justificativa e permanecem no histórico.",
       "Após uma solicitação de ajustes, o autor pode corrigir e reenviar o relatório. O reenvio inicia uma nova rodada de análise.",
       "Gere o PDF da prestação de contas e aguarde o indicador de processamento antes de repetir o comando.",

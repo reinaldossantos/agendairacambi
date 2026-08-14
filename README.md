@@ -177,6 +177,7 @@ Por padrão, a tradução automática fica **desabilitada**. Um administrador po
 - Prévia obrigatória com identificação, despesas, anexos e totais antes da confirmação da finalização.
 - Rascunhos podem ser excluídos por usuários autenticados; após a finalização, a exclusão é restrita ao administrador.
 - Fluxo individual e rastreável de aprovação: Reinaldo e Thaís aprovam um ao outro; relatórios dos demais usuários exigem as duas aprovações.
+- Aprovações e notificações são vinculadas ao perfil autenticado ativo de cada aprovador, inclusive após correções de cadastro, evitando pendências invisíveis.
 - Aprovação parcial, solicitação de ajustes, reprovação justificada, notificações e histórico de cada decisão.
 - Painel visual com responsáveis, progresso, datas e observações, também incorporado ao PDF.
 - PDF, impressão e resumo consolidado por programa e descrição.
