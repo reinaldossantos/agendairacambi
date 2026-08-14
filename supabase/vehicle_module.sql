@@ -23,6 +23,7 @@ create table if not exists public.vehicle_bookings (
   destination text,
   purpose text not null check (length(trim(purpose)) >= 2),
   passengers integer not null default 1 check (passengers > 0),
+  passenger_ids uuid[] not null default '{}',
   status text not null default 'scheduled'
     check (status in ('scheduled', 'completed', 'cancelled')),
   start_odometer integer check (start_odometer >= 0),
@@ -44,7 +45,9 @@ alter table public.vehicle_bookings
   add column if not exists start_odometer integer,
   add column if not exists end_odometer integer,
   add column if not exists completed_at timestamptz,
-  add column if not exists completion_notes text;
+  add column if not exists completion_notes text,
+  add column if not exists passenger_ids uuid[] not null default '{}',
+  add column if not exists activity_id uuid references public.activities(id) on delete set null;
 
 alter table public.vehicle_bookings
   drop constraint if exists vehicle_bookings_odometer_check;

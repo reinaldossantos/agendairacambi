@@ -78,6 +78,7 @@ export default function NewActivity() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
   const [lastInserted, setLastInserted] = useState(null);
+  const [vehicleModal, setVehicleModal] = useState(null);
 
   // ---- Menções ----
   const [mentionIndex, setMentionIndex] = useState(null);
@@ -235,6 +236,37 @@ export default function NewActivity() {
   const addQuickActivity = () => setQuickActivities([...quickActivities, { date: format(new Date(), "yyyy-MM-dd"), title: "", description: "", involvedIds: [], priority: "Média", repeat: false, repeatEndDate: "", repeatDays: [], images: [], files: [], startDateTime: "", endDateTime: "", isEvent: false, eventData: emptyEventData(), usesVehicle: false, vehicleBooking: { vehicle_id: "", passengers: 1, destination: "", notes: "" } }]);
   const removeQuickActivity = (i) => { if (quickActivities.length > 1) setQuickActivities(quickActivities.filter((_, idx) => idx !== i)); };
   const updateQuickActivity = (i, f, v) => { const u = [...quickActivities]; u[i][f] = v; setQuickActivities(u); };
+  const openVehicleModal = (index, activity) => {
+    const responsibleId = persons.find((person) => person.name === selectedPerson)?.id;
+    setVehicleModal({
+      index,
+      value: {
+        vehicle_id: activity.vehicleBooking?.vehicle_id || (vehicles.length === 1 ? vehicles[0].id : ""),
+        start_at: activity.vehicleBooking?.start_at || (activity.isEvent ? activity.eventData?.start_at : activity.startDateTime) || "",
+        end_at: activity.vehicleBooking?.end_at || (activity.isEvent ? activity.eventData?.end_at : activity.endDateTime) || "",
+        destination: activity.vehicleBooking?.destination || "",
+        notes: activity.vehicleBooking?.notes || "",
+        passenger_ids: activity.vehicleBooking?.passenger_ids?.length ? activity.vehicleBooking.passenger_ids : (responsibleId ? [responsibleId] : []),
+      },
+    });
+  };
+  const confirmVehicleModal = () => {
+    const booking = vehicleModal?.value;
+    if (!booking?.vehicle_id || !booking.start_at || !booking.end_at || booking.end_at <= booking.start_at || !booking.passenger_ids?.length) {
+      setMessage({ type: "error", text: "Informe veículo, saída, retorno e ao menos um passageiro." });
+      return;
+    }
+    const selectedVehicle = vehicles.find((vehicle) => vehicle.id === booking.vehicle_id);
+    if (booking.passenger_ids.length > selectedVehicle.capacity) {
+      setMessage({ type: "error", text: `O veículo ${selectedVehicle.name} comporta no máximo ${selectedVehicle.capacity} pessoas.` });
+      return;
+    }
+    setQuickActivities((items) => items.map((item, index) => index === vehicleModal.index
+      ? { ...item, usesVehicle: true, vehicleBooking: { ...booking, passengers: booking.passenger_ids.length } }
+      : item));
+    setVehicleModal(null);
+    setMessage({ type: "", text: "" });
+  };
   const addInvolved = (index, id) => {
     const updated = [...quickActivities];
     if (!updated[index].involvedIds.includes(id)) updated[index].involvedIds = [...updated[index].involvedIds, id];
@@ -372,8 +404,9 @@ export default function NewActivity() {
         if (q.usesVehicle) {
           const selectedVehicle = vehicles.find((vehicle) => vehicle.id === q.vehicleBooking?.vehicle_id);
           if (!selectedVehicle) { setMessage({ type: "error", text: `Selecione um veículo para “${q.title}”.` }); setLoading(false); return; }
-          if (Number(q.vehicleBooking?.passengers || 0) < 1 || Number(q.vehicleBooking?.passengers) > selectedVehicle.capacity) { setMessage({ type: "error", text: `O veículo ${selectedVehicle.name} comporta no máximo ${selectedVehicle.capacity} pessoas.` }); setLoading(false); return; }
-          if (new Date(activityStart) < new Date()) { setMessage({ type: "error", text: `A reserva de veículo para “${q.title}” precisa iniciar no futuro.` }); setLoading(false); return; }
+          if (!q.vehicleBooking?.passenger_ids?.length || q.vehicleBooking.passenger_ids.length > selectedVehicle.capacity) { setMessage({ type: "error", text: `Revise os passageiros do veículo ${selectedVehicle.name}, que comporta no máximo ${selectedVehicle.capacity} pessoas.` }); setLoading(false); return; }
+          if (!q.vehicleBooking.start_at || !q.vehicleBooking.end_at || q.vehicleBooking.end_at <= q.vehicleBooking.start_at) { setMessage({ type: "error", text: `Revise a saída e o retorno da reserva para “${q.title}”.` }); setLoading(false); return; }
+          if (new Date(q.vehicleBooking.start_at) < new Date()) { setMessage({ type: "error", text: `A reserva de veículo para “${q.title}” precisa iniciar no futuro.` }); setLoading(false); return; }
         }
         if (q.repeat && q.repeatEndDate && q.repeatDays.length > 0) {
           const dates = generateRepeatDates(q.date, q.repeatEndDate, q.repeatDays);
@@ -395,7 +428,7 @@ export default function NewActivity() {
             end_datetime: `${date}T${activityEnd.slice(11, 16)}`,
             is_event: q.isEvent || false,
             event_data: q.isEvent ? q.eventData : {},
-            _vehicle_booking: q.usesVehicle ? { ...q.vehicleBooking, start_at: `${date}T${activityStart.slice(11, 16)}`, end_at: `${date}T${activityEnd.slice(11, 16)}` } : null
+            _vehicle_booking: q.usesVehicle ? { ...q.vehicleBooking, start_at: `${date}T${q.vehicleBooking.start_at.slice(11, 16)}`, end_at: `${date}T${q.vehicleBooking.end_at.slice(11, 16)}` } : null
           }));
         } else {
           const activityDate = q.isEvent ? q.eventData.start_at.slice(0, 10) : q.date;
@@ -417,7 +450,7 @@ export default function NewActivity() {
             end_datetime: activityEnd,
             is_event: q.isEvent || false,
             event_data: q.isEvent ? q.eventData : {},
-            _vehicle_booking: q.usesVehicle ? { ...q.vehicleBooking, start_at: activityStart, end_at: activityEnd } : null
+            _vehicle_booking: q.usesVehicle ? { ...q.vehicleBooking } : null
           });
         }
       }
@@ -453,7 +486,8 @@ export default function NewActivity() {
       if (!booking) return [];
       return [{ activity_id: activity.id, vehicle_id: booking.vehicle_id, person_id: currentUser.id,
         program_id: activity.program_id, start_at: new Date(booking.start_at).toISOString(), end_at: new Date(booking.end_at).toISOString(),
-        destination: booking.destination?.trim() || null, purpose: activity.title, passengers: Number(booking.passengers), notes: booking.notes?.trim() || null }];
+        destination: booking.destination?.trim() || null, purpose: activity.title, passengers: booking.passenger_ids.length,
+        passenger_ids: booking.passenger_ids, notes: booking.notes?.trim() || null }];
     });
     if (bookingsToInsert.length) {
       const { error: bookingError } = await supabase.from("vehicle_bookings").insert(bookingsToInsert);
@@ -672,15 +706,10 @@ export default function NewActivity() {
                 </label>
                 {qa.isEvent && <EventFields value={qa.eventData} onChange={(value) => updateQuickActivity(idx, "eventData", value)} compact />}
                 <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-blue-200 bg-blue-50 p-3 dark:border-blue-900 dark:bg-blue-900/20">
-                  <input type="checkbox" checked={qa.usesVehicle || false} onChange={(event) => updateQuickActivity(idx, "usesVehicle", event.target.checked)} className="mt-1 rounded border-outline text-blue-700 focus:ring-blue-400" />
-                  <span><strong className="block text-sm text-primary dark:text-white">Utilizar veículo nesta atividade</strong><span className="text-xs text-outline">Ao publicar, o período da atividade também será reservado na agenda do veículo.</span></span>
+                  <input type="checkbox" checked={qa.usesVehicle || false} onChange={(event) => event.target.checked ? openVehicleModal(idx, qa) : setQuickActivities((items) => items.map((item, index) => index === idx ? { ...item, usesVehicle: false } : item))} className="mt-1 rounded border-outline text-blue-700 focus:ring-blue-400" />
+                  <span className="flex-1"><strong className="block text-sm text-primary dark:text-white">Utilizar veículo nesta atividade</strong><span className="text-xs text-outline">Abra o agendamento completo, confirme a reserva e continue preenchendo a atividade.</span></span>
                 </label>
-                {qa.usesVehicle && <div className="grid gap-3 rounded-xl border border-blue-200 bg-blue-50/60 p-3 dark:border-blue-900 dark:bg-blue-950/20 sm:grid-cols-2">
-                  <label className="text-xs font-bold text-primary dark:text-white">Veículo<select required className="mt-1 w-full rounded-xl border border-surface-variant bg-white px-3 py-2.5 dark:bg-gray-800" value={qa.vehicleBooking?.vehicle_id || ""} onChange={(event) => updateQuickActivity(idx, "vehicleBooking", { ...qa.vehicleBooking, vehicle_id: event.target.value })}><option value="">Selecione</option>{vehicles.map((vehicle) => <option key={vehicle.id} value={vehicle.id}>{vehicle.name} · {vehicle.plate} ({vehicle.capacity} lugares)</option>)}</select></label>
-                  <label className="text-xs font-bold text-primary dark:text-white">Passageiros<input required min="1" type="number" className="mt-1 w-full rounded-xl border border-surface-variant bg-white px-3 py-2.5 dark:bg-gray-800" value={qa.vehicleBooking?.passengers || 1} onChange={(event) => updateQuickActivity(idx, "vehicleBooking", { ...qa.vehicleBooking, passengers: event.target.value })} /></label>
-                  <label className="text-xs font-bold text-primary dark:text-white">Destino<input className="mt-1 w-full rounded-xl border border-surface-variant bg-white px-3 py-2.5 dark:bg-gray-800" value={qa.vehicleBooking?.destination || ""} onChange={(event) => updateQuickActivity(idx, "vehicleBooking", { ...qa.vehicleBooking, destination: event.target.value })} placeholder="Cidade ou local" /></label>
-                  <label className="text-xs font-bold text-primary dark:text-white">Observações<input className="mt-1 w-full rounded-xl border border-surface-variant bg-white px-3 py-2.5 dark:bg-gray-800" value={qa.vehicleBooking?.notes || ""} onChange={(event) => updateQuickActivity(idx, "vehicleBooking", { ...qa.vehicleBooking, notes: event.target.value })} placeholder="Informações para a viagem" /></label>
-                </div>}
+                {qa.usesVehicle && <div className="flex flex-col gap-2 rounded-xl border border-blue-200 bg-blue-50/60 p-3 text-sm dark:border-blue-900 dark:bg-blue-950/20 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-bold text-primary dark:text-white">{vehicles.find((vehicle) => vehicle.id === qa.vehicleBooking?.vehicle_id)?.name || "Veículo selecionado"} · {qa.vehicleBooking?.passenger_ids?.length || 0} passageiro(s)</p><p className="text-xs text-outline">{qa.vehicleBooking?.start_at?.replace("T", " ")} até {qa.vehicleBooking?.end_at?.replace("T", " ")}{qa.vehicleBooking?.destination ? ` · ${qa.vehicleBooking.destination}` : ""}</p></div><button type="button" onClick={() => openVehicleModal(idx, qa)} className="rounded-full bg-blue-700 px-4 py-2 text-xs font-bold text-white">Editar agendamento</button></div>}
                 <div className="flex items-center gap-2">
                   <input type="checkbox" disabled={qa.isEvent} checked={qa.repeat || false} onChange={(e) => updateQuickActivity(idx, "repeat", e.target.checked)} className="rounded border-outline dark:border-gray-600 text-primary focus:ring-accent disabled:opacity-50" id={`repeat-${idx}`} />
                   <label htmlFor={`repeat-${idx}`} className="font-roboto text-sm text-on-surface dark:text-gray-200 cursor-pointer">Repetir em várias datas</label>
@@ -794,6 +823,35 @@ export default function NewActivity() {
           </button>
         </div>
       </form>
+      {vehicleModal && <VehicleBookingModal
+        value={vehicleModal.value}
+        vehicles={vehicles}
+        people={persons}
+        onChange={(value) => setVehicleModal((current) => ({ ...current, value }))}
+        onCancel={() => setVehicleModal(null)}
+        onConfirm={confirmVehicleModal}
+      />}
     </div>
   );
+}
+
+function VehicleBookingModal({ value, vehicles, people, onChange, onCancel, onConfirm }) {
+  const selectedVehicle = vehicles.find((vehicle) => vehicle.id === value.vehicle_id);
+  return <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/55 p-0 backdrop-blur-sm sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-labelledby="vehicle-booking-title">
+    <div className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-t-3xl bg-white shadow-2xl dark:bg-gray-900 sm:rounded-3xl">
+      <header className="sticky top-0 z-10 flex items-center justify-between border-b border-surface-variant bg-white px-5 py-4 dark:border-white/10 dark:bg-gray-900"><div><h3 id="vehicle-booking-title" className="text-xl font-black text-primary dark:text-white">Agendar veículo</h3><p className="text-xs text-outline">Confirme a viagem para retornar ao lançamento da atividade.</p></div><button type="button" onClick={onCancel} className="rounded-full p-2 hover:bg-surface dark:hover:bg-white/10" aria-label="Fechar"><span className="material-symbols-outlined">close</span></button></header>
+      <div className="space-y-4 p-5">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="text-sm font-bold text-primary dark:text-white">Veículo<select required className="mt-1 w-full rounded-xl border border-surface-variant bg-surface px-3 py-2.5 dark:bg-gray-800" value={value.vehicle_id} onChange={(event) => onChange({ ...value, vehicle_id: event.target.value })}><option value="">Selecione</option>{vehicles.map((vehicle) => <option key={vehicle.id} value={vehicle.id}>{vehicle.name} · {vehicle.plate} ({vehicle.capacity} lugares)</option>)}</select></label>
+          <div className="rounded-xl bg-blue-50 p-3 text-sm dark:bg-blue-950/30"><p className="font-bold text-primary dark:text-white">Passageiros selecionados: {value.passenger_ids.length}</p><p className="text-xs text-outline">Capacidade: {selectedVehicle?.capacity || "—"} lugares</p></div>
+          <label className="text-sm font-bold text-primary dark:text-white">Saída<input required type="datetime-local" className="mt-1 w-full rounded-xl border border-surface-variant bg-surface px-3 py-2.5 dark:bg-gray-800" value={value.start_at} onChange={(event) => onChange({ ...value, start_at: event.target.value })} /></label>
+          <label className="text-sm font-bold text-primary dark:text-white">Retorno<input required type="datetime-local" min={value.start_at} className="mt-1 w-full rounded-xl border border-surface-variant bg-surface px-3 py-2.5 dark:bg-gray-800" value={value.end_at} onChange={(event) => onChange({ ...value, end_at: event.target.value })} /></label>
+          <label className="text-sm font-bold text-primary dark:text-white">Destino<input className="mt-1 w-full rounded-xl border border-surface-variant bg-surface px-3 py-2.5 dark:bg-gray-800" value={value.destination} onChange={(event) => onChange({ ...value, destination: event.target.value })} placeholder="Cidade ou local" /></label>
+          <label className="text-sm font-bold text-primary dark:text-white">Observações<input className="mt-1 w-full rounded-xl border border-surface-variant bg-surface px-3 py-2.5 dark:bg-gray-800" value={value.notes} onChange={(event) => onChange({ ...value, notes: event.target.value })} placeholder="Informações para a viagem" /></label>
+        </div>
+        <TeamMemberSelector people={people} selectedIds={value.passenger_ids} onChange={(passenger_ids) => onChange({ ...value, passenger_ids })} label="Quem estará no veículo?" />
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button type="button" onClick={onCancel} className="rounded-full border border-surface-variant px-5 py-3 font-bold text-primary dark:text-white">Cancelar</button><button type="button" onClick={onConfirm} className="rounded-full bg-blue-700 px-5 py-3 font-bold text-white">Confirmar agendamento</button></div>
+      </div>
+    </div>
+  </div>;
 }
