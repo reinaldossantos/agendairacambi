@@ -177,15 +177,15 @@ export default function Calendar() {
         </div>
         <ProgramSwitcher programs={programs} value={selectedProgram} onChange={(program) => { setSelectedProgram(program); setSelectedDate(null); }} className="max-w-xl" />
         {programs.length > 0 && (
-          <section aria-labelledby="program-colors-title" className="rounded-2xl border border-surface-variant bg-white p-2 shadow-sm dark:border-white/10 dark:bg-dark-surface md:p-3">
-            <div className="mb-1.5 flex items-center justify-between gap-3 md:mb-2">
+          <section aria-labelledby="program-colors-title" className="rounded-2xl border border-surface-variant bg-white p-2 shadow-sm dark:border-white/10 dark:bg-dark-surface">
+            <div className="mb-1.5 flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-xl text-primary-light dark:text-green-300">palette</span>
                 <h3 id="program-colors-title" className="text-xs font-bold uppercase tracking-wide text-primary dark:text-white">Legenda dos programas</h3>
               </div>
               {selectedProgram !== "Todos" && <button type="button" onClick={() => setSelectedProgram("Todos")} className="text-xs font-bold text-primary-light hover:underline dark:text-green-300">Mostrar todos</button>}
             </div>
-            <div className="flex snap-x snap-mandatory flex-nowrap gap-1.5 overflow-x-auto pb-1 md:flex-wrap md:gap-2 md:overflow-visible md:pb-0" role="group" aria-label="Legenda e filtro por programa">
+            <div className="flex snap-x snap-mandatory flex-nowrap gap-1.5 overflow-x-auto pb-1" role="group" aria-label="Legenda e filtro por programa">
               {programs.map((program) => {
                 const color = getProgramColor(program.name);
                 const selected = selectedProgram === program.name;
@@ -195,9 +195,9 @@ export default function Calendar() {
                     type="button"
                     aria-pressed={selected}
                     onClick={() => { setSelectedProgram(selected ? "Todos" : program.name); setSelectedDate(null); }}
-                    className={`flex min-h-8 shrink-0 snap-start items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 text-left text-[11px] font-bold leading-tight transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent md:min-h-9 md:gap-2 md:px-3 md:text-xs ${color.bg} ${color.text} ${color.border} ${selected ? "ring-2 ring-primary ring-offset-2 dark:ring-accent dark:ring-offset-dark-surface" : "hover:brightness-95"}`}
+                    className={`flex min-h-8 shrink-0 snap-start items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 text-left text-[11px] font-bold leading-tight transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${color.bg} ${color.text} ${color.border} ${selected ? "ring-2 ring-primary ring-offset-2 dark:ring-accent dark:ring-offset-dark-surface" : "hover:brightness-95"}`}
                   >
-                    <span className={`h-2 w-2 rounded-full border-2 md:h-2.5 md:w-2.5 ${color.border} bg-white/70`} aria-hidden="true" />
+                    <span className={`h-2 w-2 rounded-full border-2 ${color.border} bg-white/70`} aria-hidden="true" />
                     {program.name}
                   </button>
                 );
