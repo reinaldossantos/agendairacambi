@@ -201,6 +201,7 @@ const sections = [
     items: [
       "Consulte a disponibilidade e os agendamentos e reserve um veículo informando solicitante, programa, data e hora, finalidade e destino.",
       "No lançamento rápido de atividades, marque Utilizar veículo para abrir o agendamento completo em um modal, ajustar saída e retorno, selecionar nominalmente os passageiros da equipe e criar a reserva automaticamente no mesmo processo.",
+      "No mesmo modal, registre opcionalmente o KM de partida, o KM de chegada e ocorrências ou intercorrências relacionadas ao uso do veículo.",
       "Quando houver somente um veículo disponível, ele será selecionado automaticamente. O programa é preenchido conforme o usuário autenticado ou o solicitante selecionado.",
       "As datas e horários de saída e retorno não podem ser anteriores ao momento atual; o retorno também deve permanecer posterior à saída.",
       "Edite ou cancele uma reserva quando necessário. Ao finalizar o uso, informe os dados solicitados e registre ocorrências, avarias ou observações.",

@@ -246,6 +246,9 @@ export default function NewActivity() {
         end_at: activity.vehicleBooking?.end_at || (activity.isEvent ? activity.eventData?.end_at : activity.endDateTime) || "",
         destination: activity.vehicleBooking?.destination || "",
         notes: activity.vehicleBooking?.notes || "",
+        start_odometer: activity.vehicleBooking?.start_odometer ?? "",
+        end_odometer: activity.vehicleBooking?.end_odometer ?? "",
+        completion_notes: activity.vehicleBooking?.completion_notes || "",
         passenger_ids: activity.vehicleBooking?.passenger_ids?.length ? activity.vehicleBooking.passenger_ids : (responsibleId ? [responsibleId] : []),
       },
     });
@@ -259,6 +262,10 @@ export default function NewActivity() {
     const selectedVehicle = vehicles.find((vehicle) => vehicle.id === booking.vehicle_id);
     if (booking.passenger_ids.length > selectedVehicle.capacity) {
       setMessage({ type: "error", text: `O veículo ${selectedVehicle.name} comporta no máximo ${selectedVehicle.capacity} pessoas.` });
+      return;
+    }
+    if (booking.start_odometer !== "" && booking.end_odometer !== "" && Number(booking.end_odometer) < Number(booking.start_odometer)) {
+      setMessage({ type: "error", text: "O KM de chegada não pode ser menor que o KM de partida." });
       return;
     }
     setQuickActivities((items) => items.map((item, index) => index === vehicleModal.index
@@ -487,7 +494,10 @@ export default function NewActivity() {
       return [{ activity_id: activity.id, vehicle_id: booking.vehicle_id, person_id: currentUser.id,
         program_id: activity.program_id, start_at: new Date(booking.start_at).toISOString(), end_at: new Date(booking.end_at).toISOString(),
         destination: booking.destination?.trim() || null, purpose: activity.title, passengers: booking.passenger_ids.length,
-        passenger_ids: booking.passenger_ids, notes: booking.notes?.trim() || null }];
+        passenger_ids: booking.passenger_ids, notes: booking.notes?.trim() || null,
+        start_odometer: booking.start_odometer === "" ? null : Number(booking.start_odometer),
+        end_odometer: booking.end_odometer === "" ? null : Number(booking.end_odometer),
+        completion_notes: booking.completion_notes?.trim() || null }];
     });
     if (bookingsToInsert.length) {
       const { error: bookingError } = await supabase.from("vehicle_bookings").insert(bookingsToInsert);
@@ -848,7 +858,10 @@ function VehicleBookingModal({ value, vehicles, people, onChange, onCancel, onCo
           <label className="text-sm font-bold text-primary dark:text-white">Retorno<input required type="datetime-local" min={value.start_at} className="mt-1 w-full rounded-xl border border-surface-variant bg-surface px-3 py-2.5 dark:bg-gray-800" value={value.end_at} onChange={(event) => onChange({ ...value, end_at: event.target.value })} /></label>
           <label className="text-sm font-bold text-primary dark:text-white">Destino<input className="mt-1 w-full rounded-xl border border-surface-variant bg-surface px-3 py-2.5 dark:bg-gray-800" value={value.destination} onChange={(event) => onChange({ ...value, destination: event.target.value })} placeholder="Cidade ou local" /></label>
           <label className="text-sm font-bold text-primary dark:text-white">Observações<input className="mt-1 w-full rounded-xl border border-surface-variant bg-surface px-3 py-2.5 dark:bg-gray-800" value={value.notes} onChange={(event) => onChange({ ...value, notes: event.target.value })} placeholder="Informações para a viagem" /></label>
+          <label className="text-sm font-bold text-primary dark:text-white">KM de partida<input min="0" step="1" type="number" className="mt-1 w-full rounded-xl border border-surface-variant bg-surface px-3 py-2.5 dark:bg-gray-800" value={value.start_odometer} onChange={(event) => onChange({ ...value, start_odometer: event.target.value })} placeholder="Ex.: 45230" /></label>
+          <label className="text-sm font-bold text-primary dark:text-white">KM de chegada<input min={value.start_odometer || 0} step="1" type="number" className="mt-1 w-full rounded-xl border border-surface-variant bg-surface px-3 py-2.5 dark:bg-gray-800" value={value.end_odometer} onChange={(event) => onChange({ ...value, end_odometer: event.target.value })} placeholder="Ex.: 45310" /></label>
         </div>
+        <label className="block text-sm font-bold text-primary dark:text-white">Ocorrência ou intercorrência<textarea rows="2" className="mt-1 w-full resize-none rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 dark:border-amber-900 dark:bg-amber-950/20" value={value.completion_notes} onChange={(event) => onChange({ ...value, completion_notes: event.target.value })} placeholder="Registre aqui qualquer ocorrência durante o uso do veículo" /></label>
         <TeamMemberSelector people={people} selectedIds={value.passenger_ids} onChange={(passenger_ids) => onChange({ ...value, passenger_ids })} label="Quem estará no veículo?" />
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button type="button" onClick={onCancel} className="rounded-full border border-surface-variant px-5 py-3 font-bold text-primary dark:text-white">Cancelar</button><button type="button" onClick={onConfirm} className="rounded-full bg-blue-700 px-5 py-3 font-bold text-white">Confirmar agendamento</button></div>
       </div>
