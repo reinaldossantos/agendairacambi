@@ -34,6 +34,8 @@ export default function NewActivity() {
   const [programs, setPrograms] = useState([]);
   const [managementProjects, setManagementProjects] = useState([]);
   const [persons, setPersons] = useState([]);
+  const [vehicles, setVehicles] = useState([]);
+  const [vehicleBookings, setVehicleBookings] = useState([]);
   const [selectedProgram, setSelectedProgram] = useState("");
   const [selectedManagementProject, setSelectedManagementProject] = useState("");
   const [selectedPerson, setSelectedPerson] = useState("");
@@ -66,6 +68,8 @@ export default function NewActivity() {
       endDateTime: "",
       isEvent: false,
       eventData: emptyEventData(),
+      usesVehicle: false,
+      vehicleBooking: { vehicle_id: "", passengers: 1, destination: "", notes: "" },
     },
   ]);
   const [involvedIdsGlobal, setInvolvedIdsGlobal] = useState([]);
@@ -138,6 +142,8 @@ export default function NewActivity() {
     supabase.from("programs").select("id, name, leader_id").order("name").then(({ data }) => setPrograms(data || []));
     supabase.from("persons").select("id, name, initials").eq("is_active", true).order("name").then(({ data }) => setPersons(data || []));
     supabase.from("management_projects").select("id,title,program_id,status").not("status", "in", "(completed,cancelled)").order("title").then(({ data }) => setManagementProjects(data || []));
+    supabase.from("vehicles").select("id,name,plate,capacity,status").eq("status", "available").order("name").then(({ data }) => setVehicles(data || []));
+    supabase.from("vehicle_bookings").select("id,vehicle_id,start_at,end_at,status").eq("status", "scheduled").then(({ data }) => setVehicleBookings(data || []));
   }, []);
 
   useEffect(() => {
@@ -226,7 +232,7 @@ export default function NewActivity() {
     return { title: cleaned[0], description: cleaned.join('; ') };
   }
 
-  const addQuickActivity = () => setQuickActivities([...quickActivities, { date: format(new Date(), "yyyy-MM-dd"), title: "", description: "", involvedIds: [], priority: "Média", repeat: false, repeatEndDate: "", repeatDays: [], images: [], files: [], startDateTime: "", endDateTime: "", isEvent: false, eventData: emptyEventData() }]);
+  const addQuickActivity = () => setQuickActivities([...quickActivities, { date: format(new Date(), "yyyy-MM-dd"), title: "", description: "", involvedIds: [], priority: "Média", repeat: false, repeatEndDate: "", repeatDays: [], images: [], files: [], startDateTime: "", endDateTime: "", isEvent: false, eventData: emptyEventData(), usesVehicle: false, vehicleBooking: { vehicle_id: "", passengers: 1, destination: "", notes: "" } }]);
   const removeQuickActivity = (i) => { if (quickActivities.length > 1) setQuickActivities(quickActivities.filter((_, idx) => idx !== i)); };
   const updateQuickActivity = (i, f, v) => { const u = [...quickActivities]; u[i][f] = v; setQuickActivities(u); };
   const addInvolved = (index, id) => {
@@ -363,6 +369,12 @@ export default function NewActivity() {
         if (!activityStart || !activityEnd || activityEnd <= activityStart) { setMessage({ type: "error", text: `Informe início e finalização válidos para “${q.title}”.` }); setLoading(false); return; }
         if (q.isEvent && (!q.eventData?.theme?.trim() || !q.eventData?.start_at || !q.eventData?.end_at)) { setMessage({ type: "error", text: `Informe temática, início e término do evento “${q.title}”.` }); setLoading(false); return; }
         if (q.isEvent && q.eventData.start_at > q.eventData.end_at) { setMessage({ type: "error", text: `O término do evento “${q.title}” deve ser posterior ao início.` }); setLoading(false); return; }
+        if (q.usesVehicle) {
+          const selectedVehicle = vehicles.find((vehicle) => vehicle.id === q.vehicleBooking?.vehicle_id);
+          if (!selectedVehicle) { setMessage({ type: "error", text: `Selecione um veículo para “${q.title}”.` }); setLoading(false); return; }
+          if (Number(q.vehicleBooking?.passengers || 0) < 1 || Number(q.vehicleBooking?.passengers) > selectedVehicle.capacity) { setMessage({ type: "error", text: `O veículo ${selectedVehicle.name} comporta no máximo ${selectedVehicle.capacity} pessoas.` }); setLoading(false); return; }
+          if (new Date(activityStart) < new Date()) { setMessage({ type: "error", text: `A reserva de veículo para “${q.title}” precisa iniciar no futuro.` }); setLoading(false); return; }
+        }
         if (q.repeat && q.repeatEndDate && q.repeatDays.length > 0) {
           const dates = generateRepeatDates(q.date, q.repeatEndDate, q.repeatDays);
           dates.forEach(date => list.push({ 
@@ -382,7 +394,8 @@ export default function NewActivity() {
             start_datetime: `${date}T${activityStart.slice(11, 16)}`,
             end_datetime: `${date}T${activityEnd.slice(11, 16)}`,
             is_event: q.isEvent || false,
-            event_data: q.isEvent ? q.eventData : {}
+            event_data: q.isEvent ? q.eventData : {},
+            _vehicle_booking: q.usesVehicle ? { ...q.vehicleBooking, start_at: `${date}T${activityStart.slice(11, 16)}`, end_at: `${date}T${activityEnd.slice(11, 16)}` } : null
           }));
         } else {
           const activityDate = q.isEvent ? q.eventData.start_at.slice(0, 10) : q.date;
@@ -403,7 +416,8 @@ export default function NewActivity() {
             start_datetime: activityStart,
             end_datetime: activityEnd,
             is_event: q.isEvent || false,
-            event_data: q.isEvent ? q.eventData : {}
+            event_data: q.isEvent ? q.eventData : {},
+            _vehicle_booking: q.usesVehicle ? { ...q.vehicleBooking, start_at: activityStart, end_at: activityEnd } : null
           });
         }
       }
@@ -417,8 +431,39 @@ export default function NewActivity() {
       involved_ids: [...new Set([...(activity.involved_ids || []), ...mentionedPersonIds(activity.description)])],
     }));
 
-    const { data: inserted, error } = await supabase.from("activities").insert(list).select();
+    const requestedBookings = list.filter((activity) => activity._vehicle_booking).map((activity) => activity._vehicle_booking);
+    for (const booking of requestedBookings) {
+      const start = new Date(booking.start_at);
+      const end = new Date(booking.end_at);
+      const conflict = vehicleBookings.some((existing) => existing.vehicle_id === booking.vehicle_id && new Date(existing.start_at) < end && new Date(existing.end_at) > start)
+        || requestedBookings.some((other) => other !== booking && other.vehicle_id === booking.vehicle_id && new Date(other.start_at) < end && new Date(other.end_at) > start);
+      if (conflict) { setMessage({ type: "error", text: "Um dos veículos selecionados já possui reserva no período informado." }); setLoading(false); return; }
+    }
+
+    const activityPayloads = list.map((activity) => {
+      const payload = { ...activity };
+      delete payload._vehicle_booking;
+      return payload;
+    });
+    const { data: inserted, error } = await supabase.from("activities").insert(activityPayloads).select();
     if (error) { setMessage({ type: "error", text: "Erro: " + error.message }); setLoading(false); return; }
+
+    const bookingsToInsert = (inserted || []).flatMap((activity, index) => {
+      const booking = list[index]?._vehicle_booking;
+      if (!booking) return [];
+      return [{ activity_id: activity.id, vehicle_id: booking.vehicle_id, person_id: currentUser.id,
+        program_id: activity.program_id, start_at: new Date(booking.start_at).toISOString(), end_at: new Date(booking.end_at).toISOString(),
+        destination: booking.destination?.trim() || null, purpose: activity.title, passengers: Number(booking.passengers), notes: booking.notes?.trim() || null }];
+    });
+    if (bookingsToInsert.length) {
+      const { error: bookingError } = await supabase.from("vehicle_bookings").insert(bookingsToInsert);
+      if (bookingError) {
+        await supabase.from("activities").delete().in("id", inserted.map((activity) => activity.id));
+        setMessage({ type: "error", text: `A agenda não foi publicada porque o veículo não pôde ser reservado: ${bookingError.message}` });
+        setLoading(false);
+        return;
+      }
+    }
     
     // Notificações
     if (inserted && inserted.length > 0) {
@@ -470,7 +515,7 @@ export default function NewActivity() {
     uncommittedUploads.current.files.clear();
     setLastInserted({ program: selectedProgram, responsible: selectedPerson, weekStart: list[0].week_start, activities: list });
     setWeekText("");
-    setQuickActivities([{ date: format(new Date(), "yyyy-MM-dd"), title: "", description: "", involvedIds: [], priority: "Média", repeat: false, repeatEndDate: "", repeatDays: [], images: [], files: [], startDateTime: "", endDateTime: "", isEvent: false, eventData: emptyEventData() }]);
+    setQuickActivities([{ date: format(new Date(), "yyyy-MM-dd"), title: "", description: "", involvedIds: [], priority: "Média", repeat: false, repeatEndDate: "", repeatDays: [], images: [], files: [], startDateTime: "", endDateTime: "", isEvent: false, eventData: emptyEventData(), usesVehicle: false, vehicleBooking: { vehicle_id: "", passengers: 1, destination: "", notes: "" } }]);
     setInvolvedIdsGlobal([]);
     setGlobalImages([]);
     setGlobalFiles([]);
@@ -626,6 +671,16 @@ export default function NewActivity() {
                   <span><strong className="block text-sm text-primary dark:text-white">Esta atividade é um evento</strong><span className="text-xs text-outline">Marque para incluir na programação institucional e informar os dados complementares.</span></span>
                 </label>
                 {qa.isEvent && <EventFields value={qa.eventData} onChange={(value) => updateQuickActivity(idx, "eventData", value)} compact />}
+                <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-blue-200 bg-blue-50 p-3 dark:border-blue-900 dark:bg-blue-900/20">
+                  <input type="checkbox" checked={qa.usesVehicle || false} onChange={(event) => updateQuickActivity(idx, "usesVehicle", event.target.checked)} className="mt-1 rounded border-outline text-blue-700 focus:ring-blue-400" />
+                  <span><strong className="block text-sm text-primary dark:text-white">Utilizar veículo nesta atividade</strong><span className="text-xs text-outline">Ao publicar, o período da atividade também será reservado na agenda do veículo.</span></span>
+                </label>
+                {qa.usesVehicle && <div className="grid gap-3 rounded-xl border border-blue-200 bg-blue-50/60 p-3 dark:border-blue-900 dark:bg-blue-950/20 sm:grid-cols-2">
+                  <label className="text-xs font-bold text-primary dark:text-white">Veículo<select required className="mt-1 w-full rounded-xl border border-surface-variant bg-white px-3 py-2.5 dark:bg-gray-800" value={qa.vehicleBooking?.vehicle_id || ""} onChange={(event) => updateQuickActivity(idx, "vehicleBooking", { ...qa.vehicleBooking, vehicle_id: event.target.value })}><option value="">Selecione</option>{vehicles.map((vehicle) => <option key={vehicle.id} value={vehicle.id}>{vehicle.name} · {vehicle.plate} ({vehicle.capacity} lugares)</option>)}</select></label>
+                  <label className="text-xs font-bold text-primary dark:text-white">Passageiros<input required min="1" type="number" className="mt-1 w-full rounded-xl border border-surface-variant bg-white px-3 py-2.5 dark:bg-gray-800" value={qa.vehicleBooking?.passengers || 1} onChange={(event) => updateQuickActivity(idx, "vehicleBooking", { ...qa.vehicleBooking, passengers: event.target.value })} /></label>
+                  <label className="text-xs font-bold text-primary dark:text-white">Destino<input className="mt-1 w-full rounded-xl border border-surface-variant bg-white px-3 py-2.5 dark:bg-gray-800" value={qa.vehicleBooking?.destination || ""} onChange={(event) => updateQuickActivity(idx, "vehicleBooking", { ...qa.vehicleBooking, destination: event.target.value })} placeholder="Cidade ou local" /></label>
+                  <label className="text-xs font-bold text-primary dark:text-white">Observações<input className="mt-1 w-full rounded-xl border border-surface-variant bg-white px-3 py-2.5 dark:bg-gray-800" value={qa.vehicleBooking?.notes || ""} onChange={(event) => updateQuickActivity(idx, "vehicleBooking", { ...qa.vehicleBooking, notes: event.target.value })} placeholder="Informações para a viagem" /></label>
+                </div>}
                 <div className="flex items-center gap-2">
                   <input type="checkbox" disabled={qa.isEvent} checked={qa.repeat || false} onChange={(e) => updateQuickActivity(idx, "repeat", e.target.checked)} className="rounded border-outline dark:border-gray-600 text-primary focus:ring-accent disabled:opacity-50" id={`repeat-${idx}`} />
                   <label htmlFor={`repeat-${idx}`} className="font-roboto text-sm text-on-surface dark:text-gray-200 cursor-pointer">Repetir em várias datas</label>
