@@ -32,7 +32,7 @@ export function useNotifications(currentUser) {
 
     const [logsResult, expenseResult, securityResult, projectResult, purchaseResult] = await Promise.all([
       activityQuery,
-      supabase.from("expense_report_notifications").select("id,type,title,content,created_at,read_at,report_id,person:actor_id(name)").eq("recipient_id", currentUser.id).is("read_at", null).order("created_at", { ascending: false }).limit(30),
+      supabase.from("expense_report_notifications").select("id,type,title,content,created_at,read_at,report_id,person:actor_id(name)").is("read_at", null).order("created_at", { ascending: false }).limit(30),
       supabase.from("security_notifications").select("id,type,title,content,created_at,is_read").eq("recipient_id", currentUser.id).eq("is_read", false).order("created_at", { ascending: false }).limit(30),
       supabase.from("management_project_notifications").select("id,title,content,created_at,read_at,project_id,person:actor_id(name)").eq("recipient_id", currentUser.id).is("read_at", null).order("created_at", { ascending: false }).limit(30),
       supabase.from("purchase_request_notifications").select("id,type,title,content,created_at,read_at,request_id,person:actor_id(name)").eq("recipient_id", currentUser.id).is("read_at", null).order("created_at", { ascending: false }).limit(30),

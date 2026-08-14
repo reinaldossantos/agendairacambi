@@ -97,8 +97,8 @@ export default function ExpenseReports() {
       supabase.from("expense_reports").select("*, person:person_id(is_active), program:program_id(name)").order("created_at", { ascending: false }),
       supabase.from("programs").select("id,name,leader_id").order("name"),
       supabase.from("mileage_rates").select("*").order("effective_date", { ascending: false }),
-      supabase.from("expense_report_approvals").select("*, approver:approver_id(id,name,avatar_url)").order("created_at"),
-      supabase.from("expense_approval_config").select("person_id").eq("is_active", true),
+      supabase.from("expense_report_approvals").select("*, approver:approver_id(id,name,avatar_url,auth_user_id)").order("created_at"),
+      supabase.from("expense_approval_config").select("person_id,person:person_id(auth_user_id)").eq("is_active", true),
     ]);
     if (reportResult.error) setMessage({ type: "error", text: reportResult.error.message });
     const approvalsByReport = (approvalResult.data || []).reduce((grouped, approval) => {
@@ -113,9 +113,9 @@ export default function ExpenseReports() {
     setReports(signedReports);
     setPrograms(programResult.data || []);
     setMileageRates(ratesResult.data || []);
-    setConfiguredApproverIds((approverResult.data || []).map((item) => item.person_id));
+    setConfiguredApproverIds((approverResult.data || []).filter((item) => item.person?.auth_user_id === currentUser?.auth_user_id).map((item) => item.person_id));
     setLoading(false);
-  }, []);
+  }, [currentUser?.auth_user_id]);
 
   useEffect(() => {
     const timer = window.setTimeout(loadData, 0);
@@ -330,10 +330,10 @@ export default function ExpenseReports() {
     setMode("list");
   }
 
-  const isApprover = configuredApproverIds.includes(currentUser?.id);
+  const isApprover = configuredApproverIds.length > 0;
 
   async function decideReport(report, decision) {
-    const approval = report.approvals?.find((item) => item.approver_id === currentUser?.id && item.decision === "pending");
+    const approval = report.approvals?.find((item) => item.approver?.auth_user_id === currentUser?.auth_user_id && item.decision === "pending");
     if (!approval) {
       setMessage({ type: "error", text: "Você não possui uma análise pendente para este relatório." });
       return;
@@ -521,7 +521,7 @@ const approvalLabels = {
 function ApprovalPanel({ report, currentUser, saving, comment, onComment, onDecision }) {
   const approvals = report.approvals || [];
   const approvedCount = approvals.filter((item) => item.decision === "approved").length;
-  const currentApproval = approvals.find((item) => item.approver_id === currentUser?.id && item.decision === "pending");
+  const currentApproval = approvals.find((item) => item.approver?.auth_user_id === currentUser?.auth_user_id && item.decision === "pending");
   const progress = approvals.length ? Math.round((approvedCount / approvals.length) * 100) : 0;
 
   return <section className="mt-4 overflow-hidden rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50/80 via-white to-amber-50/60 dark:border-white/10 dark:from-emerald-950/20 dark:via-gray-900 dark:to-amber-950/10">
