@@ -10,13 +10,13 @@ import { useFilesAlert } from "../../hooks/useFilesAlert";
 import { useLanguage } from "../../i18n/context";
 
 const groups = [
-  { id: "agenda", label: "Agenda", icon: "calendar_month", tone: "agenda", items: [
+  { id: "agenda", label: "Agenda", icon: "calendar_month", tone: "agenda", colorOffset: 0, items: [
     { to: "/", label: "Agenda semanal", icon: "calendar_view_week", end: true },
     { to: "/calendar", label: "Calendário", icon: "calendar_month" },
     { to: "/events", label: "Eventos", icon: "festival" },
     { to: "/vehicles", label: "Veículos", icon: "directions_car" },
   ] },
-  { id: "operations", label: "Operações", icon: "monitoring", tone: "operations", items: [
+  { id: "operations", label: "Operações", icon: "monitoring", tone: "operations", colorOffset: 4, items: [
     { to: "/new", label: "Nova atividade", icon: "add_circle" },
     { to: "/history", label: "Histórico e relatórios", icon: "history" },
     { to: "/expense-reports", label: "Relatórios de despesas", icon: "receipt_long" },
@@ -25,15 +25,15 @@ const groups = [
     { to: "/monthly-activity-reports", label: "Relatórios mensais", icon: "summarize" },
     { to: "/stats", label: "Estatísticas", icon: "bar_chart" },
   ] },
-  { id: "content", label: "Conteúdo", icon: "folder_open", tone: "content", items: [
+  { id: "content", label: "Conteúdo", icon: "folder_open", tone: "content", colorOffset: 11, items: [
     { to: "/announcements", label: "Mural de avisos", icon: "campaign", alert: "announcements" },
     { to: "/files", label: "Arquivos", icon: "folder", alert: "files" },
   ] },
-  { id: "management", label: "Gestão", icon: "groups", tone: "management", items: [
+  { id: "management", label: "Gestão", icon: "groups", tone: "management", colorOffset: 13, items: [
     { to: "/projects", label: "Gestão de projetos", icon: "view_kanban" },
     { to: "/programs", label: "Programas", icon: "account_tree" },
   ] },
-  { id: "admin", label: "Administração", icon: "settings", tone: "admin", items: [
+  { id: "admin", label: "Administração", icon: "settings", tone: "admin", colorOffset: 15, items: [
     { to: "/admin/persons", label: "Pessoas e acessos", icon: "manage_accounts", requiredRole: "admin" },
     { to: "/admin/programs", label: "Administrar programas", icon: "admin_panel_settings", requiredRole: "admin" },
     { to: "/admin/leaders", label: "Líderes", icon: "diversity_3", requiredRole: "admin" },
@@ -43,6 +43,21 @@ const groups = [
     { to: "/audit-log", label: "Auditoria do sistema", icon: "policy", restrictedTo: "reinaldo" },
     { to: "/about", label: "Manual do usuário", icon: "help" },
   ] },
+];
+
+const menuItemTones = [
+  "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
+  "bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300",
+  "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300",
+  "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
+  "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300",
+  "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300",
+  "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300",
+  "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300",
+  "bg-lime-100 text-lime-700 dark:bg-lime-900/40 dark:text-lime-300",
+  "bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-900/40 dark:text-fuchsia-300",
+  "bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300",
+  "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
 ];
 
 export default function ResponsiveHeader() {
@@ -121,7 +136,7 @@ export default function ResponsiveHeader() {
         </div>
         <AnimatePresence>{activeGroup && <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className="absolute inset-x-0 top-full border-y border-surface-variant bg-white shadow-xl dark:border-white/10 dark:bg-dark-surface">
           <div className="mx-auto grid max-w-screen-2xl grid-cols-2 gap-2 px-6 py-4 lg:grid-cols-4">
-            {visibleGroups.find((group) => group.id === activeGroup)?.items.map((item) => <MenuLink key={item.to} item={item} tone={visibleGroups.find((group) => group.id === activeGroup)?.tone} alerts={alerts} onClick={() => setActiveGroup(null)} />)}
+            {visibleGroups.find((group) => group.id === activeGroup)?.items.map((item, index) => <MenuLink key={item.to} item={item} colorIndex={visibleGroups.find((group) => group.id === activeGroup).colorOffset + index} alerts={alerts} onClick={() => setActiveGroup(null)} />)}
           </div>
         </motion.div>}</AnimatePresence>
       </nav>
@@ -130,7 +145,7 @@ export default function ResponsiveHeader() {
         <div className="grid grid-cols-[1fr_auto] gap-3 border-b border-surface-variant py-3 dark:border-white/10"><UserIdentity currentUser={currentUser} signOut={signOut} /><LanguageSelect locale={locale} changeLocale={changeLocale} /></div>
         {visibleGroups.map((group) => <details key={group.id} className="group border-b border-surface-variant dark:border-white/10" open={currentGroup === group.id}>
           <summary className="flex cursor-pointer list-none items-center gap-3 py-4 font-bold text-primary dark:text-white"><span className={`material-symbols-outlined rounded-lg p-1.5 icon-tone-${group.tone}`}>{group.icon}</span><span className="flex-1">{group.label}</span>{group.items.some((item) => alerts[item.alert]) && <span className="h-2 w-2 rounded-full bg-red-500" />}<span className="material-symbols-outlined transition group-open:rotate-180">expand_more</span></summary>
-          <div className="grid gap-1 pb-3 pl-3">{group.items.map((item) => <MenuLink key={item.to} item={item} tone={group.tone} alerts={alerts} onClick={() => setMobileOpen(false)} />)}</div>
+          <div className="grid gap-1 pb-3 pl-3">{group.items.map((item, index) => <MenuLink key={item.to} item={item} colorIndex={group.colorOffset + index} alerts={alerts} onClick={() => setMobileOpen(false)} />)}</div>
         </details>)}
       </div>}
 
@@ -144,9 +159,10 @@ export default function ResponsiveHeader() {
   );
 }
 
-function MenuLink({ item, tone, alerts, onClick }) {
+function MenuLink({ item, colorIndex, alerts, onClick }) {
+  const itemTone = item.iconClass || menuItemTones[colorIndex % menuItemTones.length];
   return <NavLink to={item.to} end={item.end} onClick={onClick} className={({ isActive }) => `flex min-h-12 items-center gap-3 rounded-xl px-4 py-3 transition ${isActive ? "bg-green-100 font-bold text-primary dark:bg-white/15 dark:text-white" : "text-on-surface hover:bg-surface dark:text-gray-200 dark:hover:bg-white/10"}`}>
-    <span className={`material-symbols-outlined rounded-lg p-1.5 ${alerts[item.alert] ? "bg-red-500/10 text-red-500" : item.iconClass || `icon-tone-${tone}`}`}>{item.icon}</span><span>{item.label}</span>{alerts[item.alert] && <span className="ml-auto rounded-full bg-red-100 px-2 py-0.5 text-xs font-bold text-red-700">Novo</span>}
+    <span className={`material-symbols-outlined rounded-lg p-1.5 ${alerts[item.alert] ? "bg-red-500/10 text-red-500" : itemTone}`}>{item.icon}</span><span>{item.label}</span>{alerts[item.alert] && <span className="ml-auto rounded-full bg-red-100 px-2 py-0.5 text-xs font-bold text-red-700">Novo</span>}
   </NavLink>;
 }
 
