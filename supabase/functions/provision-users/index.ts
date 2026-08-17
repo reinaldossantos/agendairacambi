@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-setup-secret" };
+const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-setup-secret, x-iracambi-user-id, x-iracambi-user-name" };
 serve(async (request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (request.headers.get("x-setup-secret") !== Deno.env.get("AUTH_SETUP_SECRET")) return new Response(JSON.stringify({ error: "Não autorizado" }), { status: 401, headers: cors });
