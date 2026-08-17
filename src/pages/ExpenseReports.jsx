@@ -197,8 +197,8 @@ export default function ExpenseReports() {
     }));
   }
 
-  function addItem() {
-    setForm((current) => ({ ...current, expense_items: [...current.expense_items, blankItem()] }));
+  function addItem(hasReceipt = false) {
+    setForm((current) => ({ ...current, expense_items: [...current.expense_items, { ...blankItem(), has_receipt: hasReceipt }] }));
   }
 
   function addMileageItem(afterIndex) {
@@ -627,18 +627,9 @@ function ExpenseForm({ form, setForm, programs, persons, choosePerson, choosePro
 }
 
 function ExpenseItemsTable({ items, updateItem, onStoredReceiptRemoved, removeItem, addItem, addMileageItem }) {
+  const [showReceiptQuestion, setShowReceiptQuestion] = useState(false);
   const today = format(new Date(), "yyyy-MM-dd");
   const monthYear = (value) => new Date(`${value || today}T12:00:00`).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
-  const updateReceiptChoice = (index, item, value) => {
-    if (value === "no") {
-      (item.attachments || []).forEach((file) => {
-        if (file.pending && file.url) URL.revokeObjectURL(file.url);
-        if (!file.pending && file.path) onStoredReceiptRemoved(file.path);
-      });
-      updateItem(index, "attachments", []);
-    }
-    updateItem(index, "has_receipt", value === "" ? null : value === "yes");
-  };
   return (
     <>
       <div className="grid gap-4 md:hidden">
@@ -655,7 +646,7 @@ function ExpenseItemsTable({ items, updateItem, onStoredReceiptRemoved, removeIt
               </header>
               <div className="grid min-w-0 gap-4">
                 <Field label="Descrição"><input className={`${inputClass} ${item.official_description ? "cursor-default bg-gray-100 font-medium dark:bg-gray-700" : ""}`} value={item.description} onChange={(event) => updateItem(index, "description", event.target.value)} readOnly={item.official_description} placeholder="Ex.: descreva a despesa" title={item.official_description ? "Nomenclatura oficial da despesa" : ""} /></Field>
-                {mileage ? <div><p className="mb-1 text-sm font-bold text-primary dark:text-white">Veículo e distância</p><div className="grid grid-cols-2 gap-2"><select aria-label="Tipo de veículo" className={inputClass} value={item.vehicle_type || ""} onChange={(event) => updateItem(index, "vehicle_type", event.target.value)}><option value="">Selecione</option><option value="car">Automóvel</option><option value="motorcycle">Moto</option></select><input aria-label="Quantidade de quilômetros" className={inputClass} min="0" step="0.01" type="number" value={item.mileage_quantity || ""} onChange={(event) => updateItem(index, "mileage_quantity", event.target.value)} placeholder="Quilômetros" /><p className="col-span-2 px-1 text-xs text-outline">{item.vehicle_type ? `${money(item.mileage_rate || 0)}/km × ${item.mileage_quantity || 0} km${item.mileage_rate_effective_date ? ` · Vigência ${formatRateDate(item.mileage_rate_effective_date)}` : " · Tarifa não encontrada"}` : "Selecione Automóvel ou Moto"}</p></div><button type="button" onClick={() => addMileageItem(index)} className="mt-2 flex min-h-11 w-full items-center justify-center gap-1 rounded-xl bg-green-100 px-3 py-2 text-xs font-bold text-primary hover:bg-green-200 dark:bg-green-900/30 dark:text-green-200"><span className="material-symbols-outlined text-[17px]">add_road</span>Adicionar outro KM</button></div> : isManualExpense(item) ? <ManualReceiptControl item={item} onChoice={(value) => updateReceiptChoice(index, item, value)} onFiles={(files) => updateItem(index, "attachments", files)} onStoredReceiptRemoved={onStoredReceiptRemoved} /> : supportsReceipt(item) ? <div><p className="mb-1 text-sm font-bold text-primary dark:text-white">Comprovante</p><ExpenseReceiptUpload files={item.attachments || []} onChange={(files) => updateItem(index, "attachments", files)} onStoredReceiptRemoved={onStoredReceiptRemoved} /></div> : null}
+                {mileage ? <div><p className="mb-1 text-sm font-bold text-primary dark:text-white">Veículo e distância</p><div className="grid grid-cols-2 gap-2"><select aria-label="Tipo de veículo" className={inputClass} value={item.vehicle_type || ""} onChange={(event) => updateItem(index, "vehicle_type", event.target.value)}><option value="">Selecione</option><option value="car">Automóvel</option><option value="motorcycle">Moto</option></select><input aria-label="Quantidade de quilômetros" className={inputClass} min="0" step="0.01" type="number" value={item.mileage_quantity || ""} onChange={(event) => updateItem(index, "mileage_quantity", event.target.value)} placeholder="Quilômetros" /><p className="col-span-2 px-1 text-xs text-outline">{item.vehicle_type ? `${money(item.mileage_rate || 0)}/km × ${item.mileage_quantity || 0} km${item.mileage_rate_effective_date ? ` · Vigência ${formatRateDate(item.mileage_rate_effective_date)}` : " · Tarifa não encontrada"}` : "Selecione Automóvel ou Moto"}</p></div><button type="button" onClick={() => addMileageItem(index)} className="mt-2 flex min-h-11 w-full items-center justify-center gap-1 rounded-xl bg-green-100 px-3 py-2 text-xs font-bold text-primary hover:bg-green-200 dark:bg-green-900/30 dark:text-green-200"><span className="material-symbols-outlined text-[17px]">add_road</span>Adicionar outro KM</button></div> : isManualExpense(item) && receiptChoice(item) === "yes" ? <div><p className="mb-1 text-sm font-bold text-primary dark:text-white">Comprovante</p><ExpenseReceiptUpload files={item.attachments || []} onChange={(files) => updateItem(index, "attachments", files)} onStoredReceiptRemoved={onStoredReceiptRemoved} /></div> : supportsReceipt(item) ? <div><p className="mb-1 text-sm font-bold text-primary dark:text-white">Comprovante</p><ExpenseReceiptUpload files={item.attachments || []} onChange={(files) => updateItem(index, "attachments", files)} onStoredReceiptRemoved={onStoredReceiptRemoved} /></div> : null}
                 <div className="grid grid-cols-1 gap-4 min-[360px]:grid-cols-2"><Field label="Data"><input type="date" min={today} className={inputClass} value={item.date} onChange={(event) => updateItem(index, "date", event.target.value)} /><span className="mt-1 block text-[10px] capitalize text-outline">Mês/ano: {monthYear(item.date)}</span></Field><Field label="Documento"><input className={inputClass} value={item.document_number} onChange={(event) => updateItem(index, "document_number", event.target.value)} placeholder="Ex.: NF 1234" /></Field></div>
                 <div><p className="mb-1 text-sm font-bold text-primary dark:text-white">Valor</p>{mileage ? <div className="rounded-xl border border-green-200 bg-green-50 px-3 py-2.5 text-right dark:border-green-800 dark:bg-green-900/20"><p className="text-xs text-green-700 dark:text-green-300">Calculado automaticamente</p><p className="font-bold text-primary dark:text-white">{money(item.amount || 0)}</p></div> : <input min="0" step="0.01" type="number" className={inputClass} value={item.amount} onChange={(event) => updateItem(index, "amount", event.target.value)} placeholder="Ex.: 75,50" />}</div>
               </div>
@@ -735,8 +726,8 @@ function ExpenseItemsTable({ items, updateItem, onStoredReceiptRemoved, removeIt
                             : "Selecione Automóvel ou Moto"}
                         </p>
                       </div>
-                    ) : isManualExpense(item) ? (
-                      <ManualReceiptControl item={item} onChoice={(value) => updateReceiptChoice(index, item, value)} onFiles={(files) => updateItem(index, "attachments", files)} onStoredReceiptRemoved={onStoredReceiptRemoved} compact />
+                    ) : isManualExpense(item) && receiptChoice(item) === "yes" ? (
+                      <ExpenseReceiptUpload files={item.attachments || []} onChange={(files) => updateItem(index, "attachments", files)} onStoredReceiptRemoved={onStoredReceiptRemoved} />
                     ) : supportsReceipt(item) ? (
                       <ExpenseReceiptUpload
                         files={item.attachments || []}
@@ -767,26 +758,10 @@ function ExpenseItemsTable({ items, updateItem, onStoredReceiptRemoved, removeIt
         </table>
       </div>
       <div className="mt-3 flex flex-wrap gap-2">
-        <button type="button" onClick={addItem} className="flex items-center gap-2 rounded-full border border-primary px-4 py-2 text-sm font-bold text-primary dark:text-white"><span className="material-symbols-outlined">add</span>Adicionar outra despesa</button>
+        <button type="button" onClick={() => setShowReceiptQuestion(true)} className="flex items-center gap-2 rounded-full border border-primary px-4 py-2 text-sm font-bold text-primary dark:text-white"><span className="material-symbols-outlined">add</span>Adicionar outra despesa</button>
       </div>
+      <ConfirmDialog isOpen={showReceiptQuestion} title="Comprovante da nova despesa" message="Esta despesa possui comprovante para anexar?" confirmText="Sim, possui" cancelText="Não possui" variant="neutral" onConfirm={() => { addItem(true); setShowReceiptQuestion(false); }} onCancel={() => { addItem(false); setShowReceiptQuestion(false); }} />
     </>
-  );
-}
-
-function ManualReceiptControl({ item, onChoice, onFiles, onStoredReceiptRemoved, compact = false }) {
-  const choice = receiptChoice(item);
-  return (
-    <div>
-      <label className={`block font-bold text-primary dark:text-white ${compact ? "text-xs" : "text-sm"}`}>
-        Possui comprovante?
-        <select className={`${inputClass} mt-1`} value={choice} onChange={(event) => onChoice(event.target.value)}>
-          <option value="">Selecione</option>
-          <option value="yes">Sim</option>
-          <option value="no">Não</option>
-        </select>
-      </label>
-      {choice === "yes" && <div className="mt-2"><ExpenseReceiptUpload files={item.attachments || []} onChange={onFiles} onStoredReceiptRemoved={onStoredReceiptRemoved} /></div>}
-    </div>
   );
 }
 

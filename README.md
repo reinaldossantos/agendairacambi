@@ -171,7 +171,7 @@ Por padrão, a tradução automática fica **desabilitada**. Um administrador po
 
 - Prestação de contas com adiantamento, despesas e saldo.
 - Categorias, comprovantes e quilometragem.
-- Despesas adicionadas manualmente perguntam se há comprovante e exibem o botão de anexo quando a resposta é positiva.
+- Ao adicionar uma despesa manual, uma caixa de confirmação pergunta se há comprovante e, em caso positivo, exibe o mesmo componente padronizado de anexo das demais categorias.
 - Preenchimento automático de usuário, programa e cargo conforme o usuário autenticado.
 - Banco e forma de crédito como únicos campos obrigatórios do formulário.
 - Competência mensal visível e bloqueio de datas de comprovantes anteriores ao dia atual.
