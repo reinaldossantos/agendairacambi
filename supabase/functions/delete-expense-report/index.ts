@@ -7,7 +7,9 @@ serve(async (request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: cors });
   const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
   const token = request.headers.get("authorization")?.replace("Bearer ", "");
-  const { data: requester } = await admin.auth.getUser(token);
+  if (!token) return new Response(JSON.stringify({ error: "Sessão de acesso não informada." }), { status: 401, headers: { ...cors, "Content-Type": "application/json" } });
+  const { data: requester, error: authenticationError } = await admin.auth.getUser(token);
+  if (authenticationError || !requester.user) return new Response(JSON.stringify({ error: "Sessão inválida ou expirada. Entre novamente no sistema." }), { status: 401, headers: { ...cors, "Content-Type": "application/json" } });
   const { data: profile } = await admin.from("persons").select("id,access_role,is_active,locked_at").eq("auth_user_id", requester.user?.id).maybeSingle();
   if (!profile?.is_active || profile.locked_at) return new Response(JSON.stringify({ error: "Usuário não autorizado." }), { status: 403, headers: { ...cors, "Content-Type": "application/json" } });
 

@@ -4,7 +4,7 @@ Sistema web responsivo para planejamento, acompanhamento, gestão e prestação 
 
 O projeto centraliza agenda, eventos, evidências, pessoas, programas, veículos, despesas, relatórios, arquivos, avisos, notificações e auditoria em uma única aplicação instalável como PWA.
 
-No acesso, o usuário `robin` é associado de forma segura à conta institucional `iracambi@iracambi.com`, inclusive na função de autenticação, para funcionar também em dispositivos que ainda estejam atualizando o PWA.
+No acesso, os usuários `robin` e `deivid` são associados de forma segura às contas institucionais `iracambi@iracambi.com` e `viveiro@iracambi.com`, inclusive na função de autenticação, para funcionar também em dispositivos que ainda estejam atualizando o PWA.
 
 No módulo de veículos, Thaís e o administrador podem cadastrar e atualizar a frota. A leitura permanece disponível à equipe, enquanto operações de exclusão continuam restritas ao administrador; inclusões e alterações permanecem registradas na auditoria.
 
@@ -108,6 +108,7 @@ Por padrão, a tradução automática fica **desabilitada**. Um administrador po
 ### Acesso e segurança
 
 - Autenticação por e-mail e senha via Supabase Auth.
+- O campo de usuário completa automaticamente `@iracambi.com`. Os aliases `robin` e `deivid` também aceitam os e-mails aparentes `robin@iracambi.com` e `deivid@iracambi.com`, direcionando com segurança para `iracambi@iracambi.com` e `viveiro@iracambi.com`, respectivamente.
 - Troca obrigatória da senha temporária no primeiro acesso, com controles para visualizar ou ocultar a nova senha e sua confirmação durante a digitação.
 - A finalização da primeira troca altera somente os campos de segurança do próprio perfil e registra o evento no histórico de acessos.
 - A tela informa claramente o mínimo de 8 caracteres e exige uma dica pessoal que não contenha a senha; a dica fica isolada dos perfis e só aparece após a confirmação do link de recuperação enviado ao e-mail do usuário.
@@ -180,7 +181,9 @@ Por padrão, a tradução automática fica **desabilitada**. Um administrador po
 - Aprovações e notificações são vinculadas ao perfil autenticado ativo de cada aprovador, inclusive após correções de cadastro, evitando pendências invisíveis.
 - Aprovação parcial, solicitação de ajustes, reprovação justificada, notificações e histórico de cada decisão.
 - Painel visual com responsáveis, progresso, datas e observações, também incorporado ao PDF.
-- PDF, impressão e resumo consolidado por programa e descrição.
+- A visualização, a impressão e o PDF exibem a criação como assinatura digital do usuário e registram separadamente os aceites digitais da Gestão Financeira e da Presidência, com nome, data e hora.
+- Botão de visualização independente da impressão, PDF e resumo consolidado por programa e descrição.
+- Se a Edge Function de exclusão estiver temporariamente indisponível, a aplicação usa as mesmas políticas RLS do banco como contingência; relatórios finalizados continuam restritos ao administrador.
 
 ### Solicitações de compras
 
@@ -334,8 +337,12 @@ supabase functions deploy cleanup-old-files --project-ref SEU_PROJECT_REF
 Depois de executar `access_session_tracking.sql`, publique novamente a função de login:
 
 ```powershell
-supabase functions deploy auth-login --project-ref SEU_PROJECT_REF
+supabase functions deploy auth-login --project-ref SEU_PROJECT_REF --no-verify-jwt
+supabase functions deploy admin-reset-password --project-ref SEU_PROJECT_REF --no-verify-jwt
+supabase functions deploy delete-expense-report --project-ref SEU_PROJECT_REF --no-verify-jwt
 ```
+
+Essas três funções validam a sessão e as permissões dentro do próprio código. O uso de `--no-verify-jwt` desativa somente a validação redundante do gateway e não torna as operações públicas. O reset permanece restrito ao administrador; a exclusão de relatório finalizado também.
 
 ### Configurar a tradução automática
 
@@ -375,13 +382,15 @@ Antes do commit:
 
 1. Confirme que as migrações necessárias foram aplicadas no ambiente correto.
 2. Teste login, recuperação e primeiro acesso.
-3. Teste criação e edição de atividade com horários.
-4. Teste evento, veículos, despesas, avisos e uploads.
-5. Teste relatórios mensais e PDFs.
-6. Como administrador, gere uma prévia na Manutenção de dados sem executar a exclusão.
-7. Teste cancelamento de formulários com anexos e confirme que nenhum arquivo órfão é criado.
-8. Teste responsividade, idiomas, modo escuro e funcionamento offline.
-9. Não versione `.env.local`, tokens, chaves privadas ou senhas. Neste repositório, o `.env` é uma exceção controlada e deve conter exclusivamente `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`, que são configurações públicas utilizadas pelo frontend.
+3. Teste os aliases `robin` e `deivid`, o reset administrativo e o desbloqueio após três tentativas incorretas.
+4. Teste criação e edição de atividade com horários.
+5. Teste evento, veículos, despesas, avisos e uploads.
+6. Teste visualização, assinaturas digitais, impressão, PDF e exclusão administrativa de relatório finalizado.
+7. Teste relatórios mensais e PDFs.
+8. Como administrador, gere uma prévia na Manutenção de dados sem executar a exclusão.
+9. Teste cancelamento de formulários com anexos e confirme que nenhum arquivo órfão é criado.
+10. Teste responsividade, idiomas, modo escuro e funcionamento offline.
+11. Não versione `.env.local`, tokens, chaves privadas ou senhas. Neste repositório, o `.env` é uma exceção controlada e deve conter exclusivamente `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`, que são configurações públicas utilizadas pelo frontend.
 
 ## Publicação
 
@@ -391,7 +400,9 @@ O frontend pode ser hospedado em qualquer provedor compatível com Vite.
 2. Atualize **Site URL** e **Redirect URLs** no Supabase Auth.
 3. Inclua a rota pública `/reset-password` nos redirecionamentos.
 4. Confirme RLS, Storage, Realtime e Edge Functions.
-5. Execute o build e faça testes de fumaça no ambiente publicado.
+5. Publique `auth-login`, `admin-reset-password` e `delete-expense-report` com `--no-verify-jwt` antes do frontend que depende delas.
+6. Execute o build, publique o frontend e faça testes de fumaça no ambiente publicado.
+7. Em aplicações PWA, atualize com `Ctrl + F5` ou feche e abra novamente para confirmar que o novo service worker assumiu o controle.
 
 ## Segurança
 

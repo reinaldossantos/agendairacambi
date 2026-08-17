@@ -74,12 +74,15 @@ try {
   Invoke-SupabaseCli functions deploy auth-login --no-verify-jwt --project-ref $ProjectRef
 
   Write-Step "Publicando a função administrativa de reset de senha"
-  Invoke-SupabaseCli functions deploy admin-reset-password --project-ref $ProjectRef
+  Invoke-SupabaseCli functions deploy admin-reset-password --no-verify-jwt --project-ref $ProjectRef
+
+  Write-Step "Publicando a função segura de exclusão de relatórios de despesas"
+  Invoke-SupabaseCli functions deploy delete-expense-report --no-verify-jwt --project-ref $ProjectRef
 
   Write-Step "Publicando temporariamente a função de criação das contas"
   Invoke-SupabaseCli functions deploy provision-users --no-verify-jwt --project-ref $ProjectRef
 
-  Write-Step "Criando as contas com a senha temporária iracambi2026"
+  Write-Step "Criando as contas com senhas temporárias aleatórias"
   $headers = @{
     apikey = $anonKey
     Authorization = "Bearer $anonKey"
@@ -90,7 +93,7 @@ try {
   $result = Invoke-RestMethod -Method Post -Uri $provisionUrl -Headers $headers -Body "{}"
 
   $failedAccounts = @($result.results | Where-Object { -not $_.created })
-  $result.results | Format-Table name, email, created, action, error -AutoSize
+  $result.results | Format-Table name, email, temporaryPassword, created, action, error -AutoSize
   if ($failedAccounts.Count -gt 0) {
     throw "$($failedAccounts.Count) conta(s) não foram criadas. Verifique a tabela acima antes de continuar."
   }
@@ -101,7 +104,7 @@ try {
 
   Write-Host "`nAutenticação configurada com sucesso!" -ForegroundColor Green
   Write-Host "Primeiro acesso do administrador: reinaldo@iracambi.com" -ForegroundColor Green
-  Write-Host "Senha temporária: iracambi2026" -ForegroundColor Green
+  Write-Host "Use a senha temporária aleatória exibida na tabela acima e guarde-a em local seguro." -ForegroundColor Green
   Write-Host "`nAinda é necessário cadastrar a URL /reset-password em Authentication > URL Configuration no painel do Supabase." -ForegroundColor Yellow
 } catch {
   Write-Host "`nA configuração foi interrompida: $($_.Exception.Message)" -ForegroundColor Red

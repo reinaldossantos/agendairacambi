@@ -17,12 +17,13 @@ Publique as funções. Login e provisionamento precisam aceitar chamadas sem ses
 ```powershell
 supabase functions deploy auth-login --no-verify-jwt
 supabase functions deploy provision-users --no-verify-jwt
-supabase functions deploy admin-reset-password
+supabase functions deploy admin-reset-password --no-verify-jwt
+supabase functions deploy delete-expense-report --no-verify-jwt
 ```
 
 ## 3. Criar as contas iniciais
 
-Invoque `provision-users` uma única vez, enviando o mesmo segredo no cabeçalho `x-setup-secret`. A função cria as contas vinculadas às pessoas que possuem e-mail, confirma os e-mails e atribui a senha temporária `iracambi2026`.
+Invoque `provision-users` uma única vez, enviando o mesmo segredo no cabeçalho `x-setup-secret`. A função cria as contas vinculadas às pessoas que possuem e-mail, confirma os e-mails e gera uma senha temporária aleatória e diferente para cada conta. Copie as senhas retornadas uma única vez e entregue-as individualmente por um canal seguro.
 
 Depois do provisionamento, remova o segredo e opcionalmente apague/despublique a função `provision-users`:
 
@@ -39,8 +40,10 @@ Em **Authentication > Email Templates**, revise o modelo de recuperação de sen
 
 ## 5. Conferência
 
-1. Acesse com `reinaldo@iracambi.com` e `iracambi2026`.
+1. Acesse com `reinaldo@iracambi.com` e a senha temporária aleatória retornada pelo provisionamento.
 2. Confirme que a troca de senha é exigida.
 3. Confirme que Reinaldo vê Pessoas, histórico de acessos e o botão de reset de senha.
 4. Teste uma conta comum e confirme que as áreas administrativas não aparecem.
 5. Em uma conta de teste, erre a senha três vezes e confirme o bloqueio e a notificação para Reinaldo.
+6. Confirme os aliases `robin` → `iracambi@iracambi.com` e `deivid` → `viveiro@iracambi.com`.
+7. Como administrador, redefina uma senha e confirme que a senha temporária aparece uma única vez, o bloqueio é removido e a troca é exigida no próximo acesso.

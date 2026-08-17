@@ -1,18 +1,8 @@
 import { useState } from "react";
 import { Navigate } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
+import { completeLoginEmail } from "../lib/loginIdentity";
 import { useCurrentUser } from "../context/CurrentUserContext";
-
-const IRACAMBI_DOMAIN = "@iracambi.com";
-const LOGIN_ALIASES = {
-  robin: "iracambi@iracambi.com",
-};
-
-function completeEmail(value) {
-  const normalized = value.trim().toLowerCase();
-  if (LOGIN_ALIASES[normalized]) return LOGIN_ALIASES[normalized];
-  return normalized.includes("@") ? normalized : `${normalized}${IRACAMBI_DOMAIN}`;
-}
 
 export default function Login() {
   const { session } = useCurrentUser();
@@ -28,7 +18,7 @@ export default function Login() {
     setLoading(true);
     setMessage({ type: "", text: "" });
     const { data, error } = await supabase.functions.invoke("auth-login", {
-      body: { email: completeEmail(email), password, userAgent: navigator.userAgent },
+      body: { email: completeLoginEmail(email), password, userAgent: navigator.userAgent },
     });
     if (error || !data?.session) {
       setLoading(false);
@@ -47,7 +37,7 @@ export default function Login() {
   async function forgotPassword() {
     if (!email.trim()) return setMessage({ type: "error", text: "Informe seu usuário para recuperar a senha." });
     setLoading(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(completeEmail(email), {
+    const { error } = await supabase.auth.resetPasswordForEmail(completeLoginEmail(email), {
       redirectTo: `${window.location.origin}/reset-password`,
     });
     setLoading(false);

@@ -395,9 +395,9 @@ export default function ExpenseReports() {
     await loadData();
   }
 
-  function printReport(report) {
+  function openReport(report, shouldPrint = false) {
     const printWindow = window.open("", "_blank", "width=900,height=700");
-    if (!printWindow) return setMessage({ type: "error", text: "Permita pop-ups para imprimir o relatório." });
+    if (!printWindow) return setMessage({ type: "error", text: "Permita pop-ups para visualizar o relatório." });
     report = structuredClone(report);
     for (const key of Object.keys(report)) if (typeof report[key] === "string") report[key] = escapeHtml(report[key]);
     report.expense_items = (report.expense_items || []).map((item) => Object.fromEntries(
@@ -406,7 +406,13 @@ export default function ExpenseReports() {
     const items = (report.expense_items || []).filter((item) => item.description || Number(item.amount));
     const spent = items.reduce((sum, item) => sum + Number(item.amount || 0), 0);
     const reportBalance = Number(report.advance_amount || 0) - spent;
-    printWindow.document.write(`<!doctype html><html><head><title>Relatório ${report.report_number}</title><style>body{font:12px Arial;color:#222;margin:24px}h1{font-size:18px;color:#1a3b2e}table{width:100%;border-collapse:collapse;margin:12px 0}th,td{border:1px solid #777;padding:6px;text-align:left}th{background:#1a3b2e;color:white}.right{text-align:right}.sign{display:flex;gap:60px;margin-top:60px}.sign div{flex:1;border-top:1px solid;text-align:center;padding-top:6px}@media print{button{display:none}}</style></head><body><h1>IRACAMBI — RELATÓRIO DE DESPESAS / ADIANTAMENTO Nº ${report.report_number}</h1><table><tr><td><b>Fonte pagadora:</b> ${report.source_company}</td><td><b>Centro de custos:</b> ${report.cost_center || "—"}</td></tr><tr><td><b>Projeto:</b> ${report.project_name}</td><td><b>Código:</b> ${report.project_code || "—"}</td></tr><tr><td><b>Usuário:</b> ${report.user_name}</td><td><b>CPF:</b> ${report.user_cpf || "—"}</td></tr><tr><td><b>Período:</b> ${report.period_start} a ${report.period_end}</td><td><b>Roteiro:</b> ${report.travel_route || "—"}</td></tr><tr><td colspan="2"><b>Justificativa:</b> ${report.purpose}</td></tr></table><table><thead><tr><th>Item</th><th>Descrição</th><th>Data</th><th>Documento</th><th>Valor</th></tr></thead><tbody>${items.map((item, index) => `<tr><td>${index + 1}</td><td>${item.description}</td><td>${item.date || "—"}</td><td>${item.document_number || "—"}</td><td class="right">${money(item.amount)}</td></tr>`).join("")}</tbody></table><table><tr><td>Adiantamento</td><td class="right">${money(report.advance_amount)}</td></tr><tr><td>Despesa realizada</td><td class="right">${money(spent)}</td></tr><tr><td>${reportBalance >= 0 ? "Saldo a devolver" : "Saldo a resgatar"}</td><td class="right">${money(Math.abs(reportBalance))}</td></tr></table><div class="sign"><div>Data e assinatura do usuário</div><div>Conferência / Gestor administrativo</div></div><script>window.onload=()=>window.print()</script></body></html>`);
+    const approvedBy = (firstName) => report.approvals?.find((approval) => approval.decision === "approved" && normalizeText(approval.approver?.name).startsWith(firstName));
+    const signature = (title, name, signedAt) => `<div class="signature"><strong>${escapeHtml(name || "Aguardando aceite")}</strong><span>${signedAt ? "Assinado digitalmente" : "Assinatura pendente"}</span><span>${signedAt ? new Date(signedAt).toLocaleString("pt-BR") : "—"}</span><small>${title}</small></div>`;
+    const thaisApproval = approvedBy("thais");
+    const reinaldoApproval = approvedBy("reinaldo");
+    const signatures = [signature("Usuário responsável", report.user_name, report.created_at), signature("Gestão Financeira", thaisApproval?.approver?.name, thaisApproval?.decided_at), signature("Presidência", reinaldoApproval?.approver?.name, reinaldoApproval?.decided_at)].join("");
+    const printScript = shouldPrint ? "<script>window.onload=()=>window.print()</script>" : "";
+    printWindow.document.write(`<!doctype html><html><head><title>Relatório ${report.report_number}</title><style>body{font:12px Arial;color:#222;margin:24px}h1{font-size:18px;color:#1a3b2e}table{width:100%;border-collapse:collapse;margin:12px 0}th,td{border:1px solid #777;padding:6px;text-align:left}th{background:#1a3b2e;color:white}.right{text-align:right}.toolbar{text-align:right;margin-bottom:16px}.toolbar button{border:0;border-radius:20px;background:#1a3b2e;color:#fff;padding:9px 18px;font-weight:bold;cursor:pointer}.signatures{display:grid;grid-template-columns:repeat(3,1fr);gap:28px;margin-top:55px}.signature{border-top:1px solid #444;text-align:center;padding-top:7px;display:flex;flex-direction:column;gap:3px;min-height:58px}.signature strong{font-size:11px}.signature span{font-size:10px}.signature small{margin-top:4px;font-weight:bold}@media(max-width:650px){.signatures{grid-template-columns:1fr;gap:35px}}@media print{.toolbar{display:none}}</style></head><body>${shouldPrint ? "" : '<div class="toolbar"><button onclick="window.print()">Imprimir relatório</button></div>'}<h1>IRACAMBI — RELATÓRIO DE DESPESAS / ADIANTAMENTO Nº ${report.report_number}</h1><table><tr><td><b>Fonte pagadora:</b> ${report.source_company}</td><td><b>Centro de custos:</b> ${report.cost_center || "—"}</td></tr><tr><td><b>Projeto:</b> ${report.project_name}</td><td><b>Código:</b> ${report.project_code || "—"}</td></tr><tr><td><b>Usuário:</b> ${report.user_name}</td><td><b>CPF:</b> ${report.user_cpf || "—"}</td></tr><tr><td><b>Período:</b> ${report.period_start} a ${report.period_end}</td><td><b>Roteiro:</b> ${report.travel_route || "—"}</td></tr><tr><td colspan="2"><b>Justificativa:</b> ${report.purpose}</td></tr></table><table><thead><tr><th>Item</th><th>Descrição</th><th>Data</th><th>Documento</th><th>Valor</th></tr></thead><tbody>${items.map((item, index) => `<tr><td>${index + 1}</td><td>${item.description}</td><td>${item.date || "—"}</td><td>${item.document_number || "—"}</td><td class="right">${money(item.amount)}</td></tr>`).join("")}</tbody></table><table><tr><td>Adiantamento</td><td class="right">${money(report.advance_amount)}</td></tr><tr><td>Despesa realizada</td><td class="right">${money(spent)}</td></tr><tr><td>${reportBalance >= 0 ? "Saldo a devolver" : "Saldo a resgatar"}</td><td class="right">${money(Math.abs(reportBalance))}</td></tr></table><div class="signatures">${signatures}</div>${printScript}</body></html>`);
     printWindow.document.close();
   }
 
@@ -438,6 +444,23 @@ export default function ExpenseReports() {
     setSaving(true);
     const target = deleteTarget;
     const { data, error } = await supabase.functions.invoke("delete-expense-report", { body: { reportId: target.id } });
+    const functionUnavailable = error?.name === "FunctionsFetchError" || error?.message === "Failed to send a request to the Edge Function";
+    if (functionUnavailable) {
+      const { data: deletedReport, error: fallbackError } = await supabase.from("expense_reports").delete().eq("id", target.id).select("id").maybeSingle();
+      if (fallbackError || !deletedReport) {
+        setSaving(false);
+        setDeleteTarget(null);
+        setMessage({ type: "error", text: fallbackError?.message || "O relatório não pôde ser excluído. Confirme que sua conta possui perfil de administrador." });
+        return;
+      }
+      const receiptPaths = (target.expense_items || []).flatMap((item) => item.attachments || []).map((file) => file.path).filter(Boolean);
+      if (receiptPaths.length) await supabase.storage.from("activity-files").remove(receiptPaths);
+      setSaving(false);
+      setDeleteTarget(null);
+      setMessage({ type: "success", text: `Relatório nº ${String(target.report_number).padStart(5, "0")} excluído com sucesso.` });
+      await loadData();
+      return;
+    }
     setSaving(false);
     setDeleteTarget(null);
     if (error || data?.error) {
@@ -492,7 +515,8 @@ export default function ExpenseReports() {
               {(report.status === "draft" || (report.status === "changes_requested" && report.person_id === currentUser?.id)) && <button onClick={() => editReport(report)} className="rounded-full bg-primary px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-primary-light hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">{report.status === "changes_requested" ? "Corrigir e reenviar" : "Continuar"}</button>}
               {isApprover && report.status === "approved" && <button disabled={saving} onClick={() => transitionReport(report, "provisioned")} className="rounded-full bg-blue-600 px-4 py-2 text-sm font-bold text-white">Encaminhar para provisionamento</button>}
               {isApprover && report.status === "provisioned" && <div className="flex flex-wrap gap-2"><input type="date" aria-label="Data prevista para pagamento" value={paymentDates[report.id] || ""} onChange={(event) => setPaymentDates({ ...paymentDates, [report.id]: event.target.value })} className="rounded-xl border border-surface-variant px-3 py-2 text-sm dark:bg-gray-800" /><button disabled={saving} onClick={() => transitionReport(report, "payment_scheduled")} className="rounded-full bg-accent px-4 py-2 text-sm font-bold text-primary">Informar pagamento</button></div>}
-              <button onClick={() => printReport(report)} className="rounded-full bg-surface px-3 py-2 text-sm font-medium dark:bg-gray-700"><span className="material-symbols-outlined align-middle text-[18px]">print</span> Imprimir</button><button disabled={!!generatingPdfId} onClick={() => downloadPdf(report)} className="rounded-full bg-red-100 px-3 py-2 text-sm font-medium text-red-700 disabled:cursor-wait disabled:opacity-60"><span className={`material-symbols-outlined align-middle text-[18px] ${generatingPdfId === report.id ? "animate-spin" : ""}`}>{generatingPdfId === report.id ? "progress_activity" : "picture_as_pdf"}</span> {generatingPdfId === report.id ? "Gerando…" : "PDF"}</button>
+              <button onClick={() => openReport(report)} className="rounded-full bg-blue-100 px-3 py-2 text-sm font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"><span className="material-symbols-outlined align-middle text-[18px]">visibility</span> Visualizar</button>
+              <button onClick={() => openReport(report, true)} className="rounded-full bg-surface px-3 py-2 text-sm font-medium dark:bg-gray-700"><span className="material-symbols-outlined align-middle text-[18px]">print</span> Imprimir</button><button disabled={!!generatingPdfId} onClick={() => downloadPdf(report)} className="rounded-full bg-red-100 px-3 py-2 text-sm font-medium text-red-700 disabled:cursor-wait disabled:opacity-60"><span className={`material-symbols-outlined align-middle text-[18px] ${generatingPdfId === report.id ? "animate-spin" : ""}`}>{generatingPdfId === report.id ? "progress_activity" : "picture_as_pdf"}</span> {generatingPdfId === report.id ? "Gerando…" : "PDF"}</button>
               <button disabled={saving} onClick={() => requestDeleteReport(report)} className="rounded-full bg-red-600 px-3 py-2 text-sm font-bold text-white hover:bg-red-700 disabled:opacity-50"><span className="material-symbols-outlined align-middle text-[18px]">delete</span> Excluir</button>
             </div>
             </div>

@@ -23,6 +23,8 @@ O script pode ser executado novamente sem duplicar políticas. Não execute `act
 - Teste localmente o login de Reinaldo e de pelo menos um usuário comum.
 - Teste a troca obrigatória da senha temporária.
 - Teste “Esqueceu a senha?” e a rota `/reset-password`.
+- Teste os aliases `robin` e `deivid`, que devem autenticar nas contas `iracambi@iracambi.com` e `viveiro@iracambi.com`.
+- Publique `auth-login`, `admin-reset-password` e `delete-expense-report` com `--no-verify-jwt`; cada função continua validando a sessão e as permissões internamente.
 - Teste o bloqueio após três erros e a notificação administrativa.
 - Execute `npm run build` e mantenha um backup recente do banco.
 - Defina uma janela curta de publicação, preferencialmente quando ninguém estiver usando o sistema.

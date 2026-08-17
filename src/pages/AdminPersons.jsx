@@ -139,7 +139,10 @@ export default function AdminPersons() {
 
   async function resetPassword(person) {
     const { data, error } = await supabase.functions.invoke("admin-reset-password", { body: { personId: person.id } });
-    if (error || data?.error) return setMessage({ type: "error", text: data?.error || error.message });
+    if (error || data?.error) {
+      const functionUnavailable = error?.name === "FunctionsFetchError" || error?.message === "Failed to send a request to the Edge Function";
+      return setMessage({ type: "error", text: data?.error || (functionUnavailable ? "O serviço administrativo de redefinição de senha ainda não está disponível. Publique novamente a função admin-reset-password no Supabase." : error.message) });
+    }
     setMessage({ type: "success", text: `Senha temporária de ${person.name}: ${data.temporaryPassword} — copie agora; a troca será exigida no próximo acesso.` });
     fetchPersons();
   }

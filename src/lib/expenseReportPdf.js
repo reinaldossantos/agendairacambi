@@ -4,6 +4,7 @@ import { format, parseISO } from "date-fns";
 
 const money = (value) => Number(value || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const date = (value) => value ? format(parseISO(value), "dd/MM/yyyy") : "—";
+const normalizeText = (value) => String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
 
 function loadLogo() {
   return new Promise((resolve, reject) => {
@@ -141,16 +142,33 @@ export async function generateExpenseReportPDF(report) {
     });
   }
 
-  const signatureY = Math.max(doc.lastAutoTable.finalY + 14, 245);
-  if (signatureY > 265) doc.addPage();
-  const y = signatureY > 265 ? 35 : signatureY;
+  const approvedBy = (firstName) => report.approvals?.find((approval) => approval.decision === "approved" && normalizeText(approval.approver?.name).startsWith(firstName));
+  const thaisApproval = approvedBy("thais");
+  const reinaldoApproval = approvedBy("reinaldo");
+  const signatures = [
+    { title: "Usuário responsável", name: report.user_name, signedAt: report.created_at },
+    { title: "Gestão Financeira", name: thaisApproval?.approver?.name, signedAt: thaisApproval?.decided_at },
+    { title: "Presidência", name: reinaldoApproval?.approver?.name, signedAt: reinaldoApproval?.decided_at },
+  ];
+  const signatureY = Math.max(doc.lastAutoTable.finalY + 18, 245);
+  if (signatureY > 258) doc.addPage();
+  const y = signatureY > 258 ? 38 : signatureY;
   doc.setDrawColor(80);
-  doc.line(18, y, 92, y);
-  doc.line(118, y, 192, y);
   doc.setTextColor(70);
-  doc.setFontSize(8);
-  doc.text("Data e assinatura do usuário", 55, y + 5, { align: "center" });
-  doc.text("Conferência / Gestor administrativo", 155, y + 5, { align: "center" });
+  signatures.forEach((signature, index) => {
+    const left = 14 + (index * 64);
+    const center = left + 27;
+    doc.line(left, y, left + 54, y);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7.5);
+    doc.text(signature.name || "Aguardando aceite", center, y + 5, { align: "center", maxWidth: 54 });
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(6.8);
+    doc.text(signature.signedAt ? "Assinado digitalmente" : "Assinatura pendente", center, y + 9, { align: "center" });
+    doc.text(signature.signedAt ? format(parseISO(signature.signedAt), "dd/MM/yyyy 'às' HH:mm") : "—", center, y + 13, { align: "center" });
+    doc.setFont("helvetica", "bold");
+    doc.text(signature.title, center, y + 18, { align: "center" });
+  });
   doc.setFontSize(7);
   doc.text(`Gerado digitalmente em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm")}`, width / 2, 287, { align: "center" });
   doc.save(`relatorio_despesas_${report.report_number || "rascunho"}.pdf`);

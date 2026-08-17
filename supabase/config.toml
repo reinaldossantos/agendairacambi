@@ -386,13 +386,13 @@ deno_version = 2
 verify_jwt = false
 
 [functions.admin-reset-password]
-verify_jwt = true
+verify_jwt = false
 
 [functions.admin-data-maintenance]
 verify_jwt = true
 
 [functions.delete-expense-report]
-verify_jwt = true
+verify_jwt = false
 
 [functions.provision-users]
 verify_jwt = true
