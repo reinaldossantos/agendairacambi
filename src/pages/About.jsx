@@ -185,6 +185,7 @@ const sections = [
       "O painel compara automaticamente a despesa orçada com compras comprometidas, despesas realizadas e saldo disponível.",
       "Compras destinadas a mais de um programa são rateadas igualmente e aparecem sinalizadas. Compras recebidas deixam de compor o valor comprometido.",
       "Líderes mantêm o orçamento do próprio programa; gestão financeira e administradores podem manter todos. Usuários ativos podem consultar.",
+      "Ao finalizar, o coordenador registra seu aceite digital. O orçamento somente se torna oficial após os aceites digitais obrigatórios de Reinaldo e Thaís.",
     ],
   },
   {
