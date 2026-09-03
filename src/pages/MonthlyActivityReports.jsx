@@ -51,7 +51,7 @@ export default function MonthlyActivityReports() {
   const [mode, setMode] = useState("list");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [generatingPdf, setGeneratingPdf] = useState(false);
+  const [generatingPdfId, setGeneratingPdfId] = useState(null);
   const [message, setMessage] = useState({ type: "", text: "" });
   const [generation, setGeneration] = useState({ report_type: "individual", reference_month: format(subMonths(new Date(), 1), "yyyy-MM"), program_id: "", person_id: currentUser?.id || "" });
   const [form, setForm] = useState(null);
@@ -113,6 +113,10 @@ export default function MonthlyActivityReports() {
     const { data, error } = await query;
     setSaving(false);
     if (error) return setMessage({ type: "error", text: `Não foi possível consultar as atividades: ${error.message}` });
+    if (!data?.length) {
+      setMessage({ type: "error", text: "Não há informações suficientes para gerar o relatório: o programa não possui atividades lançadas no período selecionado." });
+      return;
+    }
     const activities = await Promise.all((data || []).map((activity) => viewableActivity({
       id: activity.id, included: true, date: activity.due_date, title: activity.title,
       category: "", objective: activity.description || "", result: activity.status === "Realizado" ? "Atividade realizada" : activity.status || "",
@@ -140,7 +144,7 @@ export default function MonthlyActivityReports() {
       ],
     });
     setMode("form");
-    setMessage({ type: activities.length ? "success" : "info", text: activities.length ? `${activities.length} atividade(s) encontrada(s). Revise o rascunho antes de finalizar.` : "Nenhuma atividade encontrada. O relatório poderá ser preenchido manualmente." });
+    setMessage({ type: "success", text: `${activities.length} atividade(s) encontrada(s). Revise o rascunho antes de finalizar.` });
   }
 
   async function replaceExistingReport() {
@@ -169,19 +173,29 @@ export default function MonthlyActivityReports() {
   function updateIndicator(index, field, value) { setForm((current) => ({ ...current, indicators: current.indicators.map((item, itemIndex) => itemIndex === index ? { ...item, [field]: value } : item) })); }
 
   async function downloadPdf(report) {
-    if (generatingPdf) return;
-    setGeneratingPdf(true);
+    const includedActivities = (report.activity_snapshot || []).filter((item) => item.included !== false);
+    if (!includedActivities.length) {
+      setMessage({ type: "error", text: "Não há informações suficientes para gerar o PDF: este relatório não possui atividades selecionadas." });
+      return;
+    }
+    if (generatingPdfId) return;
+    const generationId = report.id || "draft";
+    setGeneratingPdfId(generationId);
     try {
       await new Promise((resolve) => window.requestAnimationFrame(() => window.requestAnimationFrame(resolve)));
       await generateMonthlyReportPDF(report);
     } catch (pdfError) {
       setMessage({ type: "error", text: `Não foi possível gerar o PDF: ${pdfError?.message || "erro inesperado"}.` });
     } finally {
-      setGeneratingPdf(false);
+      setGeneratingPdfId(null);
     }
   }
 
   async function saveReport(finalize = false) {
+    if (finalize && !(form.activity_snapshot || []).some((item) => item.included !== false)) {
+      setMessage({ type: "error", text: "Não há informações suficientes para finalizar o relatório: selecione ao menos uma atividade lançada no período." });
+      return;
+    }
     setSaving(true);
     const payload = { ...form, activity_snapshot: (form.activity_snapshot || []).map(persistableActivity), status: finalize ? "submitted" : form.status, submitted_at: finalize ? new Date().toISOString() : form.submitted_at || null };
     delete payload.id; delete payload.report_number; delete payload.created_at; delete payload.updated_at; delete payload.approved_at; delete payload.approved_by;
@@ -235,6 +249,12 @@ export default function MonthlyActivityReports() {
       setMessage({ type: "error", text: `O rascunho não foi alterado porque não foi possível consultar a agenda: ${activityResult.error.message}` });
       return;
     }
+    if (!activityResult.data?.length) {
+      setSaving(false);
+      setRegenerateTarget(null);
+      setMessage({ type: "error", text: "Não há informações suficientes para regerar o relatório: o programa não possui atividades lançadas no período selecionado." });
+      return;
+    }
     const activities = await Promise.all((activityResult.data || []).map((activity) => viewableActivity({
       id: activity.id, included: true, date: activity.due_date, title: activity.title, category: "",
       objective: activity.description || "", result: activity.status === "Realizado" ? "Atividade realizada" : activity.status || "",
@@ -271,12 +291,12 @@ export default function MonthlyActivityReports() {
     loadData();
   }
 
-  if (mode === "form" && form) return <ReportEditor form={form} setForm={setForm} updateActivity={updateActivity} updateIndicator={updateIndicator} saving={saving} generatingPdf={generatingPdf} message={message} onBack={() => { setMode("list"); loadData(); }} onSave={() => saveReport(false)} onFinalize={() => saveReport(true)} onPdf={() => downloadPdf(form)} />;
+  if (mode === "form" && form) return <ReportEditor form={form} setForm={setForm} updateActivity={updateActivity} updateIndicator={updateIndicator} saving={saving} generatingPdf={Boolean(generatingPdfId)} message={message} onBack={() => { setMode("list"); loadData(); }} onSave={() => saveReport(false)} onFinalize={() => saveReport(true)} onPdf={() => downloadPdf(form)} />;
 
   return <div className="mx-auto max-w-6xl px-2 sm:px-4">
     <div className="mb-6"><p className="text-sm font-medium text-primary-light dark:text-green-300">Resultados e rastreabilidade</p><h2 className="text-headline-lg font-semibold text-primary dark:text-white">Relatórios mensais de atividades</h2><p className="text-sm text-outline">Gere o relatório do mês anterior usando as atividades registradas na agenda.</p></div>
     {message.text && <Alert message={message} />}
-    {generatingPdf && <PdfGenerationNotice />}
+    {generatingPdfId && <PdfGenerationNotice />}
     <section className="mb-7 rounded-xl border border-surface-variant bg-white p-5 dark:border-gray-700 dark:bg-dark-surface">
       <h3 className="mb-4 font-bold text-primary dark:text-white">Gerar novo relatório</h3>
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -287,7 +307,7 @@ export default function MonthlyActivityReports() {
       </div>
       <button disabled={saving} onClick={() => generateDraft()} className="mt-4 flex items-center gap-2 rounded-full bg-[#ffd12f] px-5 py-3 font-bold text-primary transition hover:scale-[1.02] disabled:opacity-50"><span className="material-symbols-outlined">auto_awesome</span>{saving ? "Consultando atividades..." : "Gerar rascunho automático"}</button>
     </section>
-    <section><h3 className="mb-3 font-bold text-primary dark:text-white">Relatórios disponíveis</h3>{loading ? <p className="py-10 text-center text-outline">Carregando...</p> : reports.length === 0 ? <p className="rounded-xl border border-dashed p-10 text-center text-outline">Nenhum relatório mensal cadastrado.</p> : <div className="grid gap-3 md:grid-cols-2">{reports.map((report) => <article key={report.id} className="rounded-xl border border-surface-variant bg-white p-4 dark:border-gray-700 dark:bg-dark-surface"><div className="flex justify-between gap-3"><div><p className="text-xs font-bold uppercase text-primary-light">{report.report_type === "program" ? "Consolidado" : "Individual"}</p><h4 className="font-bold text-primary dark:text-white">{report.program_name}</h4><p className="text-sm text-outline">{monthLabel(report.reference_month)} · {report.responsible_name}</p></div><span className="h-fit rounded-full bg-surface px-2 py-1 text-xs font-bold dark:bg-gray-700">{statusLabel[report.status]}</span></div><div className="mt-4 flex flex-wrap gap-2"><button onClick={() => openReport(report)} className="rounded-full border border-primary px-3 py-2 text-sm font-bold text-primary dark:text-white">{report.status === "draft" ? "Continuar" : "Visualizar"}</button><button disabled={generatingPdf} onClick={() => downloadPdf(report)} className="rounded-full bg-red-100 px-3 py-2 text-sm font-bold text-red-700 disabled:cursor-wait disabled:opacity-60"><span className={`material-symbols-outlined align-middle text-[18px] ${generatingPdf ? "animate-spin" : ""}`}>{generatingPdf ? "progress_activity" : "picture_as_pdf"}</span> {generatingPdf ? "Gerando…" : "PDF"}</button>{report.status === "draft" && <button onClick={() => setRegenerateTarget(report)} className="rounded-full bg-blue-50 px-3 py-2 text-sm font-bold text-blue-700 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-300" title="Substituir pelas informações atuais da agenda"><span className="material-symbols-outlined align-middle text-[18px]">sync</span> Excluir e regerar</button>}<button onClick={() => setDeleteTarget(report)} className="rounded-full bg-red-50 px-3 py-2 text-sm font-bold text-red-700 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-300" title="Excluir relatório definitivamente"><span className="material-symbols-outlined align-middle text-[18px]">delete</span> Excluir</button></div></article>)}</div>}</section>
+    <section><h3 className="mb-3 font-bold text-primary dark:text-white">Relatórios disponíveis</h3>{loading ? <p className="py-10 text-center text-outline">Carregando...</p> : reports.length === 0 ? <p className="rounded-xl border border-dashed p-10 text-center text-outline">Nenhum relatório mensal cadastrado.</p> : <div className="grid gap-3 md:grid-cols-2">{reports.map((report) => { const isGeneratingThisPdf = generatingPdfId === report.id; return <article key={report.id} className="rounded-xl border border-surface-variant bg-white p-4 dark:border-gray-700 dark:bg-dark-surface"><div className="flex justify-between gap-3"><div><p className="text-xs font-bold uppercase text-primary-light">{report.report_type === "program" ? "Consolidado" : "Individual"}</p><h4 className="font-bold text-primary dark:text-white">{report.program_name}</h4><p className="text-sm text-outline">{monthLabel(report.reference_month)} · {report.responsible_name}</p></div><span className="h-fit rounded-full bg-surface px-2 py-1 text-xs font-bold dark:bg-gray-700">{statusLabel[report.status]}</span></div><div className="mt-4 flex flex-wrap gap-2"><button onClick={() => openReport(report)} className="rounded-full border border-primary px-3 py-2 text-sm font-bold text-primary dark:text-white">{report.status === "draft" ? "Continuar" : "Visualizar"}</button><button disabled={Boolean(generatingPdfId)} onClick={() => downloadPdf(report)} className="rounded-full bg-red-100 px-3 py-2 text-sm font-bold text-red-700 disabled:cursor-wait disabled:opacity-60"><span className={`material-symbols-outlined align-middle text-[18px] ${isGeneratingThisPdf ? "animate-spin" : ""}`}>{isGeneratingThisPdf ? "progress_activity" : "picture_as_pdf"}</span> {isGeneratingThisPdf ? "Gerando…" : "PDF"}</button>{report.status === "draft" && <button onClick={() => setRegenerateTarget(report)} className="rounded-full bg-blue-50 px-3 py-2 text-sm font-bold text-blue-700 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-300" title="Substituir pelas informações atuais da agenda"><span className="material-symbols-outlined align-middle text-[18px]">sync</span> Excluir e regerar</button>}<button onClick={() => setDeleteTarget(report)} className="rounded-full bg-red-50 px-3 py-2 text-sm font-bold text-red-700 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-300" title="Excluir relatório definitivamente"><span className="material-symbols-outlined align-middle text-[18px]">delete</span> Excluir</button></div></article>; })}</div>}</section>
     <ConfirmDialog isOpen={!!deleteTarget} title="Excluir relatório mensal" message={deleteTarget ? `Deseja excluir definitivamente o relatório ${statusLabel[deleteTarget.status]?.toLowerCase()} de ${deleteTarget.program_name}, referente a ${monthLabel(deleteTarget.reference_month)}? Esta ação apagará o documento do histórico e não poderá ser desfeita.` : ""} confirmText="Sim, excluir definitivamente" onConfirm={deleteReport} onCancel={() => setDeleteTarget(null)} />
     <ConfirmDialog isOpen={!!regenerateTarget} title="Excluir conteúdo e regerar" message={regenerateTarget ? `Deseja substituir o rascunho de ${regenerateTarget.program_name}, referente a ${monthLabel(regenerateTarget.reference_month)}, pelas informações atuais da agenda? Complementos manuais e indicadores personalizados deste rascunho serão apagados.` : ""} confirmText={saving ? "Regerando..." : "Sim, excluir e regerar"} onConfirm={regenerateReport} onCancel={() => setRegenerateTarget(null)} />
     <ConfirmDialog isOpen={!!replaceTarget} title="Relatório mensal já existente" message={replaceTarget ? `Já existe um relatório ${statusLabel[replaceTarget.status]?.toLowerCase()} de ${replaceTarget.program_name}, referente a ${monthLabel(replaceTarget.reference_month)}, para ${replaceTarget.responsible_name}. Deseja excluir o relatório anterior e gerar um novo para o mesmo mês? Esta ação não poderá ser desfeita.` : ""} confirmText={saving ? "Excluindo..." : "Sim, excluir e gerar novo"} onConfirm={replaceExistingReport} onCancel={() => setReplaceTarget(null)} />
