@@ -177,6 +177,17 @@ const sections = [
     ],
   },
   {
+    id: "program-budgets",
+    icon: "account_balance_wallet",
+    title: "Orçamentos dos programas",
+    bullets: [
+      "Cadastre um orçamento anual para cada programa, organizado por receitas, despesas, grupos, rubricas e valores mensais.",
+      "O painel compara automaticamente a despesa orçada com compras comprometidas, despesas realizadas e saldo disponível.",
+      "Compras destinadas a mais de um programa são rateadas igualmente e aparecem sinalizadas. Compras recebidas deixam de compor o valor comprometido.",
+      "Líderes mantêm o orçamento do próprio programa; gestão financeira e administradores podem manter todos. Usuários ativos podem consultar.",
+    ],
+  },
+  {
     id: "expenses",
     icon: "receipt_long",
     title: "Relatórios de despesas",
