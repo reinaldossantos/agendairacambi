@@ -11,6 +11,7 @@ const emptyVehicle = { name: "", plate: "", capacity: 5, status: "available", no
 const emptyBooking = {
   vehicle_id: "", person_id: "", program_id: "", start_at: "", end_at: "",
   destination: "", purpose: "", passengers: 1, notes: "",
+  is_recurring: false, recurrence_until: "",
 };
 const emptyCompletion = { start_odometer: "", end_odometer: "", completion_notes: "" };
 
@@ -20,6 +21,25 @@ const inputClass =
 function toLocalInput(date) {
   const offset = date.getTimezoneOffset();
   return new Date(date.getTime() - offset * 60000).toISOString().slice(0, 16);
+}
+
+function toLocalDateInput(date) {
+  return toLocalInput(date).slice(0, 10);
+}
+
+function buildWeeklyOccurrences(startValue, endValue, untilValue) {
+  const start = new Date(startValue);
+  const end = new Date(endValue);
+  const until = new Date(`${untilValue}T23:59:59`);
+  const occurrences = [];
+
+  while (start <= until && occurrences.length < 53) {
+    occurrences.push({ start_at: start.toISOString(), end_at: end.toISOString() });
+    start.setDate(start.getDate() + 7);
+    end.setDate(end.getDate() + 7);
+  }
+
+  return occurrences;
 }
 
 function statusLabel(status) {
@@ -78,7 +98,12 @@ export default function Vehicles() {
       start.setMinutes(Math.ceil((start.getMinutes() + 1) / 30) * 30, 0, 0);
       setTab("schedule");
       setEditingBooking(null);
-      setBookingForm((current) => ({ ...current, start_at: toLocalInput(start), end_at: toLocalInput(new Date(start.getTime() + 60 * 60 * 1000)) }));
+      setBookingForm((current) => ({
+        ...current,
+        start_at: toLocalInput(start),
+        end_at: toLocalInput(new Date(start.getTime() + 60 * 60 * 1000)),
+        recurrence_until: toLocalDateInput(new Date(start.getFullYear(), start.getMonth() + 3, start.getDate())),
+      }));
       setShowBookingForm(true);
       window.history.replaceState({}, document.title);
     }
@@ -122,6 +147,7 @@ export default function Vehicles() {
       program_id: userProgram?.id || "",
       start_at: toLocalInput(start),
       end_at: toLocalInput(end),
+      recurrence_until: toLocalDateInput(new Date(start.getFullYear(), start.getMonth() + 3, start.getDate())),
     });
     setError("");
     setShowBookingForm(true);
@@ -141,6 +167,8 @@ export default function Vehicles() {
       purpose: item.purpose,
       passengers: item.passengers,
       notes: item.notes || "",
+      is_recurring: false,
+      recurrence_until: "",
     });
     setShowBookingForm(true);
   }
@@ -158,38 +186,72 @@ export default function Vehicles() {
       return;
     }
     const selectedVehicle = vehicles.find((item) => item.id === bookingForm.vehicle_id);
+    if (bookingForm.is_recurring && !bookingForm.recurrence_until) {
+      setError("Informe até quando o agendamento fixo deve se repetir.");
+      return;
+    }
+    if (bookingForm.is_recurring && new Date(`${bookingForm.recurrence_until}T23:59:59`) < new Date(bookingForm.start_at)) {
+      setError("A data final da repetição deve ser igual ou posterior à primeira saída.");
+      return;
+    }
     if (Number(bookingForm.passengers) > selectedVehicle?.capacity) {
       setError(`Este veículo comporta no máximo ${selectedVehicle.capacity} pessoas.`);
       return;
     }
+    const occurrences = bookingForm.is_recurring
+      ? buildWeeklyOccurrences(bookingForm.start_at, bookingForm.end_at, bookingForm.recurrence_until)
+      : [{ start_at: new Date(bookingForm.start_at).toISOString(), end_at: new Date(bookingForm.end_at).toISOString() }];
+    if (bookingForm.is_recurring && occurrences.length === 53) {
+      const nextOccurrence = new Date(occurrences[52].start_at);
+      nextOccurrence.setDate(nextOccurrence.getDate() + 7);
+      if (nextOccurrence <= new Date(`${bookingForm.recurrence_until}T23:59:59`)) {
+        setError("O agendamento fixo pode abranger no máximo 53 semanas (um ano).");
+        return;
+      }
+    }
     setSaving(true);
     let conflictQuery = supabase
       .from("vehicle_bookings")
-      .select("id")
+      .select("id,start_at,end_at")
       .eq("vehicle_id", bookingForm.vehicle_id)
       .neq("status", "cancelled")
-      .lt("start_at", new Date(bookingForm.end_at).toISOString())
-      .gt("end_at", new Date(bookingForm.start_at).toISOString());
+      .lt("start_at", occurrences[occurrences.length - 1].end_at)
+      .gt("end_at", occurrences[0].start_at);
     if (editingBooking) conflictQuery = conflictQuery.neq("id", editingBooking);
-    const { data: conflicts, error: conflictError } = await conflictQuery.limit(1);
-    if (conflictError || conflicts?.length) {
-      setError(conflictError?.message || "Este veículo já está reservado nesse período.");
+    const { data: possibleConflicts, error: conflictError } = await conflictQuery;
+    const conflictingOccurrence = occurrences.find((occurrence) => possibleConflicts?.some(
+      (existing) => existing.start_at < occurrence.end_at && existing.end_at > occurrence.start_at,
+    ));
+    if (conflictError || conflictingOccurrence) {
+      setError(conflictError?.message || `O veículo já está reservado em ${format(new Date(conflictingOccurrence.start_at), "dd/MM/yyyy 'das' HH:mm")} a ${format(new Date(conflictingOccurrence.end_at), "HH:mm")}. Nenhuma reserva da série foi salva.`);
       setSaving(false);
       return;
     }
+    const recurrenceGroupId = bookingForm.is_recurring ? crypto.randomUUID() : null;
+    const recurrenceUntil = bookingForm.recurrence_until;
+    const bookingFields = { ...bookingForm };
+    delete bookingFields.is_recurring;
+    delete bookingFields.recurrence_until;
     const payload = {
-      ...bookingForm,
+      ...bookingFields,
       passengers: Number(bookingForm.passengers),
-      start_at: new Date(bookingForm.start_at).toISOString(),
-      end_at: new Date(bookingForm.end_at).toISOString(),
+      start_at: occurrences[0].start_at,
+      end_at: occurrences[0].end_at,
+      recurrence_group_id: recurrenceGroupId,
+      recurrence_frequency: recurrenceGroupId ? "weekly" : null,
+      recurrence_until: recurrenceGroupId ? recurrenceUntil : null,
     };
     const result = editingBooking
       ? await supabase.from("vehicle_bookings").update(payload).eq("id", editingBooking)
-      : await supabase.from("vehicle_bookings").insert(payload);
+      : await supabase.from("vehicle_bookings").insert(occurrences.map((occurrence) => ({ ...payload, ...occurrence })));
     setSaving(false);
     if (result.error) return setError(result.error.message);
     setShowBookingForm(false);
-    setSuccess(editingBooking ? "Agendamento atualizado." : "Veículo agendado com sucesso.");
+    setSuccess(editingBooking
+      ? "Agendamento atualizado."
+      : bookingForm.is_recurring
+        ? `Agendamento fixo criado com ${occurrences.length} reservas semanais.`
+        : "Veículo agendado com sucesso.");
     await loadData();
   }
 
@@ -334,6 +396,7 @@ export default function Vehicles() {
               <div className="flex-1 border-l-4 border-accent pl-4">
                 <h3 className="font-bold text-primary dark:text-white">{item.vehicle?.name} <span className="text-xs font-normal text-outline">{item.vehicle?.plate}</span></h3>
                 <p className="text-on-surface dark:text-gray-200">{item.purpose}</p>
+                {item.recurrence_group_id && <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-200"><span className="material-symbols-outlined text-[16px]">event_repeat</span>Fixo semanal</span>}
                 <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-outline dark:text-gray-400">
                   <span>👤 {item.person?.name}{item.person?.is_active === false ? " · Usuário desativado" : ""}</span><span>🌱 {item.program?.name}</span>
                   {item.destination && <span>📍 {item.destination}</span>}<span>👥 {item.passengers}</span>
@@ -420,6 +483,13 @@ export default function Vehicles() {
               <Field label="Número de passageiros"><input required min="1" type="number" className={inputClass} value={bookingForm.passengers} onChange={(e) => setBookingForm({ ...bookingForm, passengers: e.target.value })} /></Field>
               <Field label="Saída"><input required type="datetime-local" min={toLocalInput(new Date())} className={inputClass} value={bookingForm.start_at} onChange={(e) => setBookingForm({ ...bookingForm, start_at: e.target.value })} /></Field>
               <Field label="Retorno"><input required type="datetime-local" min={bookingForm.start_at || toLocalInput(new Date())} className={inputClass} value={bookingForm.end_at} onChange={(e) => setBookingForm({ ...bookingForm, end_at: e.target.value })} /></Field>
+              {!editingBooking && (
+                <label className="sm:col-span-2 flex cursor-pointer items-start gap-3 rounded-xl border border-surface-variant bg-surface/50 p-4 dark:border-gray-700 dark:bg-gray-800/50">
+                  <input type="checkbox" className="mt-1 h-5 w-5 rounded border-gray-300 text-primary focus:ring-primary" checked={bookingForm.is_recurring} onChange={(e) => setBookingForm({ ...bookingForm, is_recurring: e.target.checked })} />
+                  <span><strong className="block text-primary dark:text-white">Fixar este agendamento semanalmente</strong><span className="text-sm text-outline">Reserva o mesmo veículo, dia da semana e horário até a data escolhida.</span></span>
+                </label>
+              )}
+              {!editingBooking && bookingForm.is_recurring && <Field label="Repetir semanalmente até"><input required type="date" min={bookingForm.start_at?.slice(0, 10)} className={inputClass} value={bookingForm.recurrence_until} onChange={(e) => setBookingForm({ ...bookingForm, recurrence_until: e.target.value })} /><span className="mt-1 block text-xs text-outline">Limite de um ano (até 53 reservas).</span></Field>}
               <Field label="Finalidade"><input required className={inputClass} value={bookingForm.purpose} onChange={(e) => setBookingForm({ ...bookingForm, purpose: e.target.value })} placeholder="Ex.: visita de campo" /></Field>
               <Field label="Destino"><input className={inputClass} value={bookingForm.destination} onChange={(e) => setBookingForm({ ...bookingForm, destination: e.target.value })} placeholder="Cidade ou local" /></Field>
             </div>

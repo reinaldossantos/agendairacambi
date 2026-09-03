@@ -30,6 +30,9 @@ create table if not exists public.vehicle_bookings (
   end_odometer integer check (end_odometer >= 0),
   completed_at timestamptz,
   completion_notes text,
+  recurrence_group_id uuid,
+  recurrence_frequency text check (recurrence_frequency is null or recurrence_frequency = 'weekly'),
+  recurrence_until date,
   notes text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -47,7 +50,10 @@ alter table public.vehicle_bookings
   add column if not exists completed_at timestamptz,
   add column if not exists completion_notes text,
   add column if not exists passenger_ids uuid[] not null default '{}',
-  add column if not exists activity_id uuid references public.activities(id) on delete set null;
+  add column if not exists activity_id uuid references public.activities(id) on delete set null,
+  add column if not exists recurrence_group_id uuid,
+  add column if not exists recurrence_frequency text,
+  add column if not exists recurrence_until date;
 
 alter table public.vehicle_bookings
   drop constraint if exists vehicle_bookings_odometer_check;
@@ -68,6 +74,9 @@ create index if not exists vehicle_bookings_person_idx
   on public.vehicle_bookings(person_id);
 create index if not exists vehicle_bookings_program_idx
   on public.vehicle_bookings(program_id);
+create index if not exists vehicle_bookings_recurrence_group_idx
+  on public.vehicle_bookings(recurrence_group_id)
+  where recurrence_group_id is not null;
 
 create or replace function public.set_updated_at()
 returns trigger language plpgsql as $$
