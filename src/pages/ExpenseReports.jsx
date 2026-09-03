@@ -83,6 +83,9 @@ export default function ExpenseReports() {
   const [configuredApproverIds, setConfiguredApproverIds] = useState([]);
   const [receiptPathsPendingDeletion, setReceiptPathsPendingDeletion] = useState([]);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [paymentTarget, setPaymentTarget] = useState(null);
+  const [paymentFile, setPaymentFile] = useState(null);
+  const [paymentError, setPaymentError] = useState("");
 
   useEffect(() => {
     if (location.state?.quickAction === "expense") {
@@ -108,11 +111,15 @@ export default function ExpenseReports() {
       grouped[approval.report_id] = [...(grouped[approval.report_id] || []), approval];
       return grouped;
     }, {});
-    const signedReports = await Promise.all((reportResult.data || []).map(async (report) => ({
-      ...report,
-      expense_items: await Promise.all((report.expense_items || []).map(async (item) => ({ ...item, attachments: await signFiles(item.attachments || []) }))),
-      approvals: approvalsByReport[report.id] || [],
-    })));
+    const signedReports = await Promise.all((reportResult.data || []).map(async (report) => {
+      const signedPaymentReceipt = report.payment_receipt ? (await signFiles([report.payment_receipt]))[0] : null;
+      return {
+        ...report,
+        payment_receipt: signedPaymentReceipt,
+        expense_items: await Promise.all((report.expense_items || []).map(async (item) => ({ ...item, attachments: await signFiles(item.attachments || []) }))),
+        approvals: approvalsByReport[report.id] || [],
+      };
+    }));
     setReports(signedReports);
     setPrograms(programResult.data || []);
     setMileageRates(ratesResult.data || []);
@@ -398,6 +405,57 @@ export default function ExpenseReports() {
     await loadData();
   }
 
+  function openPayment(report) {
+    setPaymentTarget(report);
+    setPaymentFile(null);
+    setPaymentError("");
+  }
+
+  function closePayment() {
+    if (paymentFile?.url) URL.revokeObjectURL(paymentFile.url);
+    setPaymentTarget(null);
+    setPaymentFile(null);
+    setPaymentError("");
+  }
+
+  function selectPaymentFile(event) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) return setPaymentError("O comprovante deve ter no máximo 5 MB.");
+    if (file.type !== "application/pdf" && !file.type.startsWith("image/")) return setPaymentError("Selecione um arquivo PDF ou uma imagem.");
+    if (paymentFile?.url) URL.revokeObjectURL(paymentFile.url);
+    setPaymentError("");
+    setPaymentFile({ file, name: file.name, size: file.size, type: file.type, url: URL.createObjectURL(file) });
+  }
+
+  async function recordPayment(event) {
+    event.preventDefault();
+    if (!paymentFile?.file) return setPaymentError("Anexe o comprovante de pagamento.");
+    setSaving(true);
+    setPaymentError("");
+    const safeName = paymentFile.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9._-]/g, "_");
+    const path = `expense-reports/${paymentTarget.id}/payment/${crypto.randomUUID()}-${safeName}`;
+    const upload = await supabase.storage.from("activity-files").upload(path, paymentFile.file, { upsert: false });
+    if (upload.error) {
+      setSaving(false);
+      return setPaymentError(`Não foi possível enviar o comprovante: ${upload.error.message}`);
+    }
+    const receipt = { path, name: paymentFile.name, size: paymentFile.size, type: paymentFile.type };
+    const result = await supabase.rpc("record_expense_report_payment", { target_report_id: paymentTarget.id, receipt });
+    if (result.error) {
+      await supabase.storage.from("activity-files").remove([path]);
+      setSaving(false);
+      return setPaymentError(result.error.message);
+    }
+    URL.revokeObjectURL(paymentFile.url);
+    setPaymentTarget(null);
+    setPaymentFile(null);
+    setSaving(false);
+    setMessage({ type: "success", text: "Pagamento registrado e comprovante anexado com sucesso." });
+    await loadData();
+  }
+
   function openReport(report, shouldPrint = false) {
     const printWindow = window.open("", "_blank", "width=900,height=700");
     if (!printWindow) return setMessage({ type: "error", text: "Permita pop-ups para visualizar o relatório." });
@@ -513,11 +571,12 @@ export default function ExpenseReports() {
           return <article key={report.id} className="rounded-xl border border-surface-variant bg-white p-4 dark:border-gray-700 dark:bg-dark-surface">
             <div className="flex flex-col gap-4 md:flex-row md:items-center">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-green-100 text-primary dark:bg-green-900/40 dark:text-green-300"><span className="material-symbols-outlined">receipt_long</span></div>
-            <div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><h3 className="font-bold text-primary dark:text-white">Relatório nº {String(report.report_number).padStart(5, "0")}</h3><span className={`rounded-full px-2 py-1 text-xs font-bold ${statusClass}`}>{displayStatus}</span></div><p className="truncate text-sm">{report.user_name || "Usuário não informado"}{report.person?.is_active === false && <span className="ml-2 rounded-full bg-gray-200 px-2 py-1 text-[10px] font-bold text-gray-700 dark:bg-gray-700 dark:text-gray-200">Usuário desativado</span>} · {report.program?.name || report.project_name || "Programa não informado"}</p><p className="text-xs text-outline">{report.period_start || "—"} a {report.period_end || "—"} · Despesas: {money(spent)}{report.payment_due_date ? ` · Pagamento previsto: ${report.payment_due_date}` : ""}</p>{receipts.length > 0 && <div className="mt-2 flex flex-wrap gap-2">{receipts.map((file, fileIndex) => <a key={`${file.path || file.url}-${fileIndex}`} href={file.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 hover:underline dark:bg-blue-900/30 dark:text-blue-300"><span className="material-symbols-outlined text-[15px]">attachment</span>{file.name}</a>)}</div>}</div>
+            <div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><h3 className="font-bold text-primary dark:text-white">Relatório nº {String(report.report_number).padStart(5, "0")}</h3><span className={`rounded-full px-2 py-1 text-xs font-bold ${statusClass}`}>{displayStatus}</span></div><p className="truncate text-sm">{report.user_name || "Usuário não informado"}{report.person?.is_active === false && <span className="ml-2 rounded-full bg-gray-200 px-2 py-1 text-[10px] font-bold text-gray-700 dark:bg-gray-700 dark:text-gray-200">Usuário desativado</span>} · {report.program?.name || report.project_name || "Programa não informado"}</p><p className="text-xs text-outline">{report.period_start || "—"} a {report.period_end || "—"} · Despesas: {money(spent)}{report.payment_due_date ? ` · Pagamento previsto: ${report.payment_due_date}` : ""}{report.paid_at ? ` · Pago em: ${new Date(report.paid_at).toLocaleDateString("pt-BR")}` : ""}</p>{receipts.length > 0 && <div className="mt-2 flex flex-wrap gap-2">{receipts.map((file, fileIndex) => <a key={`${file.path || file.url}-${fileIndex}`} href={file.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 hover:underline dark:bg-blue-900/30 dark:text-blue-300"><span className="material-symbols-outlined text-[15px]">attachment</span>{file.name}</a>)}</div>}{report.payment_receipt?.url && <a href={report.payment_receipt.url} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 rounded-full bg-emerald-100 px-3 py-1.5 text-xs font-bold text-emerald-800 hover:underline"><span className="material-symbols-outlined text-[16px]">verified</span>Comprovante de pagamento · {report.payment_receipt.name}</a>}</div>
             <div className="flex flex-wrap gap-2">
               {(report.status === "draft" || (report.status === "changes_requested" && report.person_id === currentUser?.id)) && <button onClick={() => editReport(report)} className="rounded-full bg-primary px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-primary-light hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">{report.status === "changes_requested" ? "Corrigir e reenviar" : "Continuar"}</button>}
               {isApprover && report.status === "approved" && <button disabled={saving} onClick={() => transitionReport(report, "provisioned")} className="rounded-full bg-blue-600 px-4 py-2 text-sm font-bold text-white">Encaminhar para provisionamento</button>}
               {isApprover && report.status === "provisioned" && <div className="flex flex-wrap gap-2"><input type="date" aria-label="Data prevista para pagamento" value={paymentDates[report.id] || ""} onChange={(event) => setPaymentDates({ ...paymentDates, [report.id]: event.target.value })} className="rounded-xl border border-surface-variant px-3 py-2 text-sm dark:bg-gray-800" /><button disabled={saving} onClick={() => transitionReport(report, "payment_scheduled")} className="rounded-full bg-accent px-4 py-2 text-sm font-bold text-primary">Informar pagamento</button></div>}
+              {isApprover && report.status === "payment_scheduled" && <button disabled={saving} onClick={() => openPayment(report)} className="rounded-full bg-emerald-600 px-4 py-2 text-sm font-bold text-white"><span className="material-symbols-outlined align-middle text-[18px]">payments</span> Registrar pagamento</button>}
               <button onClick={() => openReport(report)} className="rounded-full bg-blue-100 px-3 py-2 text-sm font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"><span className="material-symbols-outlined align-middle text-[18px]">visibility</span> Visualizar</button>
               <button onClick={() => openReport(report, true)} className="rounded-full bg-surface px-3 py-2 text-sm font-medium dark:bg-gray-700"><span className="material-symbols-outlined align-middle text-[18px]">print</span> Imprimir</button><button disabled={!!generatingPdfId} onClick={() => downloadPdf(report)} className="rounded-full bg-red-100 px-3 py-2 text-sm font-medium text-red-700 disabled:cursor-wait disabled:opacity-60"><span className={`material-symbols-outlined align-middle text-[18px] ${generatingPdfId === report.id ? "animate-spin" : ""}`}>{generatingPdfId === report.id ? "progress_activity" : "picture_as_pdf"}</span> {generatingPdfId === report.id ? "Gerando…" : "PDF"}</button>
               <button disabled={saving} onClick={() => requestDeleteReport(report)} className="rounded-full bg-red-600 px-3 py-2 text-sm font-bold text-white hover:bg-red-700 disabled:opacity-50"><span className="material-symbols-outlined align-middle text-[18px]">delete</span> Excluir</button>
@@ -533,6 +592,7 @@ export default function ExpenseReports() {
             />}
           </article>;
         })}</div>}
+      {paymentTarget && <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-stone-950/50 p-4"><form onSubmit={recordPayment} className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl dark:bg-dark-surface"><div className="flex items-start justify-between gap-4"><div><p className="text-xs font-black uppercase tracking-wider text-emerald-700">Conclusão financeira</p><h3 className="text-xl font-bold text-primary dark:text-white">Registrar pagamento</h3><p className="mt-1 text-sm text-outline">Relatório nº {String(paymentTarget.report_number).padStart(5, "0")} · {paymentTarget.user_name}</p></div><button type="button" onClick={closePayment} className="p-2"><span className="material-symbols-outlined">close</span></button></div><div className="mt-5"><label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-emerald-500 bg-emerald-50 p-6 text-center text-emerald-800"><span className="material-symbols-outlined text-3xl">upload_file</span><strong>{paymentFile ? "Trocar comprovante" : "Anexar comprovante de pagamento"}</strong><span className="text-xs">PDF ou imagem · até 5 MB</span><input required={!paymentFile} type="file" accept="image/*,.pdf" onChange={selectPaymentFile} className="hidden" /></label>{paymentFile && <a href={paymentFile.url} target="_blank" rel="noreferrer" className="mt-3 flex items-center gap-2 rounded-xl bg-surface p-3 text-sm font-bold text-primary hover:underline"><span className="material-symbols-outlined">attachment</span><span className="truncate">{paymentFile.name}</span></a>}{paymentError && <p className="mt-2 text-sm font-bold text-red-600">{paymentError}</p>}</div><p className="mt-4 rounded-xl bg-blue-50 p-3 text-sm text-blue-800">Ao confirmar, o relatório será marcado como pago e ficará registrado quem realizou o pagamento, com data e horário.</p><div className="mt-5 flex justify-end gap-3"><button type="button" disabled={saving} onClick={closePayment} className="rounded-full px-5 py-2.5 font-bold">Cancelar</button><button disabled={saving || !paymentFile} className="rounded-full bg-emerald-600 px-6 py-2.5 font-black text-white disabled:opacity-50">{saving ? "Registrando…" : "Confirmar pagamento"}</button></div></form></div>}
       <ConfirmDialog isOpen={!!deleteTarget} title="Excluir relatório de despesas?" message={deleteTarget?.status === "draft" ? `O rascunho nº ${String(deleteTarget?.report_number || "").padStart(5, "0")} será excluído definitivamente.` : `Este relatório já foi finalizado. Como administrador, você pode excluí-lo definitivamente.`} confirmText={saving ? "Excluindo…" : "Excluir relatório"} onConfirm={deleteReport} onCancel={() => !saving && setDeleteTarget(null)} />
     </div>
   );

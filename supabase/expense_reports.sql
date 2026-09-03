@@ -37,6 +37,8 @@ create table if not exists public.expense_reports (
   provisioned_at timestamptz,
   payment_due_date date,
   paid_at timestamptz,
+  paid_by uuid references public.persons(id) on delete set null,
+  payment_receipt jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   check (period_end >= period_start)
@@ -49,7 +51,9 @@ alter table public.expense_reports
   add column if not exists provisioned_by uuid references public.persons(id) on delete set null,
   add column if not exists provisioned_at timestamptz,
   add column if not exists payment_due_date date,
-  add column if not exists paid_at timestamptz;
+  add column if not exists paid_at timestamptz,
+  add column if not exists paid_by uuid references public.persons(id) on delete set null,
+  add column if not exists payment_receipt jsonb;
 
 -- Somente banco e forma de crédito são obrigatórios no formulário.
 alter table public.expense_reports

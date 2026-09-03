@@ -14,11 +14,12 @@ serve(async (request) => {
   if (!profile?.is_active || profile.locked_at) return new Response(JSON.stringify({ error: "Usuário não autorizado." }), { status: 403, headers: { ...cors, "Content-Type": "application/json" } });
 
   const { reportId } = await request.json();
-  const { data: report, error: reportError } = await admin.from("expense_reports").select("id,status,expense_items").eq("id", reportId).maybeSingle();
+  const { data: report, error: reportError } = await admin.from("expense_reports").select("id,status,expense_items,payment_receipt").eq("id", reportId).maybeSingle();
   if (reportError || !report) return new Response(JSON.stringify({ error: "Relatório não encontrado." }), { status: 404, headers: { ...cors, "Content-Type": "application/json" } });
   if (report.status !== "draft" && profile.access_role !== "admin") return new Response(JSON.stringify({ error: "Este relatório já foi finalizado. Entre em contato com o administrador do sistema para solicitar a exclusão." }), { status: 403, headers: { ...cors, "Content-Type": "application/json" } });
 
   const paths = (report.expense_items || []).flatMap((item: { attachments?: Array<{ path?: string }> }) => item.attachments || []).map((file: { path?: string }) => file.path).filter(Boolean) as string[];
+  if (report.payment_receipt?.path) paths.push(report.payment_receipt.path);
   const { error: deleteError } = await admin.from("expense_reports").delete().eq("id", report.id);
   if (deleteError) return new Response(JSON.stringify({ error: deleteError.message }), { status: 400, headers: { ...cors, "Content-Type": "application/json" } });
   if (paths.length) await admin.storage.from("activity-files").remove(paths);
