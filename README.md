@@ -119,6 +119,7 @@ Por padrão, a tradução automática fica **desabilitada**. Um administrador po
 
 ### Agenda e atividades
 
+- O Dashboard abre por padrão com as atividades de todos os usuários ativos; o filtro “Mostrar apenas minhas” vale somente para a visualização atual e não é reaproveitado ao trocar de conta.
 - Dashboard semanal e mensal, cards ou lista.
 - Calendário com visualizações Mês e Agenda no computador e lista cronológica no celular.
 - Cartões e legenda interativa com as cores dos programas, também utilizada como filtro rápido.

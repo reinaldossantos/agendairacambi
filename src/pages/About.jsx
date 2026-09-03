@@ -44,6 +44,7 @@ const sections = [
     icon: "dashboard",
     title: "Dashboard e navegação",
     items: [
+      "O painel principal abre mostrando as atividades de todos os usuários. Use Mostrar apenas minhas quando quiser restringir temporariamente a visualização; esse filtro não permanece ativo ao trocar de conta.",
       "O Dashboard reúne as atividades do período. Alterne entre Semana e Mês, navegue pelas setas e use Hoje para retornar ao período atual.",
       "Selecione Todos os programas ou pesquise um programa específico. A busca por título ou descrição funciona em conjunto com o programa e o período escolhidos.",
       "Alterne entre Cards e Lista. A visualização se adapta automaticamente a computador, tablet e celular.",

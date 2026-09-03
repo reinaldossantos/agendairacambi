@@ -42,10 +42,7 @@ export default function Dashboard() {
   const [currentMonday, setCurrentMonday] = useState(getCurrentMonday());
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [periodMode, setPeriodMode] = useState(() => localStorage.getItem("iracambi_dashboard_periodMode") || "week");
-  const [onlyMine, setOnlyMine] = useState(() => {
-    const saved = localStorage.getItem("iracambi_dashboard_onlyMine");
-    return saved === "true";
-  });
+  const [onlyMine, setOnlyMine] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState(() => {
     return localStorage.getItem("iracambi_dashboard_viewMode") || "cards";
@@ -58,8 +55,8 @@ export default function Dashboard() {
   const { t } = useLanguage();
 
   useEffect(() => {
-    localStorage.setItem("iracambi_dashboard_onlyMine", onlyMine);
-  }, [onlyMine]);
+    localStorage.removeItem("iracambi_dashboard_onlyMine");
+  }, []);
   useEffect(() => {
     if (selectedProgram) localStorage.setItem("iracambi_dashboard_program", selectedProgram);
   }, [selectedProgram]);
@@ -194,8 +191,9 @@ export default function Dashboard() {
             <span className="material-symbols-outlined text-[18px]">{viewMode === "cards" ? "view_list" : "grid_view"}</span>
             {viewMode === "cards" ? "Lista" : "Cards"}
           </button>
-          <button onClick={() => setOnlyMine(!onlyMine)} className={`px-4 py-2 rounded-full font-roboto text-label-sm min-h-[44px] flex items-center gap-2 transition-all ${onlyMine ? "bg-primary text-white" : "bg-surface dark:bg-white/5 text-on-surface dark:text-gray-300 border border-surface-variant"}`}>
-            {onlyMine ? "Apenas minhas atividades" : "Todas as atividades"}
+          <button onClick={() => setOnlyMine(!onlyMine)} aria-pressed={onlyMine} className={`px-4 py-2 rounded-full font-roboto text-label-sm min-h-[44px] flex items-center gap-2 transition-all ${onlyMine ? "bg-primary text-white" : "bg-surface dark:bg-white/5 text-on-surface dark:text-gray-300 border border-surface-variant"}`}>
+            <span className="material-symbols-outlined text-[18px]">{onlyMine ? "groups" : "person"}</span>
+            {onlyMine ? "Mostrar todas as atividades" : "Mostrar apenas minhas"}
           </button>
         </div>
       </div>
