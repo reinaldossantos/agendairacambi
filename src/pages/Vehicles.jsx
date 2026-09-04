@@ -5,7 +5,7 @@ import { ptBR } from "date-fns/locale";
 import { supabase } from "../lib/supabaseClient";
 import { useCurrentUser } from "../context/CurrentUserContext";
 import ConfirmDialog from "../components/ui/ConfirmDialog";
-import { useLocation } from "react-router-dom";
+import { useLocation, useSearchParams } from "react-router-dom";
 
 const emptyVehicle = { name: "", plate: "", capacity: 5, status: "available", notes: "" };
 const emptyBooking = {
@@ -48,6 +48,7 @@ function statusLabel(status) {
 
 export default function Vehicles() {
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { currentUser, persons } = useCurrentUser();
   const [tab, setTab] = useState("schedule");
   const [vehicles, setVehicles] = useState([]);
@@ -66,13 +67,17 @@ export default function Vehicles() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [displayMonth, setDisplayMonth] = useState(() => {
+    const requestedMonth = searchParams.get("month");
+    return requestedMonth && /^\d{4}-\d{2}$/.test(requestedMonth) ? new Date(`${requestedMonth}-01T12:00:00`) : new Date();
+  });
   const canManageFleet = currentUser?.access_role === "admin" || currentUser?.name?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() === "thais";
 
   const loadData = useCallback(async () => {
     setLoading(true);
     setError("");
-    const currentMonthStart = startOfMonth(new Date()).toISOString();
-    const nextMonthStart = addMonths(startOfMonth(new Date()), 1).toISOString();
+    const currentMonthStart = startOfMonth(displayMonth).toISOString();
+    const nextMonthStart = addMonths(startOfMonth(displayMonth), 1).toISOString();
     const [vehicleResult, programResult, bookingResult] = await Promise.all([
       supabase.from("vehicles").select("*").order("name"),
       supabase.from("programs").select("id, name, leader_id").order("name"),
@@ -89,7 +94,7 @@ export default function Vehicles() {
     setPrograms(programResult.data || []);
     setBookings(bookingResult.data || []);
     setLoading(false);
-  }, []);
+  }, [displayMonth]);
 
   useEffect(() => {
     const timer = window.setTimeout(loadData, 0);
@@ -112,6 +117,27 @@ export default function Vehicles() {
       window.history.replaceState({}, document.title);
     }
   }, [location.state]);
+
+  useEffect(() => {
+    const completionId = searchParams.get("complete");
+    const booking = bookings.find((item) => item.id === completionId);
+    if (!loading && booking) openCompletion(booking);
+  }, [bookings, loading, searchParams]);
+
+  function changeDisplayMonth(nextMonth) {
+    setDisplayMonth(nextMonth);
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.set("month", format(nextMonth, "yyyy-MM"));
+    nextParams.delete("complete");
+    setSearchParams(nextParams, { replace: true });
+  }
+
+  function closeCompletion() {
+    setCompletionTarget(null);
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete("complete");
+    setSearchParams(nextParams, { replace: true });
+  }
 
   useEffect(() => {
     if (!showBookingForm || editingBooking) return;
@@ -352,7 +378,7 @@ export default function Vehicles() {
       setError(updateError.message);
       return;
     }
-    setCompletionTarget(null);
+    closeCompletion();
     setCompletionForm(emptyCompletion);
     setSuccess(`Agendamento finalizado. Distância percorrida: ${endOdometer - startOdometer} km.`);
     await loadData();
@@ -364,7 +390,7 @@ export default function Vehicles() {
         <div>
           <p className="text-sm text-primary-light dark:text-green-300 font-medium">Mobilidade Iracambi</p>
           <h2 className="font-roboto text-headline-lg text-primary dark:text-white">Veículos</h2>
-          <p className="text-sm text-on-surface-variant dark:text-gray-400">Agendamentos de {format(new Date(), "MMMM 'de' yyyy", { locale: ptBR })}. Gerencie a frota e evite conflitos.</p>
+          <p className="text-sm text-on-surface-variant dark:text-gray-400">Agendamentos de {format(displayMonth, "MMMM 'de' yyyy", { locale: ptBR })}. Gerencie a frota e evite conflitos.</p>
         </div>
         <button onClick={openNewBooking} className="bg-accent text-primary font-bold px-5 py-3 rounded-full flex items-center justify-center gap-2 hover:bg-yellow-400 active:scale-95">
           <span className="material-symbols-outlined">add</span>Novo agendamento
@@ -385,6 +411,13 @@ export default function Vehicles() {
           </button>
         ))}
       </div>
+
+      {tab === "schedule" && <div className="mb-5 flex flex-wrap items-center gap-2 rounded-2xl border border-surface-variant bg-white p-3 dark:border-white/10 dark:bg-dark-surface">
+        <button type="button" onClick={() => changeDisplayMonth(addMonths(displayMonth, -1))} className="flex h-11 w-11 items-center justify-center rounded-full hover:bg-surface dark:hover:bg-white/10" aria-label="Mês anterior"><span className="material-symbols-outlined">chevron_left</span></button>
+        <label className="min-w-48 flex-1 sm:flex-none"><span className="sr-only">Mês dos agendamentos</span><input type="month" value={format(displayMonth, "yyyy-MM")} onChange={(event) => event.target.value && changeDisplayMonth(new Date(`${event.target.value}-01T12:00:00`))} className={inputClass} /></label>
+        <button type="button" onClick={() => changeDisplayMonth(addMonths(displayMonth, 1))} className="flex h-11 w-11 items-center justify-center rounded-full hover:bg-surface dark:hover:bg-white/10" aria-label="Próximo mês"><span className="material-symbols-outlined">chevron_right</span></button>
+        <button type="button" onClick={() => changeDisplayMonth(new Date())} disabled={format(displayMonth, "yyyy-MM") === format(new Date(), "yyyy-MM")} className="min-h-11 rounded-full border border-primary px-4 text-sm font-bold text-primary disabled:cursor-default disabled:opacity-40 dark:text-white">Mês atual</button>
+      </div>}
 
       {loading ? (
         <div className="py-16 text-center text-outline">Carregando veículos...</div>
@@ -519,7 +552,7 @@ export default function Vehicles() {
       )}
 
       {completionTarget && (
-        <Modal title="Finalizar agendamento" onClose={() => setCompletionTarget(null)}>
+        <Modal title="Finalizar agendamento" onClose={closeCompletion}>
           <form onSubmit={completeBooking} className="space-y-4">
             <div className="rounded-xl bg-surface dark:bg-gray-800 p-4">
               <p className="font-bold text-primary dark:text-white">{completionTarget.vehicle?.name} · {completionTarget.vehicle?.plate}</p>
@@ -547,7 +580,7 @@ export default function Vehicles() {
                 placeholder="Registre ocorrências, avarias ou outras informações relevantes (opcional)"
               />
             </Field>
-            <Actions saving={saving} onCancel={() => setCompletionTarget(null)} submitLabel="Finalizar" />
+            <Actions saving={saving} onCancel={closeCompletion} submitLabel="Finalizar" />
           </form>
         </Modal>
       )}

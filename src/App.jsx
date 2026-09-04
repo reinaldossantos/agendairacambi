@@ -29,6 +29,7 @@ import Events from "./pages/Events";
 import Projects from "./pages/Projects";
 import ProjectEditor from "./pages/ProjectEditor";
 import ProjectDetail from "./pages/ProjectDetail";
+import PendingIssues from "./pages/PendingIssues";
 import { useCurrentUser } from "./context/CurrentUserContext";
 
 function ReinaldoOnly({ children }) {
@@ -79,6 +80,7 @@ function App() {
         <Route path="/files" element={<ProgramFiles />} />
         <Route path="/advanced-settings" element={<AdminOnly><AdvancedSettings /></AdminOnly>} />
         <Route path="/vehicles" element={<Vehicles />} />
+        <Route path="/pending-issues" element={<PendingIssues />} />
         <Route path="/expense-reports" element={<ExpenseReports />} />
         <Route path="/purchase-requests" element={<PurchaseRequests />} />
         <Route path="/budgets" element={<ProgramBudgets />} />

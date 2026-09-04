@@ -8,6 +8,7 @@ import { useOnlineStatus } from "../../hooks/useOnlineStatus";
 import { useAnnouncementsAlert } from "../../hooks/useAnnouncementsAlert";
 import { useFilesAlert } from "../../hooks/useFilesAlert";
 import { useLanguage } from "../../i18n/context";
+import { usePendingIssues } from "../../context/PendingIssuesContext";
 
 const groups = [
   { id: "agenda", label: "Agenda", icon: "calendar_month", tone: "agenda", colorOffset: 0, items: [
@@ -17,6 +18,7 @@ const groups = [
     { to: "/vehicles", label: "Veículos", icon: "directions_car" },
   ] },
   { id: "operations", label: "Operações", icon: "monitoring", tone: "operations", colorOffset: 4, items: [
+    { to: "/pending-issues", label: "Central de pendências", icon: "notification_important", alert: "pending" },
     { to: "/new", label: "Nova atividade", icon: "add_circle" },
     { to: "/history", label: "Histórico e relatórios", icon: "history" },
     { to: "/expense-reports", label: "Relatórios de despesas", icon: "receipt_long" },
@@ -68,6 +70,8 @@ export default function ResponsiveHeader() {
   const location = useLocation();
   const isOnline = useOnlineStatus();
   const alerts = { announcements: useAnnouncementsAlert(), files: useFilesAlert() };
+  const { count: pendingCount } = usePendingIssues();
+  alerts.pending = pendingCount;
   const [activeGroup, setActiveGroup] = useState(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileNotifications, setMobileNotifications] = useState(false);
@@ -113,11 +117,13 @@ export default function ResponsiveHeader() {
           <Link to="/new" className="flex items-center gap-2 rounded-full bg-[#ffd12f] px-4 py-2.5 font-bold text-primary shadow-sm transition duration-200 hover:scale-105 hover:bg-[#ffda45] hover:shadow-md"><span className="material-symbols-outlined icon-plain">add</span><span className="hidden lg:inline">Novo</span></Link>
           <LanguageSelect locale={locale} changeLocale={changeLocale} />
           <UserIdentity currentUser={currentUser} signOut={signOut} />
+          <PendingIssuesButton count={pendingCount} />
           <NotificationButton count={unreadCount} onClick={toggleOpen} />
           <AnimatePresence>{open && <NotificationPanel notifications={notifications} error={notificationError} onClose={toggleOpen} onRead={markAsRead} panelRef={dropdownRef} />}</AnimatePresence>
         </div>
         <div className="flex items-center gap-1 md:hidden">
           <Link to="/new" className="flex h-10 w-10 items-center justify-center rounded-full bg-[#ffd12f] text-primary shadow-sm transition duration-200 hover:scale-105 hover:bg-[#ffda45] hover:shadow-md" aria-label="Nova atividade"><span className="material-symbols-outlined icon-plain">add</span></Link>
+          <PendingIssuesButton count={pendingCount} compact />
           <NotificationButton count={unreadCount} onClick={() => { toggleOpen(); setMobileNotifications(true); }} />
           <button type="button" onClick={() => setMobileOpen((value) => !value)} className="flex h-11 w-11 items-center justify-center rounded-full text-primary dark:text-white" aria-expanded={mobileOpen} aria-label="Menu"><span className="material-symbols-outlined">{mobileOpen ? "close" : "menu"}</span></button>
         </div>
@@ -163,8 +169,13 @@ export default function ResponsiveHeader() {
 function MenuLink({ item, colorIndex, alerts, onClick }) {
   const itemTone = item.iconClass || menuItemTones[colorIndex % menuItemTones.length];
   return <NavLink to={item.to} end={item.end} onClick={onClick} className={({ isActive }) => `flex min-h-12 items-center gap-3 rounded-xl px-4 py-3 transition ${isActive ? "bg-green-100 font-bold text-primary dark:bg-white/15 dark:text-white" : "text-on-surface hover:bg-surface dark:text-gray-200 dark:hover:bg-white/10"}`}>
-    <span className={`material-symbols-outlined rounded-lg p-1.5 ${alerts[item.alert] ? "bg-red-500/10 text-red-500" : itemTone}`}>{item.icon}</span><span>{item.label}</span>{alerts[item.alert] && <span className="ml-auto rounded-full bg-red-100 px-2 py-0.5 text-xs font-bold text-red-700">Novo</span>}
+    <span className={`material-symbols-outlined rounded-lg p-1.5 ${alerts[item.alert] ? "bg-red-500/10 text-red-500" : itemTone}`}>{item.icon}</span><span>{item.label}</span>{alerts[item.alert] && <span className="ml-auto rounded-full bg-red-100 px-2 py-0.5 text-xs font-bold text-red-700">{item.alert === "pending" ? alerts[item.alert] : "Novo"}</span>}
   </NavLink>;
+}
+
+function PendingIssuesButton({ count, compact = false }) {
+  if (!count) return null;
+  return <Link to="/pending-issues" title="Abrir central de pendências" aria-label={`${count} pendência(s) para resolver`} className={`relative flex items-center justify-center rounded-full bg-red-50 font-bold text-red-700 ring-1 ring-red-200 transition hover:bg-red-100 dark:bg-red-950/30 dark:text-red-300 dark:ring-red-900 ${compact ? "h-10 w-10" : "min-h-11 gap-2 px-3"}`}><span className="material-symbols-outlined text-[21px]">notification_important</span>{!compact && <span className="hidden xl:inline">Pendências</span>}<span className={`${compact ? "absolute -right-1 -top-1" : ""} flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] text-white`}>{count > 99 ? "99+" : count}</span></Link>;
 }
 
 function LanguageSelect({ locale, changeLocale }) {

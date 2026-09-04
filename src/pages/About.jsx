@@ -217,12 +217,14 @@ const sections = [
     icon: "directions_car",
     title: "Veículos",
     items: [
+      "A agenda abre no mês corrente. Use as setas, o seletor de mês ou o botão Mês atual para consultar reservas anteriores e futuras.",
       "Consulte a disponibilidade e os agendamentos e reserve um veículo informando solicitante, programa, data e hora, finalidade e destino.",
       "No lançamento rápido de atividades, marque Utilizar veículo para abrir o agendamento completo em um modal, ajustar saída e retorno, selecionar nominalmente os passageiros da equipe e criar a reserva automaticamente no mesmo processo.",
       "No mesmo modal, registre opcionalmente o KM de partida, o KM de chegada e ocorrências ou intercorrências relacionadas ao uso do veículo.",
       "Quando houver somente um veículo disponível, ele será selecionado automaticamente. O programa é preenchido conforme o usuário autenticado ou o solicitante selecionado.",
       "As datas e horários de saída e retorno não podem ser anteriores ao momento atual; o retorno também deve permanecer posterior à saída.",
       "Edite ou cancele uma reserva quando necessário. Ao finalizar o uso, informe os dados solicitados e registre ocorrências, avarias ou observações.",
+      "Depois do horário previsto de retorno, uma reserva ainda não finalizada aparece na Central de pendências do solicitante até que o KM inicial e final sejam informados.",
       "Thaís e o administrador podem cadastrar e editar veículos, placa, capacidade e situação: disponível, em manutenção ou inativo. Os demais usuários consultam a frota e fazem agendamentos; exclusões permanecem restritas ao administrador.",
       "Cadastros e alterações da frota ficam registrados na auditoria do sistema.",
     ],
@@ -232,6 +234,8 @@ const sections = [
     icon: "notifications",
     title: "Notificações e mural de avisos",
     items: [
+      "A Central de pendências apresenta viagens sem quilometragem, atividades vencidas e atividades não finalizadas sem mudança de status há mais de sete dias. O contador aparece no cabeçalho e um aviso é mostrado no Dashboard ao entrar.",
+      "Cada pendência possui um atalho para o registro correspondente e desaparece automaticamente somente depois que o usuário regulariza o item.",
       "O sino reúne notificações em tempo real sobre atividades, menções, comentários, arquivos, despesas e eventos de segurança destinados ao seu perfil.",
       "O sino pulsa quando existem novidades e respeita a preferência de redução de movimento do dispositivo. Ao abrir uma notificação, ela é marcada como lida, deixa a lista e a leitura fica registrada permanentemente com usuário, origem, item e horário.",
       "No Mural, publique avisos para todos ou para um programa, navegue pelas semanas e edite ou exclua seus próprios avisos quando permitido.",

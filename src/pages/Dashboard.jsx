@@ -13,6 +13,7 @@ import { useLanguage } from "../i18n/context";
 import ProgramSwitcher from "../components/ui/ProgramSwitcher";
 import ProgressOverview from "../components/dashboard/ProgressOverview";
 import PeriodNavigator from "../components/dashboard/PeriodNavigator";
+import PendingIssuesBanner from "../components/dashboard/PendingIssuesBanner";
 
 function getCurrentMonday() {
   const today = new Date();
@@ -153,6 +154,7 @@ export default function Dashboard() {
           {t("common.welcome")}, <span className="font-semibold text-primary dark:text-white">{currentUser.name}</span>.
         </p>
       )}
+      <PendingIssuesBanner />
 
       <ProgressOverview
         activities={activitiesInPeriod}

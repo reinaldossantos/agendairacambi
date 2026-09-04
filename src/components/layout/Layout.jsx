@@ -4,11 +4,13 @@ import Header from "./ResponsiveHeader";
 import Footer from "./Footer";
 import BottomNav from "./BottomNav";
 import FAB from "./FAB";
+import { PendingIssuesProvider } from "../../context/PendingIssuesContext";
 
 export default function Layout() {
   const location = useLocation();
 
   return (
+    <PendingIssuesProvider>
     <div className="flex flex-col min-h-screen bg-background dark:bg-dark-background/30 backdrop-blur-sm">
       <Header />
       {/* 
@@ -33,5 +35,6 @@ export default function Layout() {
       <Footer />
       <BottomNav />
     </div>
+    </PendingIssuesProvider>
   );
 }

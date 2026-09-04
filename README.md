@@ -133,6 +133,7 @@ Por padrão, a tradução automática fica **desabilitada**. Um administrador po
 - Conversas encadeadas, menções com nomes completos, edição e remoção lógica de comentários mediante diálogo de confirmação.
 - Validações, erros e confirmações integrados à interface, sem caixas nativas do navegador nos detalhes da atividade.
 - Linha do tempo pesquisável e filtrável, agrupada por data.
+- Central de pendências pessoal para atividades vencidas ou não finalizadas sem mudança de status há mais de sete dias, com aviso no acesso e atalho para regularização.
 - Fotos e documentos como evidências.
 - Compartilhamento pelo WhatsApp e exportação em PDF/CSV.
 - Identificação visual de atividades atrasadas e eventos.
@@ -207,15 +208,18 @@ Por padrão, a tradução automática fica **desabilitada**. Um administrador po
 ### Veículos
 
 - Cadastro e situação da frota.
+- A agenda abre no mês corrente e permite consultar meses anteriores ou futuros pelas setas e pelo seletor mensal.
 - Reserva por pessoa, programa, período, finalidade e destino.
 - Quando existe somente um veículo disponível, ele é selecionado automaticamente; o programa também é preenchido conforme o responsável autenticado.
 - Saída e retorno não aceitam datas ou horários anteriores ao momento atual, com validação duplicada na interface e no Supabase.
 - Controle de disponibilidade e conflitos.
 - Finalização com quilometragem, ocorrências e avarias.
+- Reservas cujo retorno já ocorreu permanecem na Central de pendências do solicitante até o preenchimento do KM inicial e final.
 
 ### Comunicação e conteúdo
 
 - Notificações em tempo real.
+- Contador persistente de pendências no cabeçalho e mensagem no Dashboard a cada acesso, removidos automaticamente somente quando os itens forem resolvidos.
 - Mural de avisos por período e programa.
 - Repositório de arquivos compartilhados.
 - Alertas visuais para novidades.
