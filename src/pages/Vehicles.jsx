@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { format } from "date-fns";
+import { addMonths, format, startOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "../lib/supabaseClient";
 import { useCurrentUser } from "../context/CurrentUserContext";
@@ -71,12 +71,16 @@ export default function Vehicles() {
   const loadData = useCallback(async () => {
     setLoading(true);
     setError("");
+    const currentMonthStart = startOfMonth(new Date()).toISOString();
+    const nextMonthStart = addMonths(startOfMonth(new Date()), 1).toISOString();
     const [vehicleResult, programResult, bookingResult] = await Promise.all([
       supabase.from("vehicles").select("*").order("name"),
       supabase.from("programs").select("id, name, leader_id").order("name"),
       supabase
         .from("vehicle_bookings")
         .select("*, vehicle:vehicle_id(id,name,plate,capacity), person:person_id(id,name,is_active), program:program_id(id,name)")
+        .gte("start_at", currentMonthStart)
+        .lt("start_at", nextMonthStart)
         .order("start_at"),
     ]);
     const firstError = vehicleResult.error || programResult.error || bookingResult.error;
@@ -360,7 +364,7 @@ export default function Vehicles() {
         <div>
           <p className="text-sm text-primary-light dark:text-green-300 font-medium">Mobilidade Iracambi</p>
           <h2 className="font-roboto text-headline-lg text-primary dark:text-white">Veículos</h2>
-          <p className="text-sm text-on-surface-variant dark:text-gray-400">Gerencie a frota e evite conflitos de agenda.</p>
+          <p className="text-sm text-on-surface-variant dark:text-gray-400">Agendamentos de {format(new Date(), "MMMM 'de' yyyy", { locale: ptBR })}. Gerencie a frota e evite conflitos.</p>
         </div>
         <button onClick={openNewBooking} className="bg-accent text-primary font-bold px-5 py-3 rounded-full flex items-center justify-center gap-2 hover:bg-yellow-400 active:scale-95">
           <span className="material-symbols-outlined">add</span>Novo agendamento
