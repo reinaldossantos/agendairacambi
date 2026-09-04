@@ -8,7 +8,7 @@ function dateLabel(value, includeTime = false) {
 }
 
 export default function PendingIssues() {
-  const { vehicleIssues, activityIssues, count, loading, error, refresh } = usePendingIssues();
+  const { vehicleIssues, activityIssues, bonusIssues, count, loading, error, refresh } = usePendingIssues();
   return <section className="mx-auto max-w-5xl space-y-5 px-2 sm:px-4">
     <header className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end"><div><p className="text-sm font-medium text-primary-light dark:text-green-300">Acompanhamento pessoal</p><h1 className="text-3xl font-black text-primary dark:text-white">Central de pendências</h1><p className="text-sm text-outline">Avisos do seu usuário que desaparecem automaticamente depois da regularização.</p></div><button type="button" onClick={refresh} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-primary px-4 font-bold text-primary dark:text-white"><span className="material-symbols-outlined">refresh</span>Atualizar</button></header>
     {error && <p role="alert" className="rounded-xl bg-red-50 p-3 text-red-700 dark:bg-red-950/30 dark:text-red-300">{error}</p>}
@@ -18,6 +18,9 @@ export default function PendingIssues() {
       </IssueSection>
       <IssueSection title="Atividades" icon="assignment_late" count={activityIssues.length} empty="Nenhuma atividade atrasada ou sem movimentação.">
         {activityIssues.map((item) => <IssueCard key={item.id} tone={item.overdue ? "red" : "amber"} title={item.title} detail={`${item.program?.name || "Programa não informado"} · prazo ${dateLabel(`${item.due_date}T12:00:00`)}`} reason={[item.overdue && "Atividade atrasada", item.stale && "Sem mudança de status há mais de 7 dias"].filter(Boolean).join(" · ")} link={`/activity/${item.id}`} action="Abrir atividade" />)}
+      </IssueSection>
+      <IssueSection title="Bonificações para autorizar" icon="redeem" count={bonusIssues.length} empty="Nenhuma bonificação aguardando sua autorização.">
+        {bonusIssues.map((item) => <IssueCard key={item.id} tone="amber" title={`${item.product?.name || "Souvenir"} · ${item.quantity} unidade(s)`} detail={`Solicitado por ${item.requester?.name || "Usuário"} para ${item.recipient_name}`} reason="A bonificação aguarda autorização superior e ainda não alterou o estoque." link="/souvenirs" action="Analisar bonificação" />)}
       </IssueSection>
     </>}
   </section>;

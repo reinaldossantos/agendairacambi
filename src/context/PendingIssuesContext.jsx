@@ -12,6 +12,7 @@ export function PendingIssuesProvider({ children }) {
   const userId = currentUser?.id;
   const [vehicleIssues, setVehicleIssues] = useState([]);
   const [activityIssues, setActivityIssues] = useState([]);
+  const [bonusIssues, setBonusIssues] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -22,7 +23,7 @@ export function PendingIssuesProvider({ children }) {
     const now = new Date();
     const today = format(now, "yyyy-MM-dd");
     const staleLimit = subDays(now, 7).toISOString();
-    const [vehicleResult, activityResult] = await Promise.all([
+    const [vehicleResult, activityResult, managerResult] = await Promise.all([
       supabase
         .from("vehicle_bookings")
         .select("id,start_at,end_at,purpose,destination,start_odometer,end_odometer,status,vehicle:vehicle_id(name,plate)")
@@ -36,8 +37,9 @@ export function PendingIssuesProvider({ children }) {
         .eq("responsible_id", userId)
         .not("status", "in", `(${FINAL_ACTIVITY_STATUSES.map((status) => `"${status}"`).join(",")})`)
         .order("due_date", { ascending: true }),
+      supabase.from("expense_approval_config").select("person_id").eq("person_id", userId).eq("is_active", true).maybeSingle(),
     ]);
-    const firstError = vehicleResult.error || activityResult.error;
+    const firstError = vehicleResult.error || activityResult.error || managerResult.error;
     if (firstError) {
       setError(`Não foi possível consultar todas as pendências: ${firstError.message}`);
       setLoading(false);
@@ -69,6 +71,13 @@ export function PendingIssuesProvider({ children }) {
       if (!overdue && !stale) return [];
       return [{ ...activity, kind: "activity", overdue, stale, last_status_change: lastChange }];
     }));
+    if (managerResult.data) {
+      const { data, error: bonusError } = await supabase.from("souvenir_movements")
+        .select("id,quantity,recipient_name,requested_at,product:product_id(name),requester:requested_by(name)")
+        .eq("movement_type", "bonus").eq("status", "pending_approval").neq("requested_by", userId).order("requested_at");
+      if (bonusError) setError(`Não foi possível consultar as bonificações pendentes: ${bonusError.message}`);
+      setBonusIssues((data || []).map((item) => ({ ...item, kind: "bonus" })));
+    } else setBonusIssues([]);
     setLoading(false);
   }, [userId]);
 
@@ -83,6 +92,7 @@ export function PendingIssuesProvider({ children }) {
       .on("postgres_changes", { event: "*", schema: "public", table: "vehicle_bookings" }, refresh)
       .on("postgres_changes", { event: "*", schema: "public", table: "activities" }, refresh)
       .on("postgres_changes", { event: "*", schema: "public", table: "activity_logs" }, refresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "souvenir_movements" }, refresh)
       .subscribe();
     return () => supabase.removeChannel(channel);
   }, [userId, refresh]);
@@ -90,16 +100,17 @@ export function PendingIssuesProvider({ children }) {
   const value = useMemo(() => ({
     vehicleIssues,
     activityIssues,
-    issues: [...vehicleIssues, ...activityIssues],
-    count: vehicleIssues.length + activityIssues.length,
+    bonusIssues,
+    issues: [...vehicleIssues, ...activityIssues, ...bonusIssues],
+    count: vehicleIssues.length + activityIssues.length + bonusIssues.length,
     loading,
     error,
     refresh,
-  }), [vehicleIssues, activityIssues, loading, error, refresh]);
+  }), [vehicleIssues, activityIssues, bonusIssues, loading, error, refresh]);
 
   return <PendingIssuesContext.Provider value={value}>{children}</PendingIssuesContext.Provider>;
 }
 
 export function usePendingIssues() {
-  return useContext(PendingIssuesContext) || { vehicleIssues: [], activityIssues: [], issues: [], count: 0, loading: false, error: "", refresh: async () => {} };
+  return useContext(PendingIssuesContext) || { vehicleIssues: [], activityIssues: [], bonusIssues: [], issues: [], count: 0, loading: false, error: "", refresh: async () => {} };
 }

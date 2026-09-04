@@ -216,6 +216,15 @@ Por padrão, a tradução automática fica **desabilitada**. Um administrador po
 - Finalização com quilometragem, ocorrências e avarias.
 - Reservas cujo retorno já ocorreu permanecem na Central de pendências do solicitante até o preenchimento do KM inicial e final.
 
+### Estoque de souvenires
+
+- Cadastro de canecas, camisas e outros produtos com código, categoria, custo, preço de venda, estoque atual e estoque mínimo.
+- Cálculo automático do lucro unitário, margem percentual, custo total do estoque e valor potencial de venda.
+- Movimentações de entrada e venda com quantidade, valores, comprador ou destinatário, responsável, data e observações.
+- Bonificações aguardam autorização superior e não baixam o estoque antes do aceite digital da gestão.
+- Proibição de autoaprovação, justificativa obrigatória para rejeição e alerta da aprovação na Central de pendências.
+- Histórico completo e auditável de todas as movimentações.
+
 ### Comunicação e conteúdo
 
 - Notificações em tempo real.
@@ -299,6 +308,7 @@ Os scripts SQL estão em `supabase/`. Em uma instalação nova, execute no SQL E
 16. `migrations/20260811213000_audit_notification_reads.sql` — leitura individual de notificações com alerta visual e rastreabilidade imutável.
 17. `migrations/20260811214500_normalize_kombi_purchase_request.sql` — correção do título legado da solicitação de manutenção da Kombi conforme o padrão textual.
 18. `migrations/20260811223000_make_system_audit_permanent.sql` — auditoria permanente, identidade autenticada, cobertura operacional ampliada e recuperação de históricos confiáveis.
+19. `migrations/20260904013000_add_souvenir_inventory.sql` — produtos, estoque, movimentações, margens e autorização superior de bonificações.
 15. `system_audit.sql` — auditoria e rastreabilidade.
 16. `person_deactivation.sql` e correções específicas ainda não aplicadas ao ambiente.
 17. `access_session_tracking.sql` — acesso exclusivo de Reinaldo ao histórico e medição da duração das sessões; execute após `user_authentication.sql`.

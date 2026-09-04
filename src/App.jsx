@@ -30,6 +30,7 @@ import Projects from "./pages/Projects";
 import ProjectEditor from "./pages/ProjectEditor";
 import ProjectDetail from "./pages/ProjectDetail";
 import PendingIssues from "./pages/PendingIssues";
+import Souvenirs from "./pages/Souvenirs";
 import { useCurrentUser } from "./context/CurrentUserContext";
 
 function ReinaldoOnly({ children }) {
@@ -84,6 +85,7 @@ function App() {
         <Route path="/expense-reports" element={<ExpenseReports />} />
         <Route path="/purchase-requests" element={<PurchaseRequests />} />
         <Route path="/budgets" element={<ProgramBudgets />} />
+        <Route path="/souvenirs" element={<Souvenirs />} />
         <Route path="/expense-report-summary" element={<ExpenseReportSummary />} />
         <Route path="/monthly-activity-reports" element={<MonthlyActivityReports />} />
         <Route path="/audit-log" element={<ReinaldoOnly><AuditLog /></ReinaldoOnly>} />

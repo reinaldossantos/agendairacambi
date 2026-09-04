@@ -24,6 +24,7 @@ const groups = [
     { to: "/expense-reports", label: "Relatórios de despesas", icon: "receipt_long" },
     { to: "/purchase-requests", label: "Solicitações de compras", icon: "shopping_cart", iconClass: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300" },
     { to: "/budgets", label: "Orçamentos dos programas", icon: "account_balance_wallet", iconClass: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300" },
+    { to: "/souvenirs", label: "Estoque de souvenires", icon: "redeem", iconClass: "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300" },
     { to: "/expense-report-summary", label: "Resumo financeiro", icon: "analytics" },
     { to: "/monthly-activity-reports", label: "Relatórios mensais", icon: "summarize" },
     { to: "/stats", label: "Estatísticas", icon: "bar_chart" },

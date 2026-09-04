@@ -213,6 +213,19 @@ const sections = [
     ],
   },
   {
+    id: "souvenirs",
+    icon: "redeem",
+    title: "Estoque de souvenires",
+    items: [
+      "Acesse Operações → Estoque de souvenires para cadastrar canecas, camisas e outros produtos institucionais.",
+      "Em cada produto, informe código, categoria, custo unitário, preço de venda e estoque mínimo. O sistema calcula lucro unitário e margem percentual.",
+      "Registre entradas para acrescentar unidades ao estoque e atualizar o custo de confecção. Registre vendas informando quantidade, valor praticado e comprador.",
+      "Para uma bonificação, informe o destinatário e a justificativa. A solicitação não reduz o estoque enquanto aguarda autorização superior.",
+      "A gestão autorizadora recebe a solicitação na Central de pendências. O solicitante não pode aprovar a própria bonificação; o aceite digital registra gestor, data e hora e somente então efetiva a saída.",
+      "Consulte os indicadores de unidades, custo atual, venda potencial e produtos com estoque baixo, além do histórico completo de movimentações e destinatários.",
+    ],
+  },
+  {
     id: "vehicles",
     icon: "directions_car",
     title: "Veículos",

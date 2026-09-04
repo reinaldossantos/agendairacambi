@@ -9,7 +9,7 @@ const ALERT_SESSION_KEY = "iracambi_pending_alert_access";
 export default function PendingLoginAlert() {
   const navigate = useNavigate();
   const { currentUser } = useCurrentUser();
-  const { count, vehicleIssues, activityIssues, loading } = usePendingIssues();
+  const { count, vehicleIssues, activityIssues, bonusIssues, loading } = usePendingIssues();
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -20,9 +20,9 @@ export default function PendingLoginAlert() {
     sessionStorage.setItem(ALERT_SESSION_KEY, alertId);
     const timer = window.setTimeout(() => setOpen(true), 0);
     return () => window.clearTimeout(timer);
-  }, [activityIssues.length, count, currentUser?.id, loading, vehicleIssues.length]);
+  }, [activityIssues.length, bonusIssues.length, count, currentUser?.id, loading, vehicleIssues.length]);
 
-  const message = `Encontramos ${count} pendência${count === 1 ? "" : "s"} para o seu usuário: ${vehicleIssues.length} de veículo e ${activityIssues.length} de atividade. Consulte a Central de Pendências para regularizar.`;
+  const message = `Encontramos ${count} pendência${count === 1 ? "" : "s"} para o seu usuário: ${vehicleIssues.length} de veículo, ${activityIssues.length} de atividade e ${bonusIssues.length} bonificação(ões) para autorizar. Consulte a Central de Pendências para regularizar.`;
 
   return <ConfirmDialog
     isOpen={open}
