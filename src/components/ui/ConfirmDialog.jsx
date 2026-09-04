@@ -9,7 +9,7 @@ export default function ConfirmDialog({
   onCancel,
   confirmText = "Confirmar",
   cancelText = "Cancelar",
-  variant = "danger", // "danger" | "success"
+  variant = "danger", // "danger" | "success" | "warning"
 }) {
   const confirmButtonRef = useRef(null);
 
@@ -36,6 +36,8 @@ export default function ConfirmDialog({
       ? "bg-error-container text-on-error-container hover:bg-error-container/80"
       : variant === "success"
       ? "bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-900/50 dark:text-green-300 dark:hover:bg-green-900/70"
+      : variant === "warning"
+      ? "bg-amber-400 text-primary hover:bg-amber-300 dark:bg-amber-500 dark:text-amber-950"
       : "bg-primary-container text-on-primary-container hover:bg-primary-container/80";
 
   const iconBg =
@@ -43,10 +45,12 @@ export default function ConfirmDialog({
       ? "bg-error-container text-error"
       : variant === "success"
       ? "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300"
+      : variant === "warning"
+      ? "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
       : "bg-primary-container text-primary";
 
   const iconName =
-    variant === "danger" ? "warning" : variant === "success" ? "check_circle" : "help";
+    variant === "danger" || variant === "warning" ? "warning" : variant === "success" ? "check_circle" : "help";
 
   return createPortal(
     <div
@@ -92,7 +96,7 @@ export default function ConfirmDialog({
             className={`px-5 py-2.5 rounded-full font-space text-label-md transition-colors flex items-center gap-2 ${confirmColors}`}
           >
             <span className="material-symbols-outlined text-[18px]">
-              {variant === "success" ? "check" : variant === "danger" ? "delete" : "check"}
+              {variant === "success" ? "check" : variant === "danger" ? "delete" : variant === "warning" ? "arrow_forward" : "check"}
             </span>
             {confirmText}
           </button>

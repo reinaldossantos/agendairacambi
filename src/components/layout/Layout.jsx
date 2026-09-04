@@ -5,6 +5,7 @@ import Footer from "./Footer";
 import BottomNav from "./BottomNav";
 import FAB from "./FAB";
 import { PendingIssuesProvider } from "../../context/PendingIssuesContext";
+import PendingLoginAlert from "../dashboard/PendingLoginAlert";
 
 export default function Layout() {
   const location = useLocation();
@@ -13,6 +14,7 @@ export default function Layout() {
     <PendingIssuesProvider>
     <div className="flex flex-col min-h-screen bg-background dark:bg-dark-background/30 backdrop-blur-sm">
       <Header />
+      <PendingLoginAlert />
       {/* 
         - mobile: padding lateral original (px-4)
         - desktop (md e acima): padding reduzido (px-2) e largura máxima maior (max-w-screen-2xl)

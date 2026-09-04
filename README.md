@@ -219,7 +219,7 @@ Por padrão, a tradução automática fica **desabilitada**. Um administrador po
 ### Comunicação e conteúdo
 
 - Notificações em tempo real.
-- Contador persistente de pendências no cabeçalho e mensagem no Dashboard a cada acesso, removidos automaticamente somente quando os itens forem resolvidos.
+- Contador persistente de pendências no cabeçalho, mensagem no Dashboard e aviso apresentado uma vez após cada novo login, removidos automaticamente somente quando os itens forem resolvidos.
 - Mural de avisos por período e programa.
 - Repositório de arquivos compartilhados.
 - Alertas visuais para novidades.
