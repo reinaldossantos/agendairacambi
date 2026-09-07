@@ -33,7 +33,7 @@ export function PendingIssuesProvider({ children }) {
         .order("end_at", { ascending: false }),
       supabase
         .from("activities")
-        .select("id,title,status,due_date,created_at,program:program_id(name)")
+        .select("id,title,description,status,due_date,start_datetime,end_datetime,created_at,program:program_id(name)")
         .eq("responsible_id", userId)
         .not("status", "in", `(${FINAL_ACTIVITY_STATUSES.map((status) => `"${status}"`).join(",")})`)
         .order("due_date", { ascending: true }),

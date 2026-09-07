@@ -134,6 +134,7 @@ Por padrão, a tradução automática fica **desabilitada**. Um administrador po
 - Validações, erros e confirmações integrados à interface, sem caixas nativas do navegador nos detalhes da atividade.
 - Linha do tempo pesquisável e filtrável, agrupada por data.
 - Central de pendências pessoal para atividades vencidas ou não finalizadas sem mudança de status há mais de sete dias, com aviso no acesso e atalho para regularização.
+- Finalização e cancelamento diretamente pela Central; atividades históricas incompletas pedem os dados de execução ao finalizar, enquanto o cancelamento exige justificativa.
 - Fotos e documentos como evidências.
 - Compartilhamento pelo WhatsApp e exportação em PDF/CSV.
 - Identificação visual de atividades atrasadas e eventos.

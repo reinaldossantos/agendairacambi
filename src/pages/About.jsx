@@ -250,6 +250,7 @@ const sections = [
       "A Central de pendências apresenta viagens sem quilometragem, atividades vencidas e atividades não finalizadas sem mudança de status há mais de sete dias. O contador aparece no cabeçalho e um aviso é mostrado no Dashboard ao entrar.",
       "Após cada novo login, quando houver pendências, uma mensagem apresenta o resumo e oferece acesso imediato à Central. O aviso aparece uma vez naquela sessão e pode ser adiado com Agora não.",
       "Cada pendência possui um atalho para o registro correspondente e desaparece automaticamente somente depois que o usuário regulariza o item.",
+      "Na Central, atividades podem ser finalizadas ou canceladas diretamente. Registros históricos incompletos solicitam descrição e horários ao finalizar; o cancelamento exige justificativa e não exige dados de execução.",
       "O sino reúne notificações em tempo real sobre atividades, menções, comentários, arquivos, despesas e eventos de segurança destinados ao seu perfil.",
       "O sino pulsa quando existem novidades e respeita a preferência de redução de movimento do dispositivo. Ao abrir uma notificação, ela é marcada como lida, deixa a lista e a leitura fica registrada permanentemente com usuário, origem, item e horário.",
       "No Mural, publique avisos para todos ou para um programa, navegue pelas semanas e edite ou exclua seus próprios avisos quando permitido.",
