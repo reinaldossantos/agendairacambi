@@ -8,7 +8,23 @@ import { LanguageProvider } from "./i18n/context";
 import AutomaticTranslationLayer from "./i18n/AutomaticTranslationLayer";
 import { AdvancedSettingsProvider } from "./context/AdvancedSettingsContext";
 import { TranslationSettingsProvider } from "./context/TranslationSettingsContext";
+import { registerSW } from "virtual:pwa-register";
 import "./index.css";
+
+const updateSW = registerSW({
+  immediate: true,
+  onNeedRefresh() {
+    updateSW(true);
+  },
+  onRegisteredSW(_serviceWorkerUrl, registration) {
+    if (!registration) return;
+    const checkForUpdate = () => registration.update().catch(() => undefined);
+    window.setInterval(checkForUpdate, 15 * 60 * 1000);
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") checkForUpdate();
+    });
+  },
+});
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>

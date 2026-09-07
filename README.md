@@ -419,7 +419,7 @@ O frontend pode ser hospedado em qualquer provedor compatível com Vite.
 4. Confirme RLS, Storage, Realtime e Edge Functions.
 5. Publique `auth-login`, `admin-reset-password` e `delete-expense-report` com `--no-verify-jwt` antes do frontend que depende delas.
 6. Execute o build, publique o frontend e faça testes de fumaça no ambiente publicado.
-7. Em aplicações PWA, atualize com `Ctrl + F5` ou feche e abra novamente para confirmar que o novo service worker assumiu o controle.
+7. O PWA procura novas versões ao voltar para a aba e, no máximo, a cada 15 minutos. Quando encontra uma atualização, ativa os novos arquivos automaticamente e remove caches antigos. O `Ctrl + F5` permanece disponível para uma conferência imediata.
 
 ## Segurança
 
