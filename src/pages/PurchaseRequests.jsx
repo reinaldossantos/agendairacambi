@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { supabase } from "../lib/supabaseClient";
 import { useCurrentUser } from "../context/CurrentUserContext";
 import { signFiles } from "../lib/privateStorage";
@@ -16,9 +17,10 @@ function presentationStatus(request) {
   const approvals = request.approvals || [];
   const isPartial = approvals.some((approval) => approval.decision === "pending")
     && approvals.some((approval) => approval.decision !== "pending");
-  return isPartial
-    ? { label: "Aprovação parcial", tone: "bg-sky-100 text-sky-800" }
-    : { label: labels[request.status] || request.status, tone: statusTone[request.status] || "bg-gray-100 text-gray-800" };
+  if (!isPartial) return { label: labels[request.status] || request.status, tone: statusTone[request.status] || "bg-gray-100 text-gray-800" };
+  if (approvals.some((approval) => approval.decision === "rejected")) return { label: "Reprovação parcial", tone: "bg-red-100 text-red-800" };
+  if (approvals.some((approval) => approval.decision === "changes_requested")) return { label: "Ajustes parciais", tone: "bg-orange-100 text-orange-800" };
+  return { label: "Aprovação parcial", tone: "bg-sky-100 text-sky-800" };
 }
 
 export default function PurchaseRequests() {
@@ -222,7 +224,7 @@ function Details({ request, currentUser, approverIds, programs, projects, commen
     const saved = await onRecordStep(request, stepForm, stepFiles);
     if (saved) { setStepForm({ step_type: "comment", title: "", description: "", supplier_name: "", document_number: "", amount: "", event_date: new Date().toISOString().slice(0, 10) }); setStepFiles([]); }
   }
-  return <Modal title={`Solicitação nº ${String(request.request_number).padStart(5, "0")}`} onClose={onClose}><div className="space-y-4"><div className="flex flex-wrap justify-between gap-2"><div><h3 className="text-2xl font-black text-primary dark:text-white">{request.title}</h3><p>{request.requester?.name}</p></div><span className={`h-fit rounded-full px-3 py-1 text-sm font-bold ${displayStatus.tone}`}>{displayStatus.label}</span></div><Summary label="Justificativa" value={request.justification} /><Summary label="Projeto" value={projects.find((item) => item.id === request.management_project_id)?.title || "Sem vínculo"} />{request.edital_name && <Summary label="Edital" value={`${request.edital_name}${request.edital_number ? ` · ${request.edital_number}` : ""}`} />}<Summary label="Programa beneficiado diretamente" value={<Names ids={request.program_ids} options={programs} />} /><Items items={request.items} /><div className="text-right text-xl font-black">Total estimado: {money(request.estimated_total)}</div>
+  return <Modal title={`Solicitação nº ${String(request.request_number).padStart(5, "0")}`} onClose={onClose}><div className="space-y-5"><div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start"><div className="min-w-0"><h3 className="break-words text-2xl font-black leading-tight text-primary dark:text-white">{request.title}</h3><p className="mt-2">{request.requester?.name}</p></div><span className={`h-fit w-fit rounded-full px-3 py-1 text-sm font-bold sm:justify-self-end ${displayStatus.tone}`}>{displayStatus.label}</span></div><ApprovalProgress approvals={request.approvals} /><Summary label="Justificativa" value={request.justification} /><Summary label="Projeto" value={projects.find((item) => item.id === request.management_project_id)?.title || "Sem vínculo"} />{request.edital_name && <Summary label="Edital" value={`${request.edital_name}${request.edital_number ? ` · ${request.edital_number}` : ""}`} />}<Summary label="Programa beneficiado diretamente" value={<Names ids={request.program_ids} options={programs} />} /><Items items={request.items} /><div className="text-right text-xl font-black">Total estimado: {money(request.estimated_total)}</div>
     {!!request.approvals?.length && <div className="rounded-2xl bg-primary/5 p-4"><p className="mb-2 font-black">Fluxo de aprovação</p>{request.approvals.map((approval) => <div key={approval.id} className="flex justify-between border-b py-2 last:border-0"><span>{approval.approver?.name}</span><strong>{approval.decision === "pending" ? "Pendente" : labels[approval.decision] || approval.decision}</strong></div>)}</div>}
     {pendingApproval && <div className="rounded-2xl border-2 border-secondary p-4"><label className="mb-2 block font-bold">Parecer (obrigatório para ajustes ou reprovação)</label><textarea rows="3" className={inputClass} value={comment} onChange={(e) => setComment(e.target.value)} /><div className="mt-3 flex flex-wrap justify-end gap-2"><button disabled={busy} onClick={() => onDecide(request, "changes_requested")} className="rounded-full bg-orange-100 px-4 py-2 font-bold text-orange-800">Solicitar ajustes</button><button disabled={busy} onClick={() => onDecide(request, "rejected")} className="rounded-full bg-red-100 px-4 py-2 font-bold text-red-800">Reprovar</button><button disabled={busy} onClick={() => onDecide(request, "approved")} className="rounded-full bg-emerald-600 px-5 py-2 font-bold text-white">Aprovar</button></div></div>}
     {buyer && next.length > 0 && <div className="flex flex-wrap justify-end gap-2">{next.map(([status, label]) => <button key={status} disabled={busy} onClick={() => onAdvance(request, status)} className="rounded-full bg-primary px-5 py-2 font-bold text-white">{label}</button>)}</div>}
@@ -234,6 +236,21 @@ function Details({ request, currentUser, approverIds, programs, projects, commen
     <ConfirmDialog isOpen={confirmingCancellation} title="Cancelar esta solicitação definitivamente?" message={`Esta ação mudará a solicitação nº ${String(request.request_number).padStart(5, "0")} de ${request.requester?.name} para Cancelada. Para apenas sair desta tela, escolha “Voltar sem cancelar”.`} confirmText="Sim, cancelar definitivamente" cancelText="Voltar sem cancelar" onCancel={() => setConfirmingCancellation(false)} onConfirm={() => { setConfirmingCancellation(false); onAdvance(request, "cancelled"); }} />
   </div></Modal>;
 }
-function Modal({ title, onClose, children }) { return <div className="fixed inset-0 z-[100] grid min-h-dvh place-items-center overflow-hidden bg-black/55 p-3" role="dialog" aria-modal="true"><div className="my-auto flex max-h-[calc(100dvh-1.5rem)] w-full max-w-3xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl dark:bg-gray-900"><div className="z-10 flex shrink-0 items-center justify-between border-b border-surface-variant bg-white px-5 py-4 dark:bg-gray-900 md:px-7"><h2 className="text-xl font-black text-primary dark:text-white">{title}</h2><button type="button" onClick={onClose} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface hover:bg-red-50 hover:text-red-700" aria-label="Fechar visualização"><span className="material-symbols-outlined">close</span></button></div><div className="overflow-y-auto p-5 pt-4 md:p-7 md:pt-5">{children}</div></div></div>; }
+function ApprovalProgress({ approvals = [] }) {
+  const pending = approvals.filter((approval) => approval.decision === "pending");
+  const decided = approvals.filter((approval) => approval.decision !== "pending");
+  if (!pending.length || !decided.length) return null;
+  const actions = { approved: "aprovou", rejected: "reprovou", changes_requested: "solicitou ajustes" };
+  const hasRejection = decided.some((approval) => approval.decision === "rejected");
+  return <div className={`rounded-2xl border p-4 text-sm ${hasRejection ? "border-red-200 bg-red-50 text-red-900" : "border-sky-200 bg-sky-50 text-sky-900"}`}><p className="font-black">{hasRejection ? "Reprovação parcial registrada" : "Análise parcial registrada"}</p><ul className="mt-2 space-y-1">{decided.map((approval) => <li key={approval.id}><strong>{approval.approver?.name || "Aprovador"}</strong> {actions[approval.decision] || "registrou uma decisão"}.</li>)}</ul><p className="mt-2"><strong>Aguardando manifestação de {pending.map((approval) => approval.approver?.name || "aprovador").join(" e ")}:</strong> aprovar, solicitar ajustes ou reprovar.</p></div>;
+}
+function Modal({ title, onClose, children }) {
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = previousOverflow; };
+  }, []);
+  return createPortal(<div className="fixed inset-0 z-[1000] flex min-h-dvh items-center justify-center overflow-hidden bg-black/55 p-3 sm:p-5" role="dialog" aria-modal="true"><div className="flex max-h-[calc(100dvh-1.5rem)] w-full max-w-3xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl dark:bg-gray-900 sm:max-h-[calc(100dvh-2.5rem)]"><div className="z-10 flex shrink-0 items-center justify-between gap-4 border-b border-surface-variant bg-white px-5 py-5 dark:bg-gray-900 md:px-7"><h2 className="min-w-0 break-words text-xl font-black text-primary dark:text-white">{title}</h2><button type="button" onClick={onClose} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface hover:bg-red-50 hover:text-red-700" aria-label="Fechar visualização"><span className="material-symbols-outlined">close</span></button></div><div className="overflow-y-auto overscroll-contain p-5 pt-7 md:p-7 md:pt-8">{children}</div></div></div>, document.body);
+}
 function Summary({ label, value }) { return <div><p className="text-xs font-black uppercase tracking-wider text-on-surface-variant">{label}</p><div className="whitespace-pre-wrap">{value || "Não informado"}</div></div>; }
 function Items({ items }) { return <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr className="border-b text-left"><th className="py-2">Item</th><th>Qtd.</th><th>Unitário</th><th className="text-right">Subtotal</th></tr></thead><tbody>{(items || []).map((item, index) => <tr key={index} className="border-b"><td className="py-2"><strong>{item.description}</strong>{item.specification && <small className="block text-on-surface-variant">{item.specification}</small>}</td><td>{item.quantity} {item.unit}</td><td>{money(item.estimated_unit_price)}</td><td className="text-right">{money(Number(item.quantity) * Number(item.estimated_unit_price))}</td></tr>)}</tbody></table></div>; }

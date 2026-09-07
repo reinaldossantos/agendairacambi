@@ -169,7 +169,7 @@ const sections = [
       "Salve como rascunho para continuar depois. Antes do envio, confira a prévia completa; durante a aprovação o conteúdo fica protegido contra alterações.",
       "Todas as solicitações ficam visíveis aos usuários autenticados. O solicitante pode editar seus próprios rascunhos e solicitações devolvidas para ajustes; o administrador pode editar qualquer registro.",
       "A exclusão é exclusiva do administrador, inclusive quando a solicitação ainda estiver como rascunho.",
-      "Solicitações dos demais usuários exigem aprovação de Reinaldo e Thaís. Quando um deles solicita, somente o outro aprova, pois ninguém pode aprovar a própria compra. Nas aprovações conjuntas, o sistema indica aprovação parcial e aguarda todas as manifestações antes de consolidar o resultado final.",
+      "Solicitações dos demais usuários exigem aprovação de Reinaldo e Thaís. Quando um deles solicita, somente o outro aprova, pois ninguém pode aprovar a própria compra. Nas análises conjuntas, o sistema identifica aprovação, reprovação ou ajustes parciais, mostra quem já decidiu e quem ainda precisa se manifestar antes de consolidar o resultado final.",
       "Ajustes e reprovações exigem parecer. Após a aprovação, os responsáveis acompanham cotação, pedido, recebimento parcial ou total e eventual cancelamento.",
       "Use a Linha do tempo completa para registrar cada cotação solicitada ou recebida, fornecedor escolhido, pedido, nota fiscal, programação e realização do pagamento e conferência do recebimento.",
       "Cada movimentação guarda autor, data, descrição, fornecedor, número de documento, valor e anexos. Toda a equipe pode registrar comentários e documentos; etapas financeiras e de compras são restritas aos responsáveis.",

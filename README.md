@@ -24,7 +24,7 @@ A pesquisa por data considera sessões que começaram, permaneceram ativas ou fo
 
 **Finalidade:** organizar necessidades de materiais, serviços e obras desde a justificativa até o recebimento, vinculando cada solicitação aos projetos, editais e programas beneficiados diretamente.
 
-**Como usar:** acesse **Operações → Solicitações de compras**, informe a necessidade, os itens e valores estimados, selecione o programa beneficiado diretamente e, quando aplicável, vincule um projeto ou edital. Confira a prévia antes do envio. Solicitações dos demais usuários exigem aprovação de Reinaldo e Thaís; quando um deles é o solicitante, somente o outro aprova, impedindo autoaprovação. Nos fluxos conjuntos, a solicitação permanece como **Aprovação parcial** até todos se manifestarem; somente então as decisões individuais são consolidadas no resultado final.
+**Como usar:** acesse **Operações → Solicitações de compras**, informe a necessidade, os itens e valores estimados, selecione o programa beneficiado diretamente e, quando aplicável, vincule um projeto ou edital. Confira a prévia antes do envio. Solicitações dos demais usuários exigem aprovação de Reinaldo e Thaís; quando um deles é o solicitante, somente o outro aprova, impedindo autoaprovação. Nos fluxos conjuntos, a solicitação apresenta **Aprovação parcial**, **Reprovação parcial** ou **Ajustes parciais**, identifica quem já decidiu e quem ainda precisa se manifestar; somente então as decisões individuais são consolidadas no resultado final.
 
 ### Despesas mais rápidas e armazenamento seguro
 
