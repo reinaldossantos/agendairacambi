@@ -7,9 +7,13 @@ import BottomNav from "./BottomNav";
 import FAB from "./FAB";
 import { PendingIssuesProvider } from "../../context/PendingIssuesContext";
 import PendingLoginAlert from "../dashboard/PendingLoginAlert";
+import { useCurrentUser } from "../../context/CurrentUserContext";
+import { isRestaurantOperator } from "../../lib/restaurantAccess";
 
 export default function Layout() {
   const location = useLocation();
+  const { currentUser } = useCurrentUser();
+  const restaurantOperator = isRestaurantOperator(currentUser);
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
@@ -37,10 +41,10 @@ export default function Layout() {
             <Outlet />
           </motion.div>
         </AnimatePresence>
-        <FAB />
+        {!restaurantOperator && <FAB />}
       </main>
       <Footer />
-      <BottomNav />
+      <BottomNav restaurantOperator={restaurantOperator} />
     </div>
     </PendingIssuesProvider>
   );

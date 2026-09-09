@@ -1,6 +1,6 @@
 import { NavLink } from "react-router-dom";
 
-export default function BottomNav() {
+export default function BottomNav({ restaurantOperator = false }) {
   const linkClasses = ({ isActive }) =>
     `flex min-h-14 flex-1 flex-col items-center justify-center ${
       isActive ? "text-primary dark:text-white font-bold" : "text-stone-400 dark:text-gray-500"
@@ -8,14 +8,14 @@ export default function BottomNav() {
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 w-full bg-white dark:bg-dark-background border-t border-surface-variant dark:border-white/10 z-50 px-2 pb-safe flex justify-around items-center">
-      <NavLink to="/" className={linkClasses} end>
+      <NavLink to={restaurantOperator ? "/restaurant-restock" : "/"} className={linkClasses} end>
         <span className="material-symbols-outlined text-xl">calendar_view_week</span>
-        <span className="font-roboto text-[10px] mt-0.5">Agenda</span>
+        <span className="font-roboto text-[10px] mt-0.5">{restaurantOperator ? "Restaurante" : "Agenda"}</span>
       </NavLink>
-      <NavLink to="/new" className={linkClasses}>
+      {!restaurantOperator && <NavLink to="/new" className={linkClasses}>
         <span className="material-symbols-outlined text-xl">add_circle</span>
         <span className="font-roboto text-[10px] mt-0.5">Novo</span>
-      </NavLink>
+      </NavLink>}
       <NavLink to="/history" className={linkClasses}>
         <span className="material-symbols-outlined text-xl">history</span>
         <span className="font-roboto text-[10px] mt-0.5">Histórico</span>

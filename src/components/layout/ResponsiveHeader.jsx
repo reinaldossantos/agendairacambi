@@ -9,6 +9,7 @@ import { useAnnouncementsAlert } from "../../hooks/useAnnouncementsAlert";
 import { useFilesAlert } from "../../hooks/useFilesAlert";
 import { useLanguage } from "../../i18n/context";
 import { usePendingIssues } from "../../context/PendingIssuesContext";
+import { isRestaurantOperator } from "../../lib/restaurantAccess";
 
 const groups = [
   { id: "agenda", label: "Agenda", icon: "calendar_month", tone: "agenda", colorOffset: 0, items: [
@@ -23,6 +24,7 @@ const groups = [
     { to: "/history", label: "Histórico e relatórios", icon: "history" },
     { to: "/expense-reports", label: "Relatórios de despesas", icon: "receipt_long" },
     { to: "/purchase-requests", label: "Solicitações de compras", icon: "shopping_cart", iconClass: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300" },
+    { to: "/restaurant-restock", label: "Reposição do restaurante", icon: "restaurant", iconClass: "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300" },
     { to: "/budgets", label: "Orçamentos dos programas", icon: "account_balance_wallet", iconClass: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300" },
     { to: "/souvenirs", label: "Estoque de souvenires", icon: "redeem", iconClass: "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300" },
     { to: "/expense-report-summary", label: "Resumo financeiro", icon: "analytics" },
@@ -78,9 +80,10 @@ export default function ResponsiveHeader() {
   const [mobileNotifications, setMobileNotifications] = useState(false);
   const navigationRef = useRef(null);
   const normalizedCurrentUser = currentUser?.name?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const restaurantOperator = isRestaurantOperator(currentUser);
   const visibleGroups = groups.map((group) => ({
     ...group,
-    items: group.items.filter((item) => (!item.restrictedTo || item.restrictedTo === normalizedCurrentUser) && (!item.requiredRole || item.requiredRole === currentUser?.access_role)),
+    items: group.items.filter((item) => (!item.restrictedTo || item.restrictedTo === normalizedCurrentUser) && (!item.requiredRole || item.requiredRole === currentUser?.access_role) && (!restaurantOperator || item.to !== "/new")),
   })).filter((group) => group.items.length > 0);
 
   useEffect(() => {
@@ -115,7 +118,7 @@ export default function ResponsiveHeader() {
           <h1 className="truncate text-lg font-black leading-none tracking-tighter text-primary dark:text-white sm:text-xl">AGENDA <span className="hidden lg:inline">IRACAMBI</span></h1>
         </Link>
         <div className="hidden items-center gap-3 md:flex">
-          <Link to="/new" className="flex items-center gap-2 rounded-full bg-[#ffd12f] px-4 py-2.5 font-bold text-primary shadow-sm transition duration-200 hover:scale-105 hover:bg-[#ffda45] hover:shadow-md"><span className="material-symbols-outlined icon-plain">add</span><span className="hidden lg:inline">Novo</span></Link>
+          {!restaurantOperator && <Link to="/new" className="flex items-center gap-2 rounded-full bg-[#ffd12f] px-4 py-2.5 font-bold text-primary shadow-sm transition duration-200 hover:scale-105 hover:bg-[#ffda45] hover:shadow-md"><span className="material-symbols-outlined icon-plain">add</span><span className="hidden lg:inline">Novo</span></Link>}
           <LanguageSelect locale={locale} changeLocale={changeLocale} />
           <UserIdentity currentUser={currentUser} signOut={signOut} />
           <PendingIssuesButton count={pendingCount} />
@@ -123,7 +126,7 @@ export default function ResponsiveHeader() {
           <AnimatePresence>{open && <NotificationPanel notifications={notifications} error={notificationError} onClose={toggleOpen} onRead={markAsRead} panelRef={dropdownRef} />}</AnimatePresence>
         </div>
         <div className="flex items-center gap-1 md:hidden">
-          <Link to="/new" className="flex h-10 w-10 items-center justify-center rounded-full bg-[#ffd12f] text-primary shadow-sm transition duration-200 hover:scale-105 hover:bg-[#ffda45] hover:shadow-md" aria-label="Nova atividade"><span className="material-symbols-outlined icon-plain">add</span></Link>
+          {!restaurantOperator && <Link to="/new" className="flex h-10 w-10 items-center justify-center rounded-full bg-[#ffd12f] text-primary shadow-sm transition duration-200 hover:scale-105 hover:bg-[#ffda45] hover:shadow-md" aria-label="Nova atividade"><span className="material-symbols-outlined icon-plain">add</span></Link>}
           <PendingIssuesButton count={pendingCount} compact />
           <NotificationButton count={unreadCount} onClick={() => { toggleOpen(); setMobileNotifications(true); }} />
           <button type="button" onClick={() => setMobileOpen((value) => !value)} className="flex h-11 w-11 items-center justify-center rounded-full text-primary dark:text-white" aria-expanded={mobileOpen} aria-label="Menu"><span className="material-symbols-outlined">{mobileOpen ? "close" : "menu"}</span></button>

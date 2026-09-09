@@ -3,6 +3,16 @@ import { Link } from "react-router-dom";
 
 const sections = [
   {
+    id: "restaurant-restock",
+    title: "Reposição do restaurante",
+    icon: "restaurant",
+    items: [
+      "Laiza e Luciana são direcionadas para esta tela após o login e podem informar em poucos passos o produto e se ele está acabando ou acabou.",
+      "Thaís, Arielle e administradores recebem notificações, visualizam a lista consolidada para compra e atualizam cada item para compra em andamento, reposto ou cancelado.",
+      "Produtos iguais são reunidos automaticamente na lista de compras, preservando cada solicitação e sua autoria no acompanhamento.",
+    ],
+  },
+  {
     id: "latest-news",
     icon: "new_releases",
     title: "Últimas novidades",

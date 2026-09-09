@@ -452,7 +452,7 @@ export default function Vehicles() {
               <div className="space-y-2">
                 {completedBookings.map((item) => (
                   <article key={item.id} className="bg-white/70 dark:bg-dark-surface/70 border border-surface-variant dark:border-white/10 rounded-xl p-4 flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3">
-                    <span className="material-symbols-outlined text-green-600 dark:text-green-300">check_circle</span>
+                    <div className="flex items-center gap-2"><span className="material-symbols-outlined text-green-600 dark:text-green-300">check_circle</span><span className="rounded-full bg-green-100 px-2 py-1 text-xs font-bold text-green-800">Finalizado</span></div>
                     <div className="flex-1">
                       <p className="font-bold text-primary dark:text-white">{item.vehicle?.name} <span className="text-xs font-normal text-outline">{item.vehicle?.plate}</span></p>
                       <p className="text-sm text-outline">{format(new Date(item.start_at), "dd/MM/yyyy")} · {item.purpose}</p>

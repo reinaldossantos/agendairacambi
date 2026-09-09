@@ -30,14 +30,15 @@ export function useNotifications(currentUser) {
       ? activityQuery.or(`activity_id.in.(${activityIds.join(",")}),person_id.eq.${currentUser.id}`)
       : activityQuery.eq("person_id", currentUser.id);
 
-    const [logsResult, expenseResult, securityResult, projectResult, purchaseResult] = await Promise.all([
+    const [logsResult, expenseResult, securityResult, projectResult, purchaseResult, restaurantResult] = await Promise.all([
       activityQuery,
       supabase.from("expense_report_notifications").select("id,type,title,content,created_at,read_at,report_id,person:actor_id(name)").is("read_at", null).order("created_at", { ascending: false }).limit(30),
       supabase.from("security_notifications").select("id,type,title,content,created_at,is_read").eq("recipient_id", currentUser.id).eq("is_read", false).order("created_at", { ascending: false }).limit(30),
       supabase.from("management_project_notifications").select("id,title,content,created_at,read_at,project_id,person:actor_id(name)").eq("recipient_id", currentUser.id).is("read_at", null).order("created_at", { ascending: false }).limit(30),
       supabase.from("purchase_request_notifications").select("id,type,title,content,created_at,read_at,request_id,person:actor_id(name)").eq("recipient_id", currentUser.id).is("read_at", null).order("created_at", { ascending: false }).limit(30),
+      supabase.from("restaurant_restock_notifications").select("id,title,content,created_at,read_at,request_id,person:actor_id(name)").eq("recipient_id", currentUser.id).is("read_at", null).order("created_at", { ascending: false }).limit(30),
     ]);
-    const queryError = logsResult.error || expenseResult.error || securityResult.error || projectResult.error || purchaseResult.error;
+    const queryError = logsResult.error || expenseResult.error || securityResult.error || projectResult.error || purchaseResult.error || restaurantResult.error;
     if (queryError) {
       setNotificationError(`Não foi possível carregar as notificações: ${queryError.message}`);
       return;
@@ -61,7 +62,8 @@ export function useNotifications(currentUser) {
     const securityNotifications = (securityResult.data || []).map((item) => ({ ...item, source: "security", link: "/admin/persons" }));
     const projectNotifications = (projectResult.data || []).map((item) => ({ ...item, source: "project", link: `/projects/${item.project_id}`, is_read: Boolean(item.read_at) }));
     const purchaseNotifications = (purchaseResult.data || []).map((item) => ({ ...item, source: "purchase_request", link: "/purchase-requests", is_read: Boolean(item.read_at) }));
-    const combined = [...activityNotifications, ...expenseNotifications, ...securityNotifications, ...projectNotifications, ...purchaseNotifications]
+    const restaurantNotifications = (restaurantResult.data || []).map((item) => ({ ...item, source: "restaurant_restock", link: "/restaurant-restock", is_read: Boolean(item.read_at) }));
+    const combined = [...activityNotifications, ...expenseNotifications, ...securityNotifications, ...projectNotifications, ...purchaseNotifications, ...restaurantNotifications]
       .filter((item) => !item.is_read).sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 30);
     setNotifications(combined);
     setUnreadCount(combined.length);
@@ -84,9 +86,11 @@ export function useNotifications(currentUser) {
       .on("postgres_changes", { event: "*", schema: "public", table: "management_project_notifications" }, fetchNotifications).subscribe(realtimeStatus);
     const purchaseChannel = supabase.channel("notifications:purchases")
       .on("postgres_changes", { event: "*", schema: "public", table: "purchase_request_notifications" }, fetchNotifications).subscribe(realtimeStatus);
+    const restaurantChannel = supabase.channel("notifications:restaurant")
+      .on("postgres_changes", { event: "*", schema: "public", table: "restaurant_restock_notifications" }, fetchNotifications).subscribe(realtimeStatus);
     return () => {
       window.clearTimeout(initialFetch);
-      supabase.removeChannel(activityChannel); supabase.removeChannel(expenseChannel); supabase.removeChannel(securityChannel); supabase.removeChannel(projectChannel); supabase.removeChannel(purchaseChannel);
+      supabase.removeChannel(activityChannel); supabase.removeChannel(expenseChannel); supabase.removeChannel(securityChannel); supabase.removeChannel(projectChannel); supabase.removeChannel(purchaseChannel); supabase.removeChannel(restaurantChannel);
     };
   }, [currentUser, fetchNotifications]);
 

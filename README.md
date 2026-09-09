@@ -22,6 +22,10 @@ A pesquisa por data considera sessões que começaram, permaneceram ativas ou fo
 
 ### Solicitações de compras com aprovação e rastreabilidade
 
+### Reposição do restaurante
+
+Laiza e Luciana entram diretamente em uma tela simplificada para informar produtos que estão acabando ou acabaram. Thaís, Arielle e administradores recebem notificações, acompanham cada pedido e acessam uma lista de compras consolidada automaticamente por produto, com opção de impressão. Os demais recursos permanecem disponíveis para consulta das operadoras do restaurante, sem os atalhos gerais de criação.
+
 **Finalidade:** organizar necessidades de materiais, serviços e obras desde a justificativa até o recebimento, vinculando cada solicitação aos projetos, editais e programas beneficiados diretamente.
 
 **Como usar:** acesse **Operações → Solicitações de compras**, informe a necessidade, os itens e valores estimados, selecione o programa beneficiado diretamente e, quando aplicável, vincule um projeto ou edital. Confira a prévia antes do envio. Solicitações dos demais usuários exigem aprovação de Reinaldo e Thaís; quando um deles é o solicitante, somente o outro aprova, impedindo autoaprovação. Nos fluxos conjuntos, a solicitação apresenta **Aprovação parcial**, **Reprovação parcial** ou **Ajustes parciais**, identifica quem já decidiu e quem ainda precisa se manifestar; somente então as decisões individuais são consolidadas no resultado final.

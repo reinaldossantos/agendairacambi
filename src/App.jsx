@@ -1,4 +1,4 @@
-import { Navigate, Routes, Route } from "react-router-dom";
+import { Navigate, Routes, Route, useLocation } from "react-router-dom";
 import Layout from "./components/layout/Layout";
 import Dashboard from "./pages/Dashboard";
 import NewActivity from "./pages/NewActivity";
@@ -31,6 +31,8 @@ import ProjectEditor from "./pages/ProjectEditor";
 import ProjectDetail from "./pages/ProjectDetail";
 import PendingIssues from "./pages/PendingIssues";
 import Souvenirs from "./pages/Souvenirs";
+import RestaurantRestock from "./pages/RestaurantRestock";
+import { isRestaurantOperator } from "./lib/restaurantAccess";
 import { useCurrentUser } from "./context/CurrentUserContext";
 
 function ReinaldoOnly({ children }) {
@@ -46,10 +48,12 @@ function AdminOnly({ children }) {
 
 function AuthenticatedLayout() {
   const { session, currentUser, authLoading } = useCurrentUser();
+  const location = useLocation();
   if (authLoading) return <div className="flex min-h-screen items-center justify-center text-primary">Verificando acesso…</div>;
   if (!session) return <Navigate to="/login" replace />;
   if (!currentUser) return <Navigate to="/login" replace />;
   if (currentUser?.must_change_password) return <Navigate to="/change-password" replace />;
+  if (isRestaurantOperator(currentUser) && location.pathname === "/") return <Navigate to="/restaurant-restock" replace />;
   return <Layout />;
 }
 
@@ -86,6 +90,7 @@ function App() {
         <Route path="/purchase-requests" element={<PurchaseRequests />} />
         <Route path="/budgets" element={<ProgramBudgets />} />
         <Route path="/souvenirs" element={<Souvenirs />} />
+        <Route path="/restaurant-restock" element={<RestaurantRestock />} />
         <Route path="/expense-report-summary" element={<ExpenseReportSummary />} />
         <Route path="/monthly-activity-reports" element={<MonthlyActivityReports />} />
         <Route path="/audit-log" element={<ReinaldoOnly><AuditLog /></ReinaldoOnly>} />
