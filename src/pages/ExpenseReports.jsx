@@ -30,6 +30,7 @@ const emptyForm = {
   period_end: "", travel_route: "", purpose: "", advance_amount: "",
   payment_method: "", bank_name: "", bank_branch: "", bank_branch_digit: "",
   bank_account: "", bank_account_digit: "", expense_items: initialItems(),
+  used_own_vehicle: false,
 };
 const inputClass = "w-full min-w-0 rounded-xl border border-surface-variant bg-surface px-3 py-2.5 text-on-surface focus:border-primary focus:ring-primary dark:border-gray-700 dark:bg-gray-800 dark:text-white";
 const money = (value) => Number(value || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -675,6 +676,7 @@ function ExpenseForm({ form, setForm, programs, persons, choosePerson, choosePro
         <Field label="Data final"><input type="date" className={inputClass} {...field("period_end")} /></Field>
         <Field label="Roteiro da viagem"><input className={inputClass} {...field("travel_route")} placeholder="Ex.: Rosário da Limeira X Muriaé X Rosário da Limeira" /></Field>
         <Field label="Valor do adiantamento"><input min="0" step="0.01" type="number" className={inputClass} {...field("advance_amount")} placeholder="Ex.: 500,00" /></Field>
+        <Field label="Utilizou veículo próprio?"><select className={inputClass} value={form.used_own_vehicle ? "yes" : "no"} onChange={(event) => setForm({ ...form, used_own_vehicle: event.target.value === "yes" })}><option value="no">Não</option><option value="yes">Sim</option></select></Field>
         <div className="sm:col-span-2"><Field label="Justificativa da despesa / objetivo da viagem"><textarea rows="3" className={inputClass} {...field("purpose")} placeholder="Ex.: Visita técnica às propriedades participantes do projeto para acompanhamento das áreas restauradas." /></Field></div>
       </div></Section>
       <Section title="Despesas"><ExpenseItemsTable items={form.expense_items} updateItem={updateItem} onStoredReceiptRemoved={onStoredReceiptRemoved} removeItem={removeItem} addItem={addItem} addMileageItem={addMileageItem} /></Section>

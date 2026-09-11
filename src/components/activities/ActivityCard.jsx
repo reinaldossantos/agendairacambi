@@ -8,6 +8,7 @@ import {
   formatSingleActivityForWhatsAppSimple,
 } from "../../lib/whatsapp";
 import { getProgramColor } from "../../lib/colors";
+import { useCurrentUser } from "../../context/CurrentUserContext";
 
 const statusColors = {
   Planejado: "bg-gray-100 text-gray-600 dark:bg-white/10 dark:text-gray-300",
@@ -54,7 +55,10 @@ function shortenProgramName(name) {
 }
 
 export default function ActivityCard({ activity, attention = false }) {
+  const { currentUser } = useCurrentUser();
   const [involvedNames, setInvolvedNames] = useState([]);
+  const [currentStatus, setCurrentStatus] = useState(activity.status);
+  const [finishing, setFinishing] = useState(false);
   const dateToShow = activity.due_date || activity.week_start;
   const dateObj = parseISO(dateToShow);
   const displayDate = isValid(dateObj)
@@ -98,7 +102,7 @@ export default function ActivityCard({ activity, attention = false }) {
   // Barra de progresso baseada no status
   let progressPercent;
   let progressColor;
-  switch (activity.status) {
+  switch (currentStatus) {
     case "Planejado":
       progressPercent = 0;
       progressColor = "bg-gray-400 dark:bg-gray-500";
@@ -142,9 +146,9 @@ export default function ActivityCard({ activity, attention = false }) {
             {emoji} {priority}
           </span>
           <span
-            className={`text-[9px] font-roboto font-semibold px-1.5 py-0.5 rounded-full border ${statusColors[activity.status] || statusColors.Planejado}`}
+            className={`text-[9px] font-roboto font-semibold px-1.5 py-0.5 rounded-full border ${statusColors[currentStatus] || statusColors.Planejado}`}
           >
-            {activity.status}
+            {currentStatus}
           </span>
         </div>
       </div>
@@ -186,6 +190,7 @@ export default function ActivityCard({ activity, attention = false }) {
           {activity.persons?.is_active === false && <span title="Usuário desativado" className="rounded-full bg-gray-200 px-1.5 py-0.5 text-[8px] font-bold uppercase text-gray-700 dark:bg-gray-700 dark:text-gray-200">Desativado</span>}
         </div>
         <div className="flex items-center gap-0.5">
+          {currentStatus !== "Realizado" && currentStatus !== "Cancelado" && activity.description?.trim() && (currentUser?.access_role === "admin" || currentUser?.id === activity.responsible_id) && <button disabled={finishing} onClick={async (event) => { event.preventDefault(); event.stopPropagation(); setFinishing(true); const { error } = await supabase.from("activities").update({ status: "Realizado", updated_at: new Date().toISOString() }).eq("id", activity.id); if (!error) { await supabase.from("activity_logs").insert({ activity_id: activity.id, person_id: currentUser.id, type: "status_change", content: `Status alterado de "${currentStatus}" para "Realizado" pelo card da atividade.`, metadata: { old_status: currentStatus, new_status: "Realizado" } }); setCurrentStatus("Realizado"); } setFinishing(false); }} className="flex min-h-[32px] items-center gap-1 rounded-full bg-emerald-100 px-2 text-[10px] font-bold text-emerald-800" title="Finalizar atividade"><span className="material-symbols-outlined text-[15px]">task_alt</span>{finishing ? "..." : "Finalizar"}</button>}
           {involvedNames.length > 0 && (
             <span className="text-[10px] text-green-600 dark:text-green-400 font-roboto px-1">
               +{involvedNames.length}

@@ -264,11 +264,11 @@ export default function ActivityDetail() {
 
   async function handleSave() {
     if (!canEdit || !activity) return;
-    if (!formData.description.trim() || !formData.start_datetime || !formData.end_datetime) {
-      setNotice({ type: "warning", text: "Preencha a descrição, o início e a finalização da atividade." });
+    if (!formData.description.trim()) {
+      setNotice({ type: "warning", text: "Preencha a descrição da atividade." });
       return;
     }
-    if (formData.end_datetime <= formData.start_datetime) {
+    if ((formData.start_datetime || formData.end_datetime) && (!formData.start_datetime || !formData.end_datetime || formData.end_datetime <= formData.start_datetime)) {
       setNotice({ type: "warning", text: "A finalização deve ser posterior ao início da atividade." });
       return;
     }
@@ -672,12 +672,11 @@ export default function ActivityDetail() {
             </div>
             <div>
               <label className="font-roboto text-label-md text-outline dark:text-gray-400">Início (data/hora)</label>
-              <input required type="datetime-local" name="start_datetime" value={formData.start_datetime?.slice(0, 16) || ""} onChange={handleChange} className="w-full bg-surface dark:bg-dark-background border-b-2 border-primary/20 focus:border-accent outline-none py-2 px-3 rounded-t-lg text-on-surface dark:text-white" />
+              <input type="datetime-local" name="start_datetime" value={formData.start_datetime?.slice(0, 16) || ""} onChange={handleChange} className="w-full bg-surface dark:bg-dark-background border-b-2 border-primary/20 focus:border-accent outline-none py-2 px-3 rounded-t-lg text-on-surface dark:text-white" />
             </div>
             <div>
               <label className="font-roboto text-label-md text-outline dark:text-gray-400">Finalização prevista (data/hora)</label>
               <input
-                required
                 type="datetime-local"
                 name="end_datetime"
                 value={formData.end_datetime?.slice(0, 16) || ""}

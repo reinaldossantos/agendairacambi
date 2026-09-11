@@ -4,6 +4,8 @@ Sistema web responsivo para planejamento, acompanhamento, gestão e prestação 
 
 O projeto centraliza agenda, eventos, evidências, pessoas, programas, veículos, despesas, relatórios, arquivos, avisos, notificações e auditoria em uma única aplicação instalável como PWA.
 
+Também inclui agenda de visitas escolares com planejamento de público e refeições, vínculo opcional a atividades, atualização de pendências em lote, finalização rápida de atividades, indicação de veículo próprio nas despesas e exportação mensal da movimentação da frota.
+
 No acesso, os usuários `robin` e `deivid` são associados de forma segura às contas institucionais `iracambi@iracambi.com` e `viveiro@iracambi.com`, inclusive na função de autenticação, para funcionar também em dispositivos que ainda estejam atualizando o PWA.
 
 No módulo de veículos, Thaís e o administrador podem cadastrar e atualizar a frota. A leitura permanece disponível à equipe, enquanto operações de exclusão continuam restritas ao administrador; inclusões e alterações permanecem registradas na auditoria.

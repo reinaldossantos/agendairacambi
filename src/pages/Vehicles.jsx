@@ -163,6 +163,14 @@ export default function Vehicles() {
     [bookings],
   );
 
+  function exportVehicleMovement() {
+    const rows = bookings.filter((item) => item.status === "completed");
+    if (!rows.length) return setError("Não há viagens finalizadas neste mês para gerar o relatório.");
+    const columns = ["Data","Veículo","Placa","Responsável","Programa","Destino","Finalidade","KM inicial","KM final","Distância"];
+    const csv = [columns, ...rows.map((item) => [format(new Date(item.start_at), "dd/MM/yyyy"), item.vehicle?.name, item.vehicle?.plate, item.person?.name, item.program?.name, item.destination || "", item.purpose, item.start_odometer, item.end_odometer, Number(item.end_odometer) - Number(item.start_odometer)])].map((row) => row.map((value) => `"${String(value ?? "").replace(/"/g, '""')}"`).join(";")).join("\n");
+    const link = document.createElement("a"); link.href = URL.createObjectURL(new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" })); link.download = `movimento-veiculos-${format(displayMonth,"yyyy-MM")}.csv`; link.click(); URL.revokeObjectURL(link.href);
+  }
+
   function openNewBooking() {
     const start = new Date();
     start.setMinutes(Math.ceil((start.getMinutes() + 1) / 30) * 30, 0, 0);
@@ -448,7 +456,7 @@ export default function Vehicles() {
           ))}
           {completedBookings.length > 0 && (
             <section className="pt-5">
-              <h3 className="mb-3 text-sm font-bold uppercase tracking-wide text-outline">Finalizados recentemente</h3>
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2"><h3 className="text-sm font-bold uppercase tracking-wide text-outline">Finalizados recentemente</h3><button type="button" onClick={exportVehicleMovement} className="inline-flex min-h-10 items-center gap-2 rounded-full border border-primary px-4 text-sm font-bold text-primary dark:text-white"><span className="material-symbols-outlined text-[18px]">download</span>Relatório do mês (CSV)</button></div>
               <div className="space-y-2">
                 {completedBookings.map((item) => (
                   <article key={item.id} className="bg-white/70 dark:bg-dark-surface/70 border border-surface-variant dark:border-white/10 rounded-xl p-4 flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3">

@@ -3,6 +3,20 @@ import { Link } from "react-router-dom";
 
 const sections = [
   {
+    id: "productivity-2026",
+    title: "Produtividade, mobilidade e visitas escolares",
+    icon: "school",
+    items: [
+      "Os filtros do Histórico permanecem selecionados ao abrir, editar, salvar e retornar de uma atividade.",
+      "Horários de início e fim são opcionais nas atividades comuns; continuam obrigatórios para eventos.",
+      "Na Central de pendências, selecione várias atividades e aplique um status comum em lote.",
+      "Atividades completas podem ser finalizadas diretamente pelo botão no card.",
+      "Em Veículos, o KM final somente é exigido ao finalizar a viagem; o relatório mensal de movimentação pode ser exportado em CSV.",
+      "Em Visitas escolares, registre escola, público, refeições, restrições, horários, responsável, previsão financeira e vínculo com uma atividade existente ou nova.",
+      "O relatório de despesas informa se houve utilização de veículo próprio.",
+    ],
+  },
+  {
     id: "restaurant-restock",
     title: "Reposição do restaurante",
     icon: "restaurant",
@@ -24,7 +38,7 @@ const sections = [
       "Detalhes e criação rápida: selecione um dia para abrir o painel lateral no computador ou o painel inferior no celular. Use Nova atividade neste dia para abrir o cadastro com a data preenchida.",
       "Mensagens integradas: confirmações, validações e erros da atividade seguem o visual da aplicação. A remoção de comentário exige confirmação e preserva o registro para auditoria.",
       "Eventos integrados: marque uma atividade como evento para registrar temática, período, público, parceiros, contrapartidas, resultados e evidências; consulte a programação na página Eventos e gere o PDF do período.",
-      "Carga horária: descrição, início e finalização são obrigatórios nas novas atividades. Os relatórios mensais calculam as horas por atividade e o total individual ou do programa.",
+      "Carga horária: início e finalização são opcionais nas atividades comuns e obrigatórios em eventos. Quando informados, os relatórios mensais calculam as horas por atividade e o total individual ou do programa.",
       "Painel de progresso: o Dashboard apresenta percentual, realizadas, restantes e distribuição por status. Clique em um status para abrir o Histórico já filtrado.",
       "Navegador de período: alterne entre Semana e Mês, use as setas, escolha uma data, pressione H para Hoje ou deslize horizontalmente no celular.",
       "Central inteligente: use o botão amarelo para criar atividade, evento, reserva de veículo, relatório de despesas ou aviso. Abra também com Alt + N e feche com Esc.",
@@ -73,7 +87,7 @@ const sections = [
     items: [
       "No modo WhatsApp, cole uma programação com cabeçalhos como “Segunda:” e “Terça-feira:”; o sistema separa o texto e atribui as datas correspondentes.",
       "Se o texto não tiver cabeçalhos reconhecidos, use a opção de transferi-lo para o modo Rápido.",
-      "No modo Rápido, informe programa, data, título, descrição, prioridade, início, finalização, responsável e pessoas envolvidas. Descrição e horários são obrigatórios.",
+      "No modo Rápido, informe programa, data, título, descrição, prioridade, responsável e pessoas envolvidas. Os horários são opcionais nas atividades comuns.",
       "Ao salvar, títulos e descrições são ajustados automaticamente para primeira letra maiúscula e demais letras minúsculas, mesmo quando digitados inteiramente em maiúsculas ou minúsculas.",
       "Você pode adicionar várias atividades, repetir uma atividade em diversas datas e usar @nome na descrição para mencionar e envolver uma pessoa.",
       "Fotos e documentos podem ser anexados como evidência. No modo WhatsApp, os anexos informados são aplicados às atividades geradas.",

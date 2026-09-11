@@ -32,6 +32,7 @@ import ProjectDetail from "./pages/ProjectDetail";
 import PendingIssues from "./pages/PendingIssues";
 import Souvenirs from "./pages/Souvenirs";
 import RestaurantRestock from "./pages/RestaurantRestock";
+import SchoolVisits from "./pages/SchoolVisits";
 import { isRestaurantOperator } from "./lib/restaurantAccess";
 import { useCurrentUser } from "./context/CurrentUserContext";
 
@@ -91,6 +92,7 @@ function App() {
         <Route path="/budgets" element={<ProgramBudgets />} />
         <Route path="/souvenirs" element={<Souvenirs />} />
         <Route path="/restaurant-restock" element={<RestaurantRestock />} />
+        <Route path="/school-visits" element={<SchoolVisits />} />
         <Route path="/expense-report-summary" element={<ExpenseReportSummary />} />
         <Route path="/monthly-activity-reports" element={<MonthlyActivityReports />} />
         <Route path="/audit-log" element={<ReinaldoOnly><AuditLog /></ReinaldoOnly>} />

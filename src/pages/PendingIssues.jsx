@@ -17,6 +17,8 @@ export default function PendingIssues() {
   const [resolutionForm, setResolutionForm] = useState({ description: "", start_datetime: "", end_datetime: "", reason: "" });
   const [actionMessage, setActionMessage] = useState({ type: "", text: "" });
   const [saving, setSaving] = useState(false);
+  const [selectedActivityIds, setSelectedActivityIds] = useState([]);
+  const [batchStatus, setBatchStatus] = useState("Em andamento");
 
   function openResolution(activity, status) {
     const dueDate = activity.due_date || format(new Date(), "yyyy-MM-dd");
@@ -34,14 +36,13 @@ export default function PendingIssues() {
     event.preventDefault();
     const { activity, status } = resolution;
     if (status === "Cancelado" && resolutionForm.reason.trim().length < 3) return setActionMessage({ type: "error", text: "Informe a justificativa do cancelamento." });
-    if (status === "Realizado" && (!resolutionForm.description.trim() || !resolutionForm.start_datetime || !resolutionForm.end_datetime)) return setActionMessage({ type: "error", text: "Informe a descrição e os horários para finalizar." });
-    if (status === "Realizado" && new Date(resolutionForm.end_datetime) <= new Date(resolutionForm.start_datetime)) return setActionMessage({ type: "error", text: "O horário final deve ser posterior ao inicial." });
+    if (status === "Realizado" && !resolutionForm.description.trim()) return setActionMessage({ type: "error", text: "Informe a descrição para finalizar." });
     setSaving(true);
     const updates = status === "Cancelado" ? { status } : {
       status,
       description: resolutionForm.description.trim(),
-      start_datetime: new Date(resolutionForm.start_datetime).toISOString(),
-      end_datetime: new Date(resolutionForm.end_datetime).toISOString(),
+      start_datetime: resolutionForm.start_datetime ? new Date(resolutionForm.start_datetime).toISOString() : null,
+      end_datetime: resolutionForm.end_datetime ? new Date(resolutionForm.end_datetime).toISOString() : null,
     };
     const { error: updateError } = await supabase.from("activities").update({ ...updates, updated_at: new Date().toISOString() }).eq("id", activity.id).eq("responsible_id", currentUser.id);
     if (updateError) { setSaving(false); return setActionMessage({ type: "error", text: `Não foi possível resolver a pendência: ${updateError.message}` }); }
@@ -54,6 +55,19 @@ export default function PendingIssues() {
     await refresh();
   }
 
+  async function updateBatch() {
+    if (!selectedActivityIds.length) return;
+    setSaving(true);
+    const selected = activityIssues.filter((item) => selectedActivityIds.includes(item.id));
+    const { error: updateError } = await supabase.from("activities").update({ status: batchStatus, updated_at: new Date().toISOString() }).in("id", selectedActivityIds).eq("responsible_id", currentUser.id);
+    if (!updateError) await supabase.from("activity_logs").insert(selected.map((item) => ({ activity_id: item.id, person_id: currentUser.id, type: "status_change", content: `Status alterado de "${item.status}" para "${batchStatus}" em lote pela Central de Pendências.`, metadata: { old_status: item.status, new_status: batchStatus, batch: true } })));
+    setSaving(false);
+    if (updateError) return setActionMessage({ type: "error", text: `Não foi possível atualizar o lote: ${updateError.message}` });
+    setSelectedActivityIds([]);
+    setActionMessage({ type: "success", text: `${selected.length} atividade(s) atualizada(s) em lote.` });
+    await refresh();
+  }
+
   return <section className="mx-auto max-w-5xl space-y-5 px-2 sm:px-4">
     <header className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end"><div><p className="text-sm font-medium text-primary-light dark:text-green-300">Acompanhamento pessoal</p><h1 className="text-3xl font-black text-primary dark:text-white">Central de pendências</h1><p className="text-sm text-outline">Avisos do seu usuário que desaparecem automaticamente depois da regularização.</p></div><button type="button" onClick={refresh} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-primary px-4 font-bold text-primary dark:text-white"><span className="material-symbols-outlined">refresh</span>Atualizar</button></header>
     {error && <p role="alert" className="rounded-xl bg-red-50 p-3 text-red-700 dark:bg-red-950/30 dark:text-red-300">{error}</p>}
@@ -63,7 +77,8 @@ export default function PendingIssues() {
         {vehicleIssues.map((item) => <IssueCard key={item.id} tone="red" title={`${item.vehicle?.name || "Veículo"} · ${item.purpose}`} detail={`Retorno previsto em ${dateLabel(item.end_at, true)}${item.destination ? ` · ${item.destination}` : ""}`} reason="Informe o KM inicial e final para concluir este agendamento." link={`/vehicles?month=${format(new Date(item.start_at), "yyyy-MM")}&complete=${item.id}`} action="Informar quilometragem" />)}
       </IssueSection>}
       {activityIssues.length > 0 && <IssueSection title="Atividades" icon="assignment_late" count={activityIssues.length}>
-        {activityIssues.map((item) => <ActivityIssueCard key={item.id} item={item} onResolve={openResolution} />)}
+        <div className="flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3 sm:flex-row sm:items-end"><label className="flex-1 text-sm font-bold">Status para as selecionadas<select value={batchStatus} onChange={(event) => setBatchStatus(event.target.value)} className="mt-1 w-full rounded-xl border bg-white p-2.5"><option>Planejado</option><option>Em andamento</option><option>Pendente</option><option>Realizado</option></select></label><button type="button" disabled={!selectedActivityIds.length || saving} onClick={updateBatch} className="min-h-11 rounded-full bg-primary px-5 font-bold text-white disabled:opacity-40">Atualizar {selectedActivityIds.length || ""} em lote</button></div>
+        {activityIssues.map((item) => <div key={item.id} className="relative"><label className="absolute left-4 top-4 z-10 flex items-center gap-2 rounded-lg bg-white/90 px-2 py-1 text-xs font-bold"><input type="checkbox" checked={selectedActivityIds.includes(item.id)} onChange={() => setSelectedActivityIds((ids) => ids.includes(item.id) ? ids.filter((id) => id !== item.id) : [...ids, item.id])} className="h-5 w-5" />Selecionar</label><div className="pt-9"><ActivityIssueCard item={item} onResolve={openResolution} /></div></div>)}
       </IssueSection>}
       {bonusIssues.length > 0 && <IssueSection title="Bonificações para autorizar" icon="redeem" count={bonusIssues.length}>
         {bonusIssues.map((item) => <IssueCard key={item.id} tone="amber" title={`${item.product?.name || "Souvenir"} · ${item.quantity} unidade(s)`} detail={`Solicitado por ${item.requester?.name || "Usuário"} para ${item.recipient_name}`} reason="A bonificação aguarda autorização superior e ainda não alterou o estoque." link="/souvenirs" action="Analisar bonificação" />)}

@@ -40,8 +40,8 @@ export default function NewActivity() {
   const [selectedManagementProject, setSelectedManagementProject] = useState("");
   const [selectedPerson, setSelectedPerson] = useState("");
   const [selectedPriority, setSelectedPriority] = useState("Média");
-  const [whatsAppStartTime, setWhatsAppStartTime] = useState("08:00");
-  const [whatsAppEndTime, setWhatsAppEndTime] = useState("17:00");
+  const [whatsAppStartTime, setWhatsAppStartTime] = useState("");
+  const [whatsAppEndTime, setWhatsAppEndTime] = useState("");
 
   const getInitialMode = () => {
     if (modes.wpp) return "wpp";
@@ -380,7 +380,7 @@ export default function NewActivity() {
     if (selectedMode === "wpp") {
       const parsed = parseWeekText(weekText, parseISO(weekStartDate));
       if (parsed.length === 0) { setMessage({ type: "error", text: "Não foram encontrados dias da semana no texto.", action: "switch" }); setLoading(false); return; }
-      if (!whatsAppStartTime || !whatsAppEndTime || whatsAppEndTime <= whatsAppStartTime) { setMessage({ type: "error", text: "Informe horários válidos de início e finalização; a finalização deve ser posterior ao início." }); setLoading(false); return; }
+      if ((whatsAppStartTime || whatsAppEndTime) && (!whatsAppStartTime || !whatsAppEndTime || whatsAppEndTime <= whatsAppStartTime)) { setMessage({ type: "error", text: "Quando informar horários, preencha início e finalização; a finalização deve ser posterior ao início." }); setLoading(false); return; }
       if (parsed.some((item) => !item.description?.trim())) { setMessage({ type: "error", text: "Todas as atividades precisam de descrição." }); setLoading(false); return; }
       list = parsed.map(item => ({ 
         program_id: programId, 
@@ -396,8 +396,8 @@ export default function NewActivity() {
         involved_ids: involvedIdsGlobal,
         images: globalImages,
         files: globalFiles,
-        start_datetime: `${item.due_date}T${whatsAppStartTime}`,
-        end_datetime: `${item.due_date}T${whatsAppEndTime}`
+        start_datetime: whatsAppStartTime ? `${item.due_date}T${whatsAppStartTime}` : null,
+        end_datetime: whatsAppEndTime ? `${item.due_date}T${whatsAppEndTime}` : null
       }));
     } else if (selectedMode === "quick") {
       for (let i = 0; i < quickActivities.length; i++) {
@@ -405,7 +405,7 @@ export default function NewActivity() {
         const activityStart = q.isEvent ? q.eventData?.start_at : q.startDateTime;
         const activityEnd = q.isEvent ? q.eventData?.end_at : q.endDateTime;
         if (!q.title.trim() || !q.date || !q.description.trim()) { setMessage({ type: "error", text: "Preencha título, data e descrição de todas as atividades." }); setLoading(false); return; }
-        if (!activityStart || !activityEnd || activityEnd <= activityStart) { setMessage({ type: "error", text: `Informe início e finalização válidos para “${q.title}”.` }); setLoading(false); return; }
+        if (!q.isEvent && (activityStart || activityEnd) && (!activityStart || !activityEnd || activityEnd <= activityStart)) { setMessage({ type: "error", text: `Quando informar horários, preencha início e finalização válidos para “${q.title}”.` }); setLoading(false); return; }
         if (q.isEvent && (!q.eventData?.theme?.trim() || !q.eventData?.start_at || !q.eventData?.end_at)) { setMessage({ type: "error", text: `Informe temática, início e término do evento “${q.title}”.` }); setLoading(false); return; }
         if (q.isEvent && q.eventData.start_at > q.eventData.end_at) { setMessage({ type: "error", text: `O término do evento “${q.title}” deve ser posterior ao início.` }); setLoading(false); return; }
         if (q.usesVehicle) {
@@ -431,8 +431,8 @@ export default function NewActivity() {
             involved_ids: q.involvedIds || [], 
             images: q.images || [],
             files: q.files || [],
-            start_datetime: `${date}T${activityStart.slice(11, 16)}`,
-            end_datetime: `${date}T${activityEnd.slice(11, 16)}`,
+            start_datetime: activityStart ? `${date}T${activityStart.slice(11, 16)}` : null,
+            end_datetime: activityEnd ? `${date}T${activityEnd.slice(11, 16)}` : null,
             is_event: q.isEvent || false,
             event_data: q.isEvent ? q.eventData : {},
             _vehicle_booking: q.usesVehicle ? { ...q.vehicleBooking, start_at: `${date}T${q.vehicleBooking.start_at.slice(11, 16)}`, end_at: `${date}T${q.vehicleBooking.end_at.slice(11, 16)}` } : null
@@ -643,8 +643,8 @@ export default function NewActivity() {
               <p className="text-label-sm text-outline mt-2">Dica: cole o texto do chat. Use cabeçalhos como "Segunda:" ou "Terça-feira:".</p>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
-              <label className="text-sm font-semibold text-on-surface dark:text-gray-200">Horário de início para as atividades<input required type="time" value={whatsAppStartTime} onChange={(event) => setWhatsAppStartTime(event.target.value)} className="mt-1 w-full rounded-xl border border-surface-variant bg-surface px-3 py-2.5 dark:bg-dark-background" /></label>
-              <label className="text-sm font-semibold text-on-surface dark:text-gray-200">Horário de finalização para as atividades<input required type="time" value={whatsAppEndTime} onChange={(event) => setWhatsAppEndTime(event.target.value)} className="mt-1 w-full rounded-xl border border-surface-variant bg-surface px-3 py-2.5 dark:bg-dark-background" /></label>
+              <label className="text-sm font-semibold text-on-surface dark:text-gray-200">Horário de início (opcional)<input type="time" value={whatsAppStartTime} onChange={(event) => setWhatsAppStartTime(event.target.value)} className="mt-1 w-full rounded-xl border border-surface-variant bg-surface px-3 py-2.5 dark:bg-dark-background" /></label>
+              <label className="text-sm font-semibold text-on-surface dark:text-gray-200">Horário de finalização (opcional)<input type="time" value={whatsAppEndTime} onChange={(event) => setWhatsAppEndTime(event.target.value)} className="mt-1 w-full rounded-xl border border-surface-variant bg-surface px-3 py-2.5 dark:bg-dark-background" /></label>
             </div>
             <TeamMemberSelector people={persons.filter((person) => person.name !== selectedPerson)} selectedIds={involvedIdsGlobal} onChange={setInvolvedIdsGlobal} label="Envolver outras pessoas" />
 
@@ -687,11 +687,11 @@ export default function NewActivity() {
                   </div>
                   <div>
                     <label className="font-roboto text-[10px] uppercase text-outline">Início</label>
-                    <input required type="datetime-local" value={(qa.isEvent ? qa.eventData?.start_at : qa.startDateTime) || ""} onChange={e => { updateQuickActivity(idx, "startDateTime", e.target.value); if (qa.isEvent) updateQuickActivity(idx, "eventData", { ...qa.eventData, start_at: e.target.value }); }} className="w-full bg-transparent border-b border-primary/20 focus:border-accent outline-none py-1 text-sm text-on-surface dark:text-white font-roboto" />
+                    <input required={qa.isEvent} type="datetime-local" value={(qa.isEvent ? qa.eventData?.start_at : qa.startDateTime) || ""} onChange={e => { updateQuickActivity(idx, "startDateTime", e.target.value); if (qa.isEvent) updateQuickActivity(idx, "eventData", { ...qa.eventData, start_at: e.target.value }); }} className="w-full bg-transparent border-b border-primary/20 focus:border-accent outline-none py-1 text-sm text-on-surface dark:text-white font-roboto" />
                   </div>
                   <div>
                     <label className="font-roboto text-[10px] uppercase text-outline">Finalização</label>
-                    <input required type="datetime-local" value={(qa.isEvent ? qa.eventData?.end_at : qa.endDateTime) || ""} onChange={e => { updateQuickActivity(idx, "endDateTime", e.target.value); if (qa.isEvent) updateQuickActivity(idx, "eventData", { ...qa.eventData, end_at: e.target.value }); }} className="w-full bg-transparent border-b border-primary/20 focus:border-accent outline-none py-1 text-sm text-on-surface dark:text-white font-roboto" />
+                    <input required={qa.isEvent} type="datetime-local" value={(qa.isEvent ? qa.eventData?.end_at : qa.endDateTime) || ""} onChange={e => { updateQuickActivity(idx, "endDateTime", e.target.value); if (qa.isEvent) updateQuickActivity(idx, "eventData", { ...qa.eventData, end_at: e.target.value }); }} className="w-full bg-transparent border-b border-primary/20 focus:border-accent outline-none py-1 text-sm text-on-surface dark:text-white font-roboto" />
                   </div>
                   <div className="lg:col-span-2">
                     <label className="font-roboto text-[10px] uppercase text-outline">Título</label>

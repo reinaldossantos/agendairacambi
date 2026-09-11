@@ -51,6 +51,16 @@ export default function History() {
     return () => clearTimeout(timer);
   }, [filterProgram, filterPerson, filterStatus, startDate, endDate]);
 
+  useEffect(() => {
+    const params = {};
+    if (filterStatus) params.status = filterStatus;
+    if (startDate) params.start = startDate;
+    if (endDate) params.end = endDate;
+    if (filterProgram) params.program = filterProgram;
+    if (filterPerson) params.person = filterPerson;
+    setSearchParams(params, { replace: true });
+  }, [filterProgram, filterPerson, filterStatus, startDate, endDate]);
+
   async function fetchMeta() {
     const [progRes, persRes] = await Promise.all([
       supabase.from("programs").select("id, name, leader_id").order("name"),
