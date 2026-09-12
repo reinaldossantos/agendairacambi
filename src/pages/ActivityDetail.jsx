@@ -268,7 +268,7 @@ export default function ActivityDetail() {
       setNotice({ type: "warning", text: "Preencha a descrição da atividade." });
       return;
     }
-    if ((formData.start_datetime || formData.end_datetime) && (!formData.start_datetime || !formData.end_datetime || formData.end_datetime <= formData.start_datetime)) {
+    if (formData.end_datetime && (!formData.start_datetime || formData.end_datetime <= formData.start_datetime)) {
       setNotice({ type: "warning", text: "A finalização deve ser posterior ao início da atividade." });
       return;
     }

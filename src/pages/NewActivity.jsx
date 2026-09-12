@@ -15,6 +15,8 @@ import TeamMemberSelector from "../components/activities/TeamMemberSelector";
 import { emptyEventData } from "../lib/events";
 import { sentenceCase, sentenceCaseEventData } from "../lib/textFormatting";
 
+const defaultActivityStart = (date) => `${date}T08:00`;
+
 export default function NewActivity() {
   const location = useLocation();
   const { currentUser } = useCurrentUser();
@@ -39,7 +41,7 @@ export default function NewActivity() {
   const [selectedProgram, setSelectedProgram] = useState("");
   const [selectedManagementProject, setSelectedManagementProject] = useState("");
   const [selectedPerson, setSelectedPerson] = useState("");
-  const [selectedPriority, setSelectedPriority] = useState("Média");
+  const [selectedPriority, setSelectedPriority] = useState("Baixa");
   const [whatsAppStartTime, setWhatsAppStartTime] = useState("");
   const [whatsAppEndTime, setWhatsAppEndTime] = useState("");
 
@@ -58,13 +60,13 @@ export default function NewActivity() {
       title: "", 
       description: "", 
       involvedIds: [], 
-      priority: "Média", 
+      priority: "Baixa",
       repeat: false, 
       repeatEndDate: "", 
       repeatDays: [], 
       images: [],
       files: [],
-      startDateTime: "",
+      startDateTime: defaultActivityStart(format(new Date(), "yyyy-MM-dd")),
       endDateTime: "",
       isEvent: false,
       eventData: emptyEventData(),
@@ -90,7 +92,7 @@ export default function NewActivity() {
   useEffect(() => {
     const dueDate = location.state?.dueDate;
     if (/^\d{4}-\d{2}-\d{2}$/.test(dueDate || "")) {
-      setQuickActivities((items) => items.map((item, index) => index === 0 ? { ...item, date: dueDate } : item));
+      setQuickActivities((items) => items.map((item, index) => index === 0 ? { ...item, date: dueDate, startDateTime: defaultActivityStart(dueDate) } : item));
       setSelectedMode("quick");
       window.history.replaceState({}, document.title);
     }
@@ -98,20 +100,20 @@ export default function NewActivity() {
     if (clone) {
       setSelectedProgram(clone.program || "");
       setSelectedPerson(clone.responsible || "");
-      setSelectedPriority(clone.priority || "Média");
+      setSelectedPriority(clone.priority || "Baixa");
       if (clone.title) {
         setQuickActivities([{
           date: format(new Date(), "yyyy-MM-dd"),
           title: clone.title,
           description: clone.description || "",
           involvedIds: clone.involvedIds || [],
-          priority: clone.priority || "Média",
+          priority: clone.priority || "Baixa",
           repeat: false,
           repeatEndDate: "",
           repeatDays: [],
           images: [],
           files: [],
-          startDateTime: "",
+          startDateTime: defaultActivityStart(format(new Date(), "yyyy-MM-dd")),
           endDateTime: "",
           isEvent: clone.is_event || false,
           eventData: { ...emptyEventData(), ...(clone.event_data || {}) },
@@ -123,7 +125,7 @@ export default function NewActivity() {
     }
     if (location.state?.createEvent) {
       const date = format(new Date(), "yyyy-MM-dd");
-      setQuickActivities([{ date, title: "", description: "", involvedIds: [], priority: "Média", repeat: false, repeatEndDate: "", repeatDays: [], images: [], files: [], startDateTime: `${date}T09:00`, endDateTime: `${date}T17:00`, isEvent: true, eventData: { ...emptyEventData(), start_at: `${date}T09:00`, end_at: `${date}T17:00` } }]);
+      setQuickActivities([{ date, title: "", description: "", involvedIds: [], priority: "Baixa", repeat: false, repeatEndDate: "", repeatDays: [], images: [], files: [], startDateTime: `${date}T09:00`, endDateTime: `${date}T17:00`, isEvent: true, eventData: { ...emptyEventData(), start_at: `${date}T09:00`, end_at: `${date}T17:00` } }]);
       setSelectedMode("quick");
       window.history.replaceState({}, document.title);
     }
@@ -233,9 +235,15 @@ export default function NewActivity() {
     return { title: cleaned[0], description: cleaned.join('; ') };
   }
 
-  const addQuickActivity = () => setQuickActivities([...quickActivities, { date: format(new Date(), "yyyy-MM-dd"), title: "", description: "", involvedIds: [], priority: "Média", repeat: false, repeatEndDate: "", repeatDays: [], images: [], files: [], startDateTime: "", endDateTime: "", isEvent: false, eventData: emptyEventData(), usesVehicle: false, vehicleBooking: { vehicle_id: "", passengers: 1, destination: "", notes: "" } }]);
+  const addQuickActivity = () => { const date = format(new Date(), "yyyy-MM-dd"); setQuickActivities([...quickActivities, { date, title: "", description: "", involvedIds: [], priority: "Baixa", repeat: false, repeatEndDate: "", repeatDays: [], images: [], files: [], startDateTime: defaultActivityStart(date), endDateTime: "", isEvent: false, eventData: emptyEventData(), usesVehicle: false, vehicleBooking: { vehicle_id: "", passengers: 1, destination: "", notes: "" } }]); };
   const removeQuickActivity = (i) => { if (quickActivities.length > 1) setQuickActivities(quickActivities.filter((_, idx) => idx !== i)); };
   const updateQuickActivity = (i, f, v) => { const u = [...quickActivities]; u[i][f] = v; setQuickActivities(u); };
+  const updateQuickDate = (index, date) => setQuickActivities((items) => items.map((item, itemIndex) => {
+    if (itemIndex !== index) return item;
+    const currentTime = item.startDateTime?.slice(11, 16) || "08:00";
+    const startDateTime = date ? `${date}T${currentTime}` : "";
+    return { ...item, date, startDateTime };
+  }));
   const openVehicleModal = (index, activity) => {
     const responsibleId = persons.find((person) => person.name === selectedPerson)?.id;
     setVehicleModal({
@@ -295,7 +303,7 @@ export default function NewActivity() {
   };
   const toggleRepeatDay = (i, day) => { const u = [...quickActivities]; const days = u[i].repeatDays || []; if (days.includes(day)) u[i].repeatDays = days.filter(d => d !== day); else u[i].repeatDays = [...days, day]; setQuickActivities(u); };
   const switchToQuickWithText = () => {
-    setQuickActivities([{ date: rawWeekDate, title: weekText.split('\n')[0] || "Atividade", description: weekText, involvedIds: involvedIdsGlobal, priority: selectedPriority, repeat: false, repeatEndDate: "", repeatDays: [], images: [], files: [], startDateTime: "", endDateTime: "", isEvent: false, eventData: emptyEventData() }]);
+    setQuickActivities([{ date: rawWeekDate, title: weekText.split('\n')[0] || "Atividade", description: weekText, involvedIds: involvedIdsGlobal, priority: selectedPriority, repeat: false, repeatEndDate: "", repeatDays: [], images: [], files: [], startDateTime: defaultActivityStart(rawWeekDate), endDateTime: "", isEvent: false, eventData: emptyEventData() }]);
     setSelectedMode("quick");
     setMessage({ type: "", text: "" });
   };
@@ -405,7 +413,7 @@ export default function NewActivity() {
         const activityStart = q.isEvent ? q.eventData?.start_at : q.startDateTime;
         const activityEnd = q.isEvent ? q.eventData?.end_at : q.endDateTime;
         if (!q.title.trim() || !q.date || !q.description.trim()) { setMessage({ type: "error", text: "Preencha título, data e descrição de todas as atividades." }); setLoading(false); return; }
-        if (!q.isEvent && (activityStart || activityEnd) && (!activityStart || !activityEnd || activityEnd <= activityStart)) { setMessage({ type: "error", text: `Quando informar horários, preencha início e finalização válidos para “${q.title}”.` }); setLoading(false); return; }
+        if (!q.isEvent && activityEnd && (!activityStart || activityEnd <= activityStart)) { setMessage({ type: "error", text: `A finalização de “${q.title}” deve ser posterior ao início.` }); setLoading(false); return; }
         if (q.isEvent && (!q.eventData?.theme?.trim() || !q.eventData?.start_at || !q.eventData?.end_at)) { setMessage({ type: "error", text: `Informe temática, início e término do evento “${q.title}”.` }); setLoading(false); return; }
         if (q.isEvent && q.eventData.start_at > q.eventData.end_at) { setMessage({ type: "error", text: `O término do evento “${q.title}” deve ser posterior ao início.` }); setLoading(false); return; }
         if (q.usesVehicle) {
@@ -427,7 +435,7 @@ export default function NewActivity() {
             week_start: format(startOfWeek(parseISO(date), { weekStartsOn: 1 }), "yyyy-MM-dd"), 
             due_date: date, 
             status: "Planejado", 
-            priority: q.priority || "Média", 
+            priority: q.priority || "Baixa",
             involved_ids: q.involvedIds || [], 
             images: q.images || [],
             files: q.files || [],
@@ -449,7 +457,7 @@ export default function NewActivity() {
             week_start: format(startOfWeek(parseISO(activityDate), { weekStartsOn: 1 }), "yyyy-MM-dd"),
             due_date: activityDate,
             status: "Planejado", 
-            priority: q.priority || "Média", 
+            priority: q.priority || "Baixa",
             involved_ids: q.involvedIds || [], 
             images: q.images || [],
             files: q.files || [],
@@ -559,11 +567,12 @@ export default function NewActivity() {
     uncommittedUploads.current.files.clear();
     setLastInserted({ program: selectedProgram, responsible: selectedPerson, weekStart: list[0].week_start, activities: list });
     setWeekText("");
-    setQuickActivities([{ date: format(new Date(), "yyyy-MM-dd"), title: "", description: "", involvedIds: [], priority: "Média", repeat: false, repeatEndDate: "", repeatDays: [], images: [], files: [], startDateTime: "", endDateTime: "", isEvent: false, eventData: emptyEventData(), usesVehicle: false, vehicleBooking: { vehicle_id: "", passengers: 1, destination: "", notes: "" } }]);
+    const date = format(new Date(), "yyyy-MM-dd");
+    setQuickActivities([{ date, title: "", description: "", involvedIds: [], priority: "Baixa", repeat: false, repeatEndDate: "", repeatDays: [], images: [], files: [], startDateTime: defaultActivityStart(date), endDateTime: "", isEvent: false, eventData: emptyEventData(), usesVehicle: false, vehicleBooking: { vehicle_id: "", passengers: 1, destination: "", notes: "" } }]);
     setInvolvedIdsGlobal([]);
     setGlobalImages([]);
     setGlobalFiles([]);
-    setSelectedPriority("Média");
+    setSelectedPriority("Baixa");
     setLoading(false);
   }
 
@@ -683,7 +692,7 @@ export default function NewActivity() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
                   <div>
                     <label className="font-roboto text-[10px] uppercase text-outline">Data</label>
-                    <input required type="date" value={qa.date} onChange={e => updateQuickActivity(idx, "date", e.target.value)} className="w-full bg-transparent border-b border-primary/20 focus:border-accent outline-none py-1 text-sm text-on-surface dark:text-white font-roboto" />
+                    <input required type="date" value={qa.date} onChange={e => updateQuickDate(idx, e.target.value)} className="w-full bg-transparent border-b border-primary/20 focus:border-accent outline-none py-1 text-sm text-on-surface dark:text-white font-roboto" />
                   </div>
                   <div>
                     <label className="font-roboto text-[10px] uppercase text-outline">Início</label>
@@ -699,7 +708,7 @@ export default function NewActivity() {
                   </div>
                   <div>
                     <label className="font-roboto text-[10px] uppercase text-outline">Prioridade</label>
-                    <select value={qa.priority || "Média"} onChange={e => updateQuickActivity(idx, "priority", e.target.value)} className="w-full bg-transparent border-b border-primary/20 focus:border-accent outline-none py-1 text-sm text-on-surface dark:text-white font-roboto">
+                    <select value={qa.priority || "Baixa"} onChange={e => updateQuickActivity(idx, "priority", e.target.value)} className="w-full bg-transparent border-b border-primary/20 focus:border-accent outline-none py-1 text-sm text-on-surface dark:text-white font-roboto">
                       <option value="Baixa">🟢 Baixa</option>
                       <option value="Média">🟡 Média</option>
                       <option value="Alta">🟠 Alta</option>
