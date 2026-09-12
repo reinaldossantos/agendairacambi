@@ -29,14 +29,14 @@ function getCurrentMonday() {
 
 export default function Dashboard() {
   const { currentUser } = useCurrentUser();
-  const [searchParams] = useSearchParams();
-  const programFromUrl = searchParams.get("program") || "Todos";
+  const [searchParams, setSearchParams] = useSearchParams();
+  const programFromUrl = searchParams.get("program");
 
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedProgram, setSelectedProgram] = useState(() => {
     const saved = localStorage.getItem("iracambi_dashboard_program");
-    return saved && saved !== "Todos" ? saved : programFromUrl;
+    return programFromUrl || (saved && saved !== "Todos" ? saved : "Todos");
   });
   const [programs, setPrograms] = useState([]);
   const [programIds, setProgramIds] = useState({});
@@ -73,8 +73,16 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
-    setSelectedProgram(programFromUrl);
+    if (programFromUrl !== null) setSelectedProgram(programFromUrl);
   }, [programFromUrl]);
+
+  function selectProgram(programName) {
+    setSelectedProgram(programName);
+    const nextParams = new URLSearchParams(searchParams);
+    if (programName === "Todos") nextParams.delete("program");
+    else nextParams.set("program", programName);
+    setSearchParams(nextParams, { replace: true });
+  }
 
   useEffect(() => {
     setLoading(true);
@@ -202,7 +210,7 @@ export default function Dashboard() {
 
       {/* Navegação por programa e busca */}
       <div className="mb-8 flex flex-col gap-3 lg:flex-row lg:items-stretch lg:justify-between">
-        <ProgramSwitcher programs={programs} value={selectedProgram} onChange={setSelectedProgram} className="w-full lg:max-w-xl lg:flex-1" />
+        <ProgramSwitcher programs={programs} value={selectedProgram} onChange={selectProgram} className="w-full lg:max-w-xl lg:flex-1" />
         <div className="relative w-full lg:max-w-md">
           <span className="absolute inset-y-0 left-0 flex items-center pl-2">
             <span className="material-symbols-outlined text-gray-400 text-lg">search</span>
