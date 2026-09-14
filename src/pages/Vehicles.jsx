@@ -152,7 +152,9 @@ export default function Vehicles() {
   }, [showBookingForm, editingBooking, vehicles, programs, currentUser]);
 
   const scheduledBookings = useMemo(
-    () => bookings.filter((item) => item.status === "scheduled"),
+    () => bookings
+      .filter((item) => item.status === "scheduled")
+      .sort((first, second) => new Date(first.start_at) - new Date(second.start_at)),
     [bookings],
   );
   const completedBookings = useMemo(

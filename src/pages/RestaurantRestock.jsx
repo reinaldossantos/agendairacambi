@@ -3,7 +3,7 @@ import { supabase } from "../lib/supabaseClient";
 import { useCurrentUser } from "../context/CurrentUserContext";
 import { canManageRestaurant } from "../lib/restaurantAccess";
 
-const commonProducts = ["Arroz", "Feijão", "Óleo", "Açúcar", "Café", "Leite", "Farinha", "Macarrão", "Sal", "Ovos", "Carne", "Verduras"];
+const commonProducts = ["Arroz", "Feijão", "Óleo", "Açúcar", "Café", "Leite", "Farinha", "Macarrão", "Sal", "Ovos", "Carne", "Verduras", "Gás de cozinha"];
 const statusLabels = { requested: "Aguardando compra", purchasing: "Compra em andamento", restocked: "Reposto", cancelled: "Cancelado" };
 const urgencyLabels = { running_low: "Está acabando", out_of_stock: "Acabou" };
 
